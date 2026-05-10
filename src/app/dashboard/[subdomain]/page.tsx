@@ -24,12 +24,8 @@ export default async function DashboardPage({
     redirect(LOGIN_URL);
   }
 
-  const user = await prisma.user.findUnique({
-    where: { subdomain },
-    include: { routerConfig: true },
-  });
-
+  const user = await prisma.user.findUnique({ where: { subdomain } });
   if (!user) return notFound();
 
-  return <DashboardShell user={user} routerConfig={user.routerConfig} />;
+  return <DashboardShell user={user} />;
 }
