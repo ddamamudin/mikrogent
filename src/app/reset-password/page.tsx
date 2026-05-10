@@ -3,6 +3,7 @@
 import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Mikroplay";
 
@@ -40,9 +41,7 @@ function ResetPasswordForm() {
       <div className="text-center">
         <div className="text-5xl mb-4">❌</div>
         <h2 className="text-2xl font-bold mb-2">Link Tidak Valid</h2>
-        <Link href="/forgot-password" className="text-blue-400 hover:underline text-sm">
-          Minta link baru
-        </Link>
+        <Link href="/forgot-password" className="text-blue-600 dark:text-blue-400 hover:underline text-sm">Minta link baru</Link>
       </div>
     );
   }
@@ -52,55 +51,35 @@ function ResetPasswordForm() {
       <div className="text-center">
         <div className="text-5xl mb-4">✅</div>
         <h2 className="text-2xl font-bold mb-2">Password Berhasil Direset</h2>
-        <p className="text-white/60">Mengarahkan ke halaman masuk...</p>
+        <p className="text-gray-500 dark:text-white/60">Mengarahkan ke halaman masuk...</p>
       </div>
     );
   }
 
+  const inputClass = "w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2.5 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-blue-500";
+
   return (
     <>
       <div className="text-center mb-8">
-        <Link href="/" className="text-2xl font-bold text-blue-400">{APP_NAME}</Link>
+        <Link href="/" className="text-2xl font-bold text-blue-600 dark:text-blue-400">{APP_NAME}</Link>
         <h1 className="text-xl font-semibold mt-3">Buat Password Baru</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white/5 border border-white/10 rounded-2xl p-8 space-y-4">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-8 space-y-4 shadow-sm">
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg px-4 py-3">
+          <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 text-sm rounded-lg px-4 py-3">
             {error}
           </div>
         )}
-
         <div>
-          <label className="block text-sm text-white/70 mb-1">Password Baru</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={8}
-            className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:border-blue-500"
-            placeholder="Minimal 8 karakter"
-          />
+          <label className="block text-sm text-gray-600 dark:text-white/70 mb-1">Password Baru</label>
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={inputClass} placeholder="Minimal 8 karakter" />
         </div>
-
         <div>
-          <label className="block text-sm text-white/70 mb-1">Konfirmasi Password</label>
-          <input
-            type="password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            required
-            className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:border-blue-500"
-            placeholder="Ulangi password baru"
-          />
+          <label className="block text-sm text-gray-600 dark:text-white/70 mb-1">Konfirmasi Password</label>
+          <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required className={inputClass} placeholder="Ulangi password baru" />
         </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-lg font-semibold transition"
-        >
+        <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg font-semibold transition">
           {loading ? "Menyimpan..." : "Simpan Password Baru"}
         </button>
       </form>
@@ -110,9 +89,12 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white px-4">
+    <div className="min-h-screen flex items-center justify-center px-4 relative">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-md">
-        <Suspense fallback={<p className="text-center text-white/50">Memuat...</p>}>
+        <Suspense fallback={<p className="text-center text-gray-400">Memuat...</p>}>
           <ResetPasswordForm />
         </Suspense>
       </div>

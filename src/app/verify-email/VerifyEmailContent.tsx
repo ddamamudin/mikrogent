@@ -31,31 +31,31 @@ export default function VerifyEmailContent() {
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
-        <p className="text-white/60">Memverifikasi email...</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-400 dark:text-white/60">Memverifikasi email...</p>
       </div>
     );
   }
 
   if (status === "success") {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center max-w-md px-6">
           <div className="text-5xl mb-4">✅</div>
           <h2 className="text-2xl font-bold mb-2">Email Terverifikasi!</h2>
-          <p className="text-white/60">Akun Anda sudah aktif. Mengarahkan ke dashboard...</p>
+          <p className="text-gray-500 dark:text-white/60">Akun Anda sudah aktif. Mengarahkan ke dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
+    <div className="min-h-screen flex items-center justify-center">
       <div className="text-center max-w-md px-6">
         <div className="text-5xl mb-4">❌</div>
         <h2 className="text-2xl font-bold mb-2">Link Tidak Valid</h2>
-        <p className="text-white/60 mb-6">Link sudah kadaluarsa atau tidak valid.</p>
-        <Link href="/register" className="text-blue-400 hover:underline">Daftar ulang</Link>
+        <p className="text-gray-500 dark:text-white/60 mb-6">Link sudah kadaluarsa atau tidak valid.</p>
+        <Link href="/register" className="text-blue-600 dark:text-blue-400 hover:underline">Daftar ulang</Link>
       </div>
     </div>
   );
