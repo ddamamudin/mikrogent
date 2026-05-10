@@ -1,6 +1,7 @@
 import net from "net";
+import crypto from "crypto";
 
-type RouterOSResponse = Record<string, string>;
+type RosWord = Record<string, string>;
 
 export class RouterOSAPI {
   private host: string;
@@ -31,151 +32,141 @@ export class RouterOSAPI {
 
   private encodeSentence(words: string[]): Buffer {
     const parts = words.map((w) => this.encodeWord(w));
-    parts.push(Buffer.from([0])); // empty word = end of sentence
+    parts.push(Buffer.from([0]));
     return Buffer.concat(parts);
   }
 
-  private async communicate(sentences: string[][]): Promise<RouterOSResponse[][]> {
+  private decodeLength(buf: Buffer, offset: number): { len: number; bytes: number } {
+    const b = buf[offset];
+    if ((b & 0x80) === 0) return { len: b, bytes: 1 };
+    if ((b & 0xc0) === 0x80) return { len: ((b & 0x3f) << 8) | buf[offset + 1], bytes: 2 };
+    if ((b & 0xe0) === 0xc0) return { len: ((b & 0x1f) << 16) | (buf[offset + 1] << 8) | buf[offset + 2], bytes: 3 };
+    return { len: ((b & 0x0f) << 24) | (buf[offset + 1] << 16) | (buf[offset + 2] << 8) | buf[offset + 3], bytes: 4 };
+  }
+
+  // Run login + commands on a single persistent socket
+  async query(command: string, params: Record<string, string> = {}): Promise<RosWord[]> {
     return new Promise((resolve, reject) => {
       const socket = new net.Socket();
       socket.setTimeout(this.timeout);
 
-      let buffer = Buffer.alloc(0);
-      const responses: RouterOSResponse[][] = [];
-      let currentBlock: RouterOSResponse[] = [];
-      let sentenceIndex = 0;
+      let buf = Buffer.alloc(0);
+      let loggedIn = false;
+      let challenge: string | null = null;
+      const results: RosWord[] = [];
+      let currentRow: RosWord = {};
+
+      const send = (words: string[]) => socket.write(this.encodeSentence(words));
+
+      const parseBuf = () => {
+        while (buf.length > 0) {
+          if (buf[0] === 0) {
+            // End of sentence — process accumulated currentRow
+            buf = buf.slice(1);
+
+            if (!loggedIn) {
+              // Handle login flow
+              if (challenge !== null) {
+                // We already sent /login and got challenge, now send credentials
+                const md5 = crypto.createHash("md5");
+                md5.update("\x00");
+                md5.update(this.password);
+                md5.update(Buffer.from(challenge, "hex"));
+                const response = "00" + md5.digest("hex");
+                loggedIn = true;
+                send(["/login", `=name=${this.user}`, `=response=${response}`]);
+              } else if (currentRow["ret"]) {
+                // RouterOS v6: got challenge
+                challenge = currentRow["ret"];
+                currentRow = {};
+              } else if (currentRow["!done"] !== undefined) {
+                // RouterOS v7: /login returns !done directly (no challenge)
+                loggedIn = true;
+                // send actual command
+                const words = [command];
+                for (const [k, v] of Object.entries(params)) words.push(`=${k}=${v}`);
+                send(words);
+              } else if (currentRow["!trap"] !== undefined) {
+                socket.destroy();
+                reject(new Error(currentRow["message"] || "Login failed"));
+                return;
+              }
+            } else {
+              // Logged in — collecting command results
+              if (currentRow["!done"] !== undefined) {
+                socket.destroy();
+                resolve(results);
+                return;
+              } else if (currentRow["!trap"] !== undefined) {
+                socket.destroy();
+                reject(new Error(currentRow["message"] || "Command failed"));
+                return;
+              } else if (Object.keys(currentRow).length > 0) {
+                results.push({ ...currentRow });
+              }
+            }
+            currentRow = {};
+            continue;
+          }
+
+          // Decode word length
+          if (buf.length < 1) break;
+          const { len, bytes } = this.decodeLength(buf, 0);
+          if (buf.length < bytes + len) break;
+
+          const word = buf.slice(bytes, bytes + len).toString("utf8");
+          buf = buf.slice(bytes + len);
+
+          if (word.startsWith("!done")) {
+            currentRow["!done"] = "";
+          } else if (word.startsWith("!trap")) {
+            currentRow["!trap"] = "";
+          } else if (word.startsWith("!re")) {
+            // start of a new result row — save previous if exists
+            if (Object.keys(currentRow).length > 0 && !currentRow["!done"] && !currentRow["!trap"]) {
+              results.push({ ...currentRow });
+              currentRow = {};
+            }
+          } else if (word.startsWith("=")) {
+            const eq2 = word.indexOf("=", 1);
+            if (eq2 > 0) currentRow[word.slice(1, eq2)] = word.slice(eq2 + 1);
+          } else if (word.startsWith(".id=")) {
+            currentRow[".id"] = word.slice(4);
+          } else if (word.startsWith("message=")) {
+            currentRow["message"] = word.slice(8);
+          }
+        }
+      };
 
       socket.connect(this.port, this.host, () => {
-        const sendNext = () => {
-          if (sentenceIndex < sentences.length) {
-            socket.write(this.encodeSentence(sentences[sentenceIndex++]));
-          }
-        };
-        sendNext();
+        // Start login
+        send(["/login"]);
       });
 
       socket.on("data", (data) => {
-        buffer = Buffer.concat([buffer, data]);
-
-        while (buffer.length > 0) {
-          const { length: wordLen, bytesRead } = this.decodeLength(buffer);
-          if (buffer.length < bytesRead + wordLen) break;
-
-          const word = buffer.slice(bytesRead, bytesRead + wordLen).toString("utf8");
-          buffer = buffer.slice(bytesRead + wordLen);
-
-          if (wordLen === 0) {
-            // End of sentence
-            responses.push([...currentBlock]);
-            currentBlock = [];
-
-            const lastResponse = responses[responses.length - 1];
-            const lastWord = lastResponse[lastResponse.length - 1];
-            const isDone =
-              lastResponse.some((r) => r["!done"] !== undefined) ||
-              (lastWord && lastWord["!done"] !== undefined);
-
-            if (isDone || responses.length >= sentences.length) {
-              socket.destroy();
-              resolve(responses);
-            }
-          } else if (word.startsWith("!done")) {
-            currentBlock.push({ "!done": "" });
-          } else if (word.startsWith("!re")) {
-            currentBlock.push({ "!re": "" });
-          } else if (word.startsWith("!trap")) {
-            currentBlock.push({ "!trap": word });
-          } else if (word.startsWith("=")) {
-            const eqIdx = word.indexOf("=", 1);
-            if (eqIdx > 0) {
-              const key = word.slice(1, eqIdx);
-              const val = word.slice(eqIdx + 1);
-              if (currentBlock.length === 0) currentBlock.push({});
-              currentBlock[currentBlock.length - 1][key] = val;
-            }
-          } else if (word.startsWith(".id=")) {
-            if (currentBlock.length === 0) currentBlock.push({});
-            currentBlock[currentBlock.length - 1][".id"] = word.slice(4);
-          }
-        }
+        buf = Buffer.concat([buf, data]);
+        try { parseBuf(); } catch (e: any) { socket.destroy(); reject(e); }
       });
 
-      socket.on("timeout", () => {
-        socket.destroy();
-        reject(new Error("Connection timeout"));
-      });
-
-      socket.on("error", (err) => {
-        reject(new Error(`Connection error: ${err.message}`));
-      });
-
+      socket.on("timeout", () => { socket.destroy(); reject(new Error("Connection timeout")); });
+      socket.on("error", (err) => reject(new Error(`Connection error: ${err.message}`)));
       socket.on("close", () => {
-        if (currentBlock.length > 0) responses.push(currentBlock);
-        resolve(responses);
+        if (!loggedIn) reject(new Error("Connection closed before login"));
       });
     });
   }
 
-  private decodeLength(buf: Buffer): { length: number; bytesRead: number } {
-    const b = buf[0];
-    if ((b & 0x80) === 0) return { length: b, bytesRead: 1 };
-    if ((b & 0xc0) === 0x80) return { length: ((b & 0x3f) << 8) | buf[1], bytesRead: 2 };
-    if ((b & 0xe0) === 0xc0) return { length: ((b & 0x1f) << 16) | (buf[1] << 8) | buf[2], bytesRead: 3 };
-    return { length: ((b & 0x0f) << 24) | (buf[1] << 16) | (buf[2] << 8) | buf[3], bytesRead: 4 };
-  }
-
-  private md5(str: string): string {
-    return require("crypto").createHash("md5").update(str).digest("hex");
-  }
-
-  async connect(): Promise<void> {
-    // Login sequence
-    const loginResp = await this.communicate([["/login"]]);
-    const challenge = loginResp.flat().find((r) => r["ret"])?.["ret"];
-
-    let loginSentence: string[];
-    if (challenge) {
-      // Old RouterOS auth (v6)
-      const digest = this.md5(
-        "\x00" +
-        this.password +
-        Buffer.from(challenge, "hex").toString("binary")
-      );
-      loginSentence = ["/login", `=name=${this.user}`, `=response=00${digest}`];
-    } else {
-      // New RouterOS auth (v7)
-      loginSentence = ["/login", `=name=${this.user}`, `=password=${this.password}`];
-    }
-
-    const authResp = await this.communicate([loginSentence]);
-    const trap = authResp.flat().find((r) => r["!trap"]);
-    if (trap) throw new Error("Login failed: wrong credentials");
-  }
-
-  async query(command: string, params: Record<string, string> = {}, filter?: string): Promise<RouterOSResponse[]> {
-    const words = [command];
-    for (const [k, v] of Object.entries(params)) {
-      words.push(`=${k}=${v}`);
-    }
-    if (filter) words.push(`?${filter}`);
-
-    await this.connect();
-    const responses = await this.communicate([words]);
-    return responses
-      .flat()
-      .filter((r) => !r["!done"] && !r["!re"] && !r["!trap"] && Object.keys(r).length > 0);
+  // Test connection — just login
+  async testConnection(): Promise<string> {
+    const identity = await this.query("/system/identity/print");
+    return identity[0]?.["name"] || this.host;
   }
 }
 
-// Helper: connect + run single command
 export async function routerQuery(
-  ip: string,
-  port: number,
-  user: string,
-  password: string,
-  command: string,
-  params: Record<string, string> = {}
-): Promise<RouterOSResponse[]> {
+  ip: string, port: number, user: string, password: string,
+  command: string, params: Record<string, string> = {}
+): Promise<Record<string, string>[]> {
   const api = new RouterOSAPI(ip, port, user, password);
   return api.query(command, params);
 }
