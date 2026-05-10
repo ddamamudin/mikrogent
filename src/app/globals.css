@@ -24,3 +24,9 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Fix select dropdown option visibility in dark theme */
+select option {
+  background-color: #1e293b;
+  color: #fff;
+}

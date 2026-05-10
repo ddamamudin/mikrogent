@@ -45,6 +45,8 @@ const allItems = SECTIONS.flatMap((s) => s.items);
 export default function DashboardShell({ user, routerConfig }: Props) {
   const [activeMenu, setActiveMenu] = useState("home");
   const current = allItems.find((m) => m.id === activeMenu);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const toggleSection = (label: string) => setCollapsed((p) => ({ ...p, [label]: !p[label] }));
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -60,25 +62,34 @@ export default function DashboardShell({ user, routerConfig }: Props) {
           <div className="text-white/40 text-xs mt-0.5 truncate">{user.subdomain}.mikroplay.com</div>
         </div>
         <nav className="flex-1 p-3 overflow-y-auto">
-          {SECTIONS.map((sec) => (
-            <div key={sec.label} className="mb-3">
-              <div className="text-white/30 text-xs font-semibold uppercase tracking-wider px-3 py-1">{sec.label}</div>
-              {sec.items.map((item) => (
+          {SECTIONS.map((sec) => {
+            const isCollapsed = collapsed[sec.label];
+            return (
+              <div key={sec.label} className="mb-2">
                 <button
-                  key={item.id}
-                  onClick={() => setActiveMenu(item.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition ${
-                    activeMenu === item.id
-                      ? "bg-blue-600 text-white"
-                      : "text-white/60 hover:bg-white/5 hover:text-white"
-                  }`}
+                  onClick={() => toggleSection(sec.label)}
+                  className="w-full flex items-center justify-between px-3 py-1 text-white/30 hover:text-white/60 transition group"
                 >
-                  <span>{item.icon}</span>
-                  {item.label}
+                  <span className="text-xs font-semibold uppercase tracking-wider">{sec.label}</span>
+                  <span className="text-xs opacity-60 group-hover:opacity-100">{isCollapsed ? "▶" : "▾"}</span>
                 </button>
-              ))}
-            </div>
-          ))}
+                {!isCollapsed && sec.items.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveMenu(item.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition ${
+                      activeMenu === item.id
+                        ? "bg-blue-600 text-white"
+                        : "text-white/60 hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    <span>{item.icon}</span>
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            );
+          })}
         </nav>
         <div className="p-4 border-t border-white/10 space-y-2">
           <div className="text-white/60 text-xs truncate">{user.name}</div>
