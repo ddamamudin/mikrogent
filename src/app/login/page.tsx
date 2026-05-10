@@ -1,0 +1,86 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+export default function LoginPage() {
+  const router = useRouter();
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+    const data = await res.json();
+    setLoading(false);
+    if (!res.ok) return setError(data.error || "Email atau password salah");
+
+    const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
+    const protocol = window.location.protocol;
+    window.location.href = `${protocol}//${data.subdomain}.${appDomain}`;
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white px-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <Link href="/" className="text-2xl font-bold text-blue-400">Mikroplay</Link>
+          <h1 className="text-xl font-semibold mt-4">Masuk ke Akun Anda</h1>
+        </div>
+
+        <form onSubmit={handleSubmit} className="bg-white/5 border border-white/10 rounded-2xl p-8 space-y-4">
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg px-4 py-3">
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm text-white/70 mb-1">Email</label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+              required
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:border-blue-500"
+              placeholder="admin@bisnisanda.com"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-white/70 mb-1">Password</label>
+            <input
+              type="password"
+              value={form.password}
+              onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+              required
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:border-blue-500"
+              placeholder="Password Anda"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-lg font-semibold transition"
+          >
+            {loading ? "Masuk..." : "Masuk"}
+          </button>
+        </form>
+
+        <p className="text-center text-sm text-white/40 mt-6">
+          Belum punya akun?{" "}
+          <Link href="/register" className="text-blue-400 hover:underline">Daftar Gratis</Link>
+        </p>
+      </div>
+    </div>
+  );
+}

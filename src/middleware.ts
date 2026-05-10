@@ -1,0 +1,28 @@
+import { NextRequest, NextResponse } from "next/server";
+
+export function middleware(req: NextRequest) {
+  const hostname = req.headers.get("host") || "";
+  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
+
+  // Strip port for local dev
+  const host = hostname.replace(/:.*/, "");
+
+  // Check if it's a subdomain
+  const isSubdomain =
+    host !== appDomain &&
+    host !== `www.${appDomain}` &&
+    host.endsWith(`.${appDomain}`);
+
+  if (isSubdomain) {
+    const subdomain = host.replace(`.${appDomain}`, "");
+    const url = req.nextUrl.clone();
+    url.pathname = `/dashboard/${subdomain}${url.pathname}`;
+    return NextResponse.rewrite(url);
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api).*)"],
+};
