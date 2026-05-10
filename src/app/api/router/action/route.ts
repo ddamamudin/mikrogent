@@ -19,6 +19,13 @@ export async function POST(req: NextRequest) {
   try {
     const api = new RouterOSAPI(routerIp, apiPort, routerUser, decrypt(routerPass));
 
+    // Special: batch remove expired users (limit-uptime=1s)
+    if (action === "remove-expired") {
+      const expired = await api.query("/ip/hotspot/user/print", { "?limit-uptime": "1s" });
+      for (const u of expired) await api.query("/ip/hotspot/user/remove", { ".id": u[".id"] });
+      return NextResponse.json({ ok: true, removed: expired.length });
+    }
+
     const actionMap: Record<string, string> = {
       // Hotspot users
       "add-user":           "/ip/hotspot/user/add",
@@ -40,12 +47,26 @@ export async function POST(req: NextRequest) {
       "enable-ipbinding":   "/ip/hotspot/ip-binding/enable",
       "disable-ipbinding":  "/ip/hotspot/ip-binding/disable",
       "remove-ipbinding":   "/ip/hotspot/ip-binding/remove",
+      // Cookies
+      "remove-cookie":      "/ip/hotspot/cookie/remove",
+      // Scripts (Quick Print)
+      "add-script":         "/system/script/add",
+      "edit-script":        "/system/script/set",
+      "remove-script":      "/system/script/remove",
       // Scheduler
       "enable-scheduler":   "/system/scheduler/enable",
       "disable-scheduler":  "/system/scheduler/disable",
       "remove-scheduler":   "/system/scheduler/remove",
-      // Scripts
-      "remove-script":      "/system/script/remove",
+      // PPP
+      "enable-ppp-secret":  "/ppp/secret/enable",
+      "disable-ppp-secret": "/ppp/secret/disable",
+      "remove-ppp-secret":  "/ppp/secret/remove",
+      "add-ppp-secret":     "/ppp/secret/add",
+      "edit-ppp-secret":    "/ppp/secret/set",
+      "disconnect-ppp":     "/ppp/active/remove",
+      "add-ppp-profile":    "/ppp/profile/add",
+      "edit-ppp-profile":   "/ppp/profile/set",
+      "remove-ppp-profile": "/ppp/profile/remove",
       // System
       "reboot":             "/system/reboot",
     };

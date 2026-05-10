@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const hostname = req.headers.get("host") || "";
   const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
 
-  // Strip port for local dev
   const host = hostname.replace(/:.*/, "");
 
-  // Check if it's a subdomain
   const isSubdomain =
     host !== appDomain &&
     host !== `www.${appDomain}` &&

@@ -55,17 +55,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(profile ? users.filter((u) => u["profile"] === profile) : users);
     }
 
-    if (cmd === "active") {
-      return NextResponse.json(await api.query("/ip/hotspot/active/print"));
-    }
-
-    if (cmd === "profiles") {
-      return NextResponse.json(await api.query("/ip/hotspot/user/profile/print"));
-    }
-
-    if (cmd === "servers") {
-      return NextResponse.json(await api.query("/ip/hotspot/print"));
-    }
+    if (cmd === "active") return NextResponse.json(await api.query("/ip/hotspot/active/print"));
+    if (cmd === "profiles") return NextResponse.json(await api.query("/ip/hotspot/user/profile/print"));
+    if (cmd === "servers") return NextResponse.json(await api.query("/ip/hotspot/print"));
 
     if (cmd === "hosts") {
       const filter = req.nextUrl.searchParams.get("filter") || "";
@@ -75,22 +67,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(await api.query("/ip/hotspot/host/print", params));
     }
 
-    if (cmd === "ipbinding") {
-      return NextResponse.json(await api.query("/ip/hotspot/ip-binding/print"));
-    }
-
-    if (cmd === "dhcp") {
-      return NextResponse.json(await api.query("/ip/dhcp-server/lease/print"));
-    }
+    if (cmd === "ipbinding") return NextResponse.json(await api.query("/ip/hotspot/ip-binding/print"));
+    if (cmd === "cookies") return NextResponse.json(await api.query("/ip/hotspot/cookie/print"));
+    if (cmd === "dhcp") return NextResponse.json(await api.query("/ip/dhcp-server/lease/print"));
 
     if (cmd === "logs") {
       const logs = await api.query("/log/print", { "?topics": "hotspot" });
       return NextResponse.json([...logs].reverse().slice(0, 200));
     }
 
-    if (cmd === "interfaces") {
-      return NextResponse.json(await api.query("/interface/print"));
-    }
+    if (cmd === "interfaces") return NextResponse.json(await api.query("/interface/print"));
 
     if (cmd === "traffic") {
       const iface = req.nextUrl.searchParams.get("iface") || "ether1";
@@ -98,17 +84,24 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(stats[0] || {});
     }
 
-    if (cmd === "scheduler") {
-      return NextResponse.json(await api.query("/system/scheduler/print"));
-    }
+    if (cmd === "scheduler") return NextResponse.json(await api.query("/system/scheduler/print"));
 
     if (cmd === "scripts") {
       const comment = req.nextUrl.searchParams.get("comment") || "mikhmon";
-      const owner = req.nextUrl.searchParams.get("owner") || "";
+      const owner   = req.nextUrl.searchParams.get("owner") || "";
       const params: Record<string, string> = { "?comment": comment };
       if (owner) params["?owner"] = owner;
       return NextResponse.json(await api.query("/system/script/print", params));
     }
+
+    if (cmd === "quickprint") {
+      return NextResponse.json(await api.query("/system/script/print", { "?comment": "QuickPrintMikhmon" }));
+    }
+
+    // PPP
+    if (cmd === "ppp-secrets")  return NextResponse.json(await api.query("/ppp/secret/print"));
+    if (cmd === "ppp-active")   return NextResponse.json(await api.query("/ppp/active/print"));
+    if (cmd === "ppp-profiles") return NextResponse.json(await api.query("/ppp/profile/print"));
 
     return NextResponse.json({ error: "Unknown command" }, { status: 400 });
   } catch (err: any) {
