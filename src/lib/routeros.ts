@@ -1,5 +1,4 @@
 import net from "net";
-import crypto from "crypto";
 
 type RosWord = Record<string, string>;
 
@@ -44,51 +43,53 @@ export class RouterOSAPI {
     return { len: ((b & 0x0f) << 24) | (buf[offset + 1] << 16) | (buf[offset + 2] << 8) | buf[offset + 3], bytes: 4 };
   }
 
-  // Run login + commands on a single persistent socket
   async query(command: string, params: Record<string, string> = {}): Promise<RosWord[]> {
     return new Promise((resolve, reject) => {
       const socket = new net.Socket();
       socket.setTimeout(this.timeout);
 
       let buf = Buffer.alloc(0);
-      let loggedIn = false;
+      // Login states: 0=initial, 1=credentials sent (waiting confirm), 2=logged in
+      let loginState = 0;
       const results: RosWord[] = [];
       let currentRow: RosWord = {};
 
       const send = (words: string[]) => socket.write(this.encodeSentence(words));
 
+      const sendCommand = () => {
+        const words = [command];
+        for (const [k, v] of Object.entries(params)) words.push(`=${k}=${v}`);
+        send(words);
+      };
+
       const parseBuf = () => {
         while (buf.length > 0) {
           if (buf[0] === 0) {
-            // End of sentence — process accumulated currentRow
             buf = buf.slice(1);
 
-            if (!loggedIn) {
-              // Handle login flow
-              if (currentRow["ret"]) {
-                // RouterOS v6: got challenge in same sentence as !done — send credentials immediately
-                const ch = currentRow["ret"];
-                const md5 = crypto.createHash("md5");
-                md5.update("\x00");
-                md5.update(this.password);
-                md5.update(Buffer.from(ch, "hex"));
-                const response = "00" + md5.digest("hex");
-                loggedIn = true;
-                send(["/login", `=name=${this.user}`, `=response=${response}`]);
-              } else if (currentRow["!done"] !== undefined) {
-                // RouterOS v7: /login returns !done directly (no challenge)
-                loggedIn = true;
-                // send actual command
-                const words = [command];
-                for (const [k, v] of Object.entries(params)) words.push(`=${k}=${v}`);
-                send(words);
-              } else if (currentRow["!trap"] !== undefined) {
+            if (loginState === 0) {
+              // Waiting for /login response
+              if (currentRow["!trap"] !== undefined) {
                 socket.destroy();
                 reject(new Error(currentRow["message"] || "Login failed"));
                 return;
               }
+              // v6: got challenge (=ret=) — send plain password
+              // v7: got !done without challenge — also send credentials
+              loginState = 1;
+              send(["/login", `=name=${this.user}`, `=password=${this.password}`]);
+            } else if (loginState === 1) {
+              // Waiting for credential confirmation
+              if (currentRow["!trap"] !== undefined) {
+                socket.destroy();
+                reject(new Error(currentRow["message"] || "Login failed"));
+                return;
+              }
+              // !done = login success — send actual command
+              loginState = 2;
+              sendCommand();
             } else {
-              // Logged in — collecting command results
+              // loginState === 2: collecting command results
               if (currentRow["!done"] !== undefined) {
                 socket.destroy();
                 resolve(results);
@@ -105,7 +106,6 @@ export class RouterOSAPI {
             continue;
           }
 
-          // Decode word length
           if (buf.length < 1) break;
           const { len, bytes } = this.decodeLength(buf, 0);
           if (buf.length < bytes + len) break;
@@ -118,8 +118,7 @@ export class RouterOSAPI {
           } else if (word.startsWith("!trap")) {
             currentRow["!trap"] = "";
           } else if (word.startsWith("!re")) {
-            // start of a new result row — save previous if exists
-            if (Object.keys(currentRow).length > 0 && !currentRow["!done"] && !currentRow["!trap"]) {
+            if (Object.keys(currentRow).length > 0 && currentRow["!done"] === undefined && currentRow["!trap"] === undefined) {
               results.push({ ...currentRow });
               currentRow = {};
             }
@@ -135,7 +134,6 @@ export class RouterOSAPI {
       };
 
       socket.connect(this.port, this.host, () => {
-        // Start login
         send(["/login"]);
       });
 
@@ -147,12 +145,11 @@ export class RouterOSAPI {
       socket.on("timeout", () => { socket.destroy(); reject(new Error("Connection timeout")); });
       socket.on("error", (err) => reject(new Error(`Connection error: ${err.message}`)));
       socket.on("close", () => {
-        if (!loggedIn) reject(new Error("Connection closed before login"));
+        if (loginState < 2) reject(new Error("Connection closed before login"));
       });
     });
   }
 
-  // Test connection — just login
   async testConnection(): Promise<string> {
     const identity = await this.query("/system/identity/print");
     return identity[0]?.["name"] || this.host;
