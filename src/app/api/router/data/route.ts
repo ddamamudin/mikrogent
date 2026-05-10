@@ -93,20 +93,23 @@ export async function GET(req: NextRequest) {
     if (cmd === "scheduler") return NextResponse.json(await api.query("/system/scheduler/print"));
 
     if (cmd === "scripts" || cmd === "scripts-all") {
-      // Use longer timeout — router may take >10s to scan 70k+ scripts
+      // RouterOS API filters (?comment, ?owner) are extremely slow on large script lists
+      // (72k+ scripts: router scans ALL before sending ANY data → timeout).
+      // Instead: fetch all with .proplist only (router streams immediately), filter in Node.js.
       const apiSlow = new RouterOSAPI(routerIp, apiPort, routerUser, decrypt(routerPass), 60000);
+      const all = await apiSlow.query("/system/script/print", { ".proplist": ".id,name,comment,owner" });
+
       if (cmd === "scripts-all") {
-        const all = await apiSlow.query("/system/script/print", { ".proplist": ".id,name,comment" });
         return NextResponse.json(all.slice(0, 100));
       }
+      // cmd === "scripts": filter by comment and optionally owner
       const comment = req.nextUrl.searchParams.get("comment") || "mikhmon";
       const owner   = req.nextUrl.searchParams.get("owner") || "";
-      const params: Record<string, string> = {
-        "?comment": comment,
-        ".proplist": ".id,name,comment,owner",
-      };
-      if (owner) params["?owner"] = owner;
-      return NextResponse.json(await apiSlow.query("/system/script/print", params));
+      const filtered = all.filter((s) =>
+        (!comment || s["comment"] === comment) &&
+        (!owner   || s["owner"]   === owner)
+      );
+      return NextResponse.json(filtered);
     }
 
     if (cmd === "quickprint") {
