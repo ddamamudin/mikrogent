@@ -4,7 +4,7 @@ import { useState } from "react";
 import { User } from "@/generated/prisma/client";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
-type View = "profile" | "password";
+type View = "profile" | "password" | "hapus-akun";
 
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Mikroplay";
 const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
@@ -23,6 +23,11 @@ export default function DashboardShell({ user: initialUser }: { user: User }) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  const [deleteEmail, setDeleteEmail] = useState("");
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   const showMsg = (type: "ok" | "err", text: string) => {
     setMessage({ type, text });
@@ -72,6 +77,21 @@ export default function DashboardShell({ user: initialUser }: { user: User }) {
     } else {
       showMsg("err", data.error || "Gagal memperbarui password");
     }
+  };
+
+  const handleDeleteAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setDeleteError("");
+    setDeleteLoading(true);
+    const res = await fetch("/api/account", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: deleteEmail, password: deletePassword }),
+    });
+    const data = await res.json();
+    setDeleteLoading(false);
+    if (!res.ok) return setDeleteError(data.error || "Gagal menghapus akun");
+    window.location.href = "/";
   };
 
   const inputClass = "w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-blue-500";
@@ -135,17 +155,21 @@ export default function DashboardShell({ user: initialUser }: { user: User }) {
 
               {profileExpanded && (
                 <div className="mt-1 ml-4 space-y-1">
-                  {(["profile", "password"] as View[]).map((v) => (
+                  {(["profile", "password", "hapus-akun"] as View[]).map((v) => (
                     <button
                       key={v}
                       onClick={() => setView(v)}
                       className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition ${
-                        view === v
+                        view === v && v !== "hapus-akun"
                           ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
+                          : view === v && v === "hapus-akun"
+                          ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10"
+                          : v === "hapus-akun"
+                          ? "text-red-500 dark:text-red-400/70 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"
                           : "text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
                       }`}
                     >
-                      {v === "profile" ? "Update Profil" : "Ganti Password"}
+                      {v === "profile" ? "Update Profil" : v === "password" ? "Ganti Password" : "Hapus Akun"}
                     </button>
                   ))}
                 </div>
@@ -214,6 +238,54 @@ export default function DashboardShell({ user: initialUser }: { user: User }) {
 
                 <button type="submit" disabled={loading} className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition disabled:opacity-50">
                   {loading ? "Menyimpan..." : "Simpan Perubahan"}
+                </button>
+              </form>
+            )}
+
+            {view === "hapus-akun" && (
+              <form onSubmit={handleDeleteAccount} className="bg-white dark:bg-slate-900 rounded-xl border border-red-200 dark:border-red-500/20 p-6 space-y-4 shadow-sm">
+                <div>
+                  <h2 className="text-sm font-semibold text-red-500 uppercase tracking-wider">Hapus Akun</h2>
+                  <p className="text-xs text-gray-500 dark:text-white/40 mt-1">
+                    Tindakan ini permanen dan tidak dapat dibatalkan. Seluruh data akun akan dihapus dari sistem.
+                  </p>
+                </div>
+
+                {deleteError && (
+                  <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 text-sm rounded-lg px-4 py-3">
+                    {deleteError}
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <label className="text-sm text-gray-600 dark:text-white/60">Konfirmasi Email</label>
+                  <input
+                    type="email"
+                    value={deleteEmail}
+                    onChange={(e) => setDeleteEmail(e.target.value)}
+                    required
+                    placeholder={user.email}
+                    className={inputClass}
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm text-gray-600 dark:text-white/60">Konfirmasi Password</label>
+                  <input
+                    type="password"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    required
+                    className={inputClass}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={deleteLoading}
+                  className="w-full py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-medium transition disabled:opacity-50"
+                >
+                  {deleteLoading ? "Menghapus..." : "Hapus Akun Saya"}
                 </button>
               </form>
             )}

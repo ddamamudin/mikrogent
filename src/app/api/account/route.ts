@@ -48,3 +48,28 @@ export async function PATCH(req: NextRequest) {
   await prisma.user.update({ where: { id: session.userId }, data: updates });
   return NextResponse.json({ ok: true });
 }
+
+export async function DELETE(req: NextRequest) {
+  const session = getSessionFromCookie(req.cookies.get("session")?.value);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { email, password } = await req.json();
+  if (!email || !password)
+    return NextResponse.json({ error: "Email dan password wajib diisi" }, { status: 400 });
+
+  const user = await prisma.user.findUnique({ where: { id: session.userId } });
+  if (!user) return NextResponse.json({ error: "User tidak ditemukan" }, { status: 404 });
+
+  if (user.email !== email)
+    return NextResponse.json({ error: "Email tidak sesuai" }, { status: 400 });
+
+  const passwordOk = await bcrypt.compare(password, user.password);
+  if (!passwordOk)
+    return NextResponse.json({ error: "Password salah" }, { status: 400 });
+
+  await prisma.user.delete({ where: { id: session.userId } });
+
+  const res = NextResponse.json({ ok: true });
+  res.cookies.set("session", "", { maxAge: 0, path: "/" });
+  return res;
+}
