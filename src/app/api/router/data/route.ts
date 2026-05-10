@@ -99,6 +99,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(await api.query("/system/script/print", params));
     }
 
+    if (cmd === "scripts-all") {
+      const all = await api.query("/system/script/print");
+      return NextResponse.json(all.slice(0, 100));
+    }
+
     if (cmd === "quickprint") {
       return NextResponse.json(await api.query("/system/script/print", { "?comment": "QuickPrintMikhmon" }));
     }

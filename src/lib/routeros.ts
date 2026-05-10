@@ -58,7 +58,12 @@ export class RouterOSAPI {
 
       const sendCommand = () => {
         const words = [command];
-        for (const [k, v] of Object.entries(params)) words.push(`=${k}=${v}`);
+        for (const [k, v] of Object.entries(params)) {
+          // keys starting with ? are RouterOS query filters: ?comment=mikhmon
+          // other keys are attribute setters: =name=foo
+          if (k.startsWith("?")) words.push(`${k}=${v}`);
+          else words.push(`=${k}=${v}`);
+        }
         send(words);
       };
 

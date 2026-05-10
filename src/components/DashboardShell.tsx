@@ -959,7 +959,10 @@ function HotspotLog({ subdomain }: { subdomain: string }) {
 // ── Selling Report ──────────────────────────────────────────────────────────
 function SellingReport({ subdomain }: { subdomain: string }) {
   const [scripts, setScripts] = useState<any[]>([]);
+  const [allScripts, setAllScripts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [debugLoading, setDebugLoading] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
   const [search, setSearch] = useState("");
 
   const load = useCallback(async () => {
@@ -968,6 +971,15 @@ function SellingReport({ subdomain }: { subdomain: string }) {
     const d = await res.json();
     setLoading(false);
     if (Array.isArray(d)) setScripts(d);
+  }, [subdomain]);
+
+  const loadAll = useCallback(async () => {
+    setDebugLoading(true);
+    setShowDebug(true);
+    const res = await fetch(`/api/router/data?subdomain=${subdomain}&cmd=scripts-all`);
+    const d = await res.json();
+    setDebugLoading(false);
+    if (Array.isArray(d)) setAllScripts(d);
   }, [subdomain]);
 
   useEffect(() => { load(); }, [load]);
@@ -991,56 +1003,86 @@ function SellingReport({ subdomain }: { subdomain: string }) {
 
   const total = rows.reduce((s, r) => s + (Number(r.price) || 0), 0);
 
-  if (!loading && scripts.length === 0) {
-    return (
-      <div className="bg-white/5 border border-white/10 rounded-xl p-8 text-center space-y-2">
-        <p className="text-white/50">Tidak ada data laporan</p>
-        <p className="text-white/30 text-xs">Selling report membutuhkan script mikhmon yang tersimpan di router.<br />Pastikan on-login script di profile sudah dikonfigurasi.</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-3">
       <div className="flex gap-3">
         <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari user / profile..."
           className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:border-blue-500 text-sm" />
         <Btn onClick={load} variant="ghost">Refresh</Btn>
+        <Btn onClick={loadAll} variant="ghost">Debug: Semua Script</Btn>
       </div>
+
+      {/* Debug panel: all scripts on router */}
+      {showDebug && (
+        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-yellow-400 text-xs font-semibold">Debug — Semua /system/script di router (max 100)</p>
+            <button onClick={() => setShowDebug(false)} className="text-white/40 hover:text-white text-xs">tutup</button>
+          </div>
+          {debugLoading ? (
+            <p className="text-white/40 text-xs">Memuat...</p>
+          ) : allScripts.length === 0 ? (
+            <p className="text-white/40 text-xs">Tidak ada script sama sekali di router.</p>
+          ) : (
+            <div className="space-y-1 max-h-64 overflow-y-auto">
+              {allScripts.map((s, i) => (
+                <div key={i} className="text-xs font-mono bg-black/30 rounded px-3 py-1.5 text-white/70">
+                  <span className="text-yellow-400/70">[{s["comment"] || "no-comment"}]</span>{" "}
+                  {s["name"] || "(no name)"}
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="text-white/30 text-xs">Total: {allScripts.length} script. Yang muncul di Selling Report harus punya comment=mikhmon.</p>
+        </div>
+      )}
+
+      {!loading && scripts.length === 0 && (
+        <div className="bg-white/5 border border-white/10 rounded-xl p-8 text-center space-y-2">
+          <p className="text-white/50">Tidak ada data laporan (comment=mikhmon)</p>
+          <p className="text-white/30 text-xs">
+            Klik <strong className="text-yellow-400">Debug: Semua Script</strong> untuk lihat apa yang ada di router.
+          </p>
+        </div>
+      )}
+
       {total > 0 && (
         <div className="bg-green-500/10 border border-green-500/20 rounded-xl px-5 py-3 flex items-center justify-between">
           <span className="text-green-400 text-sm">Total Pendapatan</span>
           <span className="text-green-400 font-bold text-lg">Rp {total.toLocaleString("id-ID")}</span>
         </div>
       )}
-      <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-white/10 text-white/50 text-xs">
-              <th className="text-left px-4 py-3">Tanggal</th>
-              <th className="text-left px-4 py-3">Waktu</th>
-              <th className="text-left px-4 py-3">User</th>
-              <th className="text-left px-4 py-3">Profile</th>
-              <th className="text-left px-4 py-3">Harga</th>
-              <th className="text-left px-4 py-3">Validity</th>
-              <th className="text-left px-4 py-3">MAC</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? <Loader cols={7} /> : rows.length === 0 ? <Empty cols={7} /> : rows.map((r, i) => (
-              <tr key={i} className="border-b border-white/5 hover:bg-white/5">
-                <td className="px-4 py-2 text-xs text-white/60">{r.date}</td>
-                <td className="px-4 py-2 text-xs text-white/60">{r.time}</td>
-                <td className="px-4 py-2 font-mono text-xs">{r.user}</td>
-                <td className="px-4 py-2 text-xs text-white/60">{r.profile}</td>
-                <td className="px-4 py-2 text-xs text-green-400">Rp {Number(r.price).toLocaleString("id-ID")}</td>
-                <td className="px-4 py-2 text-xs text-white/50">{r.validity}</td>
-                <td className="px-4 py-2 font-mono text-xs text-white/40">{r.mac}</td>
+
+      {scripts.length > 0 && (
+        <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-white/10 text-white/50 text-xs">
+                <th className="text-left px-4 py-3">Tanggal</th>
+                <th className="text-left px-4 py-3">Waktu</th>
+                <th className="text-left px-4 py-3">User</th>
+                <th className="text-left px-4 py-3">Profile</th>
+                <th className="text-left px-4 py-3">Harga</th>
+                <th className="text-left px-4 py-3">Validity</th>
+                <th className="text-left px-4 py-3">MAC</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {loading ? <Loader cols={7} /> : rows.length === 0 ? <Empty cols={7} /> : rows.map((r, i) => (
+                <tr key={i} className="border-b border-white/5 hover:bg-white/5">
+                  <td className="px-4 py-2 text-xs text-white/60">{r.date}</td>
+                  <td className="px-4 py-2 text-xs text-white/60">{r.time}</td>
+                  <td className="px-4 py-2 font-mono text-xs">{r.user}</td>
+                  <td className="px-4 py-2 text-xs text-white/60">{r.profile}</td>
+                  <td className="px-4 py-2 text-xs text-green-400">Rp {Number(r.price).toLocaleString("id-ID")}</td>
+                  <td className="px-4 py-2 text-xs text-white/50">{r.validity}</td>
+                  <td className="px-4 py-2 font-mono text-xs text-white/40">{r.mac}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
