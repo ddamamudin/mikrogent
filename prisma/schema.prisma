@@ -38,6 +38,7 @@ model EmailToken {
 model AppConfig {
   id                String  @id @default("singleton")
   adminSetupEnabled Boolean @default(true)
+  showBrandField    Boolean @default(true)
 }
 
 enum UserStatus {

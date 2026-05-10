@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 
-type Config = { adminSetupEnabled: boolean };
+type Config = { adminSetupEnabled: boolean; showBrandField: boolean };
 type Admin = { name: string; email: string };
 
 export default function PengaturanClient({ config: initial, admin }: { config: Config; admin: Admin }) {
   const [setupEnabled, setSetupEnabled] = useState(initial.adminSetupEnabled);
+  const [showBrand, setShowBrand] = useState(initial.showBrandField);
   const [configLoading, setConfigLoading] = useState(false);
 
   const [newPassword, setNewPassword] = useState("");
@@ -31,6 +32,22 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
     if (res.ok) {
       setSetupEnabled(val);
       showMsg("ok", `Halaman setup admin ${val ? "diaktifkan" : "dinonaktifkan"}`);
+    } else {
+      showMsg("err", "Gagal menyimpan pengaturan");
+    }
+  };
+
+  const handleToggleShowBrand = async (val: boolean) => {
+    setConfigLoading(true);
+    const res = await fetch("/api/admin/config", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ showBrandField: val }),
+    });
+    setConfigLoading(false);
+    if (res.ok) {
+      setShowBrand(val);
+      showMsg("ok", `Field brand ${val ? "ditampilkan" : "disembunyikan"}`);
     } else {
       showMsg("err", "Gagal menyimpan pengaturan");
     }
@@ -89,6 +106,27 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
         <p className="text-xs text-gray-400 dark:text-white/30">
           Status: <span className={setupEnabled ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"}>{setupEnabled ? "Aktif" : "Nonaktif"}</span>
           {" — "}URL: <code className="text-xs">/admin/setup</code>
+        </p>
+      </div>
+
+      {/* Field Brand */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 p-5 shadow-sm space-y-4">
+        <h2 className="text-sm font-semibold text-gray-400 dark:text-white/50 uppercase tracking-wider">Fitur Brand / Subdomain</h2>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">Tampilkan field brand saat daftar</p>
+            <p className="text-xs text-gray-400 dark:text-white/30 mt-0.5">Matikan jika aplikasi belum menggunakan fitur subdomain</p>
+          </div>
+          <button
+            onClick={() => handleToggleShowBrand(!showBrand)}
+            disabled={configLoading}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${showBrand ? "bg-blue-600" : "bg-gray-200 dark:bg-white/10"}`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showBrand ? "translate-x-6" : "translate-x-1"}`} />
+          </button>
+        </div>
+        <p className="text-xs text-gray-400 dark:text-white/30">
+          Status: <span className={showBrand ? "text-green-600 dark:text-green-400" : "text-yellow-600 dark:text-yellow-400"}>{showBrand ? "Ditampilkan" : "Disembunyikan (brand di-generate otomatis dari email)"}</span>
         </p>
       </div>
 

@@ -26,7 +26,7 @@ const NAV = [
 
 type User = { name: string; brand: string | null; email: string };
 
-export default function DashboardLayoutClient({ user, children }: { user: User; children: React.ReactNode }) {
+export default function DashboardLayoutClient({ user, showBrandField, children }: { user: User; showBrandField: boolean; children: React.ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({ Profil: true });
@@ -112,7 +112,7 @@ export default function DashboardLayoutClient({ user, children }: { user: User; 
             ))}
 
             {/* Buka Situs */}
-            {user.brand && (
+            {showBrandField && user.brand && (
               <a
                 href={`//${user.brand}.${APP_DOMAIN}`}
                 target="_blank"
@@ -133,7 +133,7 @@ export default function DashboardLayoutClient({ user, children }: { user: User; 
           </nav>
 
           <div className="px-3 py-3 border-t border-gray-200 dark:border-white/10">
-            {user.brand && <p className="text-xs text-gray-400 dark:text-white/30 truncate">{user.brand}.{APP_DOMAIN}</p>}
+            {showBrandField && user.brand && <p className="text-xs text-gray-400 dark:text-white/30 truncate">{user.brand}.{APP_DOMAIN}</p>}
           </div>
         </aside>
 

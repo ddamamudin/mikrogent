@@ -5,30 +5,56 @@ import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendVerificationEmail } from "@/lib/mailer";
 
+function emailToBrand(email: string): string {
+  return email.split("@")[0]
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/^-+|-+$/g, "");
+}
+
+async function resolveUniqueBrand(base: string): Promise<string> {
+  let candidate = base;
+  let i = 2;
+  while (true) {
+    const existing = await prisma.user.findUnique({ where: { brand: candidate } });
+    if (!existing) return candidate;
+    candidate = `${base}${i}`;
+    i++;
+  }
+}
+
 export async function POST(req: NextRequest) {
-  const { name, email, brand, alamat, noWa, password } = await req.json();
+  const { name, email, brand: rawBrand, alamat, noWa, password, showBrandField } = await req.json();
 
-  if (!name || !email || !brand || !password)
+  if (!name || !email || !password)
     return NextResponse.json({ error: "Semua field wajib diisi" }, { status: 400 });
-
-  if (brand.length < 3)
-    return NextResponse.json({ error: "Brand minimal 3 karakter" }, { status: 400 });
-
-  if (!/^[a-z0-9-]+$/.test(brand))
-    return NextResponse.json({ error: "Brand hanya boleh huruf kecil, angka, dan tanda -" }, { status: 400 });
 
   if (password.length < 8)
     return NextResponse.json({ error: "Password minimal 8 karakter" }, { status: 400 });
 
-  const existing = await prisma.user.findFirst({
-    where: { OR: [{ email }, { brand }] },
-  });
+  let brand: string;
 
-  if (existing?.email === email)
+  if (showBrandField) {
+    if (!rawBrand)
+      return NextResponse.json({ error: "Brand wajib diisi" }, { status: 400 });
+    if (rawBrand.length < 3)
+      return NextResponse.json({ error: "Brand minimal 3 karakter" }, { status: 400 });
+    if (!/^[a-z0-9-]+$/.test(rawBrand))
+      return NextResponse.json({ error: "Brand hanya boleh huruf kecil, angka, dan tanda -" }, { status: 400 });
+
+    const existingByBrand = await prisma.user.findUnique({ where: { brand: rawBrand } });
+    if (existingByBrand)
+      return NextResponse.json({ error: "Brand sudah digunakan" }, { status: 400 });
+
+    brand = rawBrand;
+  } else {
+    const base = emailToBrand(email);
+    brand = await resolveUniqueBrand(base);
+  }
+
+  const existingByEmail = await prisma.user.findUnique({ where: { email } });
+  if (existingByEmail)
     return NextResponse.json({ error: "Email sudah terdaftar" }, { status: 400 });
-
-  if (existing?.brand === brand)
-    return NextResponse.json({ error: "Brand sudah digunakan" }, { status: 400 });
 
   const hashed = await bcrypt.hash(password, 12);
   const user = await prisma.user.create({

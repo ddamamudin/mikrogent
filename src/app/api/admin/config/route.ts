@@ -32,6 +32,15 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json(config);
   }
 
+  if (typeof body.showBrandField === "boolean") {
+    const config = await prisma.appConfig.upsert({
+      where: { id: "singleton" },
+      update: { showBrandField: body.showBrandField },
+      create: { id: "singleton", showBrandField: body.showBrandField },
+    });
+    return NextResponse.json(config);
+  }
+
   if (body.newPassword) {
     const bcrypt = await import("bcryptjs");
     const hashed = await bcrypt.hash(body.newPassword, 12);

@@ -14,11 +14,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const session = getSessionFromCookie(cookieStore.get("session")?.value);
   if (!session) redirect(LOGIN_URL);
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.userId },
-    select: { name: true, brand: true, email: true },
-  });
+  const [user, config] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { name: true, brand: true, email: true },
+    }),
+    prisma.appConfig.findUnique({ where: { id: "singleton" } }),
+  ]);
   if (!user) redirect(LOGIN_URL);
 
-  return <DashboardLayoutClient user={user}>{children}</DashboardLayoutClient>;
+  const showBrandField = config?.showBrandField ?? true;
+
+  return <DashboardLayoutClient user={user} showBrandField={showBrandField}>{children}</DashboardLayoutClient>;
 }
