@@ -29,14 +29,12 @@ export async function GET(req: NextRequest) {
         api.query("/ip/hotspot/user/print"),
         api.query("/ip/hotspot/active/print"),
       ]);
-
       const res = resource[0] || {};
       const cpuLoad = Number(res["cpu-load"] || 0);
       const totalMem = Number(res["total-memory"] || 0);
       const freeMem = Number(res["free-memory"] || 0);
       const usedMem = totalMem - freeMem;
       const memPercent = totalMem > 0 ? Math.round((usedMem / totalMem) * 100) : 0;
-
       return NextResponse.json({
         routerName: identity[0]?.["name"] || routerIp,
         routerIp,
@@ -58,13 +56,58 @@ export async function GET(req: NextRequest) {
     }
 
     if (cmd === "active") {
-      const active = await api.query("/ip/hotspot/active/print");
-      return NextResponse.json(active);
+      return NextResponse.json(await api.query("/ip/hotspot/active/print"));
     }
 
     if (cmd === "profiles") {
-      const profiles = await api.query("/ip/hotspot/user/profile/print");
-      return NextResponse.json(profiles);
+      return NextResponse.json(await api.query("/ip/hotspot/user/profile/print"));
+    }
+
+    if (cmd === "servers") {
+      return NextResponse.json(await api.query("/ip/hotspot/print"));
+    }
+
+    if (cmd === "hosts") {
+      const filter = req.nextUrl.searchParams.get("filter") || "";
+      const params: Record<string, string> = {};
+      if (filter === "authorized") params["?authorized"] = "yes";
+      if (filter === "bypassed") params["?bypassed"] = "yes";
+      return NextResponse.json(await api.query("/ip/hotspot/host/print", params));
+    }
+
+    if (cmd === "ipbinding") {
+      return NextResponse.json(await api.query("/ip/hotspot/ip-binding/print"));
+    }
+
+    if (cmd === "dhcp") {
+      return NextResponse.json(await api.query("/ip/dhcp-server/lease/print"));
+    }
+
+    if (cmd === "logs") {
+      const logs = await api.query("/log/print", { "?topics": "hotspot" });
+      return NextResponse.json([...logs].reverse().slice(0, 200));
+    }
+
+    if (cmd === "interfaces") {
+      return NextResponse.json(await api.query("/interface/print"));
+    }
+
+    if (cmd === "traffic") {
+      const iface = req.nextUrl.searchParams.get("iface") || "ether1";
+      const stats = await api.query("/interface/monitor-traffic", { interface: iface, once: "" });
+      return NextResponse.json(stats[0] || {});
+    }
+
+    if (cmd === "scheduler") {
+      return NextResponse.json(await api.query("/system/scheduler/print"));
+    }
+
+    if (cmd === "scripts") {
+      const comment = req.nextUrl.searchParams.get("comment") || "mikhmon";
+      const owner = req.nextUrl.searchParams.get("owner") || "";
+      const params: Record<string, string> = { "?comment": comment };
+      if (owner) params["?owner"] = owner;
+      return NextResponse.json(await api.query("/system/script/print", params));
     }
 
     return NextResponse.json({ error: "Unknown command" }, { status: 400 });
