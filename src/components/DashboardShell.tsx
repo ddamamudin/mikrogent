@@ -28,10 +28,15 @@ const SECTIONS = [
     { id: "userlog",    label: "User Log",       icon: "📋" },
   ]},
   { label: "Tools", items: [
-    { id: "traffic",    label: "Traffic Monitor",icon: "📈" },
-    { id: "dhcp",       label: "DHCP Leases",    icon: "🔧" },
-    { id: "scheduler",  label: "Scheduler",      icon: "⏰" },
-    { id: "system",     label: "System",         icon: "⚙️" },
+    { id: "traffic",          label: "Traffic Monitor",   icon: "📈" },
+    { id: "dhcp",             label: "DHCP Leases",       icon: "🔧" },
+    { id: "scheduler",        label: "Scheduler",         icon: "⏰" },
+    { id: "script-installer", label: "Script Installer",  icon: "📜" },
+    { id: "system",           label: "System",            icon: "⚙️" },
+  ]},
+  { label: "Pengaturan", items: [
+    { id: "router-settings", label: "Konfigurasi Router", icon: "🔌" },
+    { id: "account",         label: "Akun Saya",          icon: "👤" },
   ]},
 ];
 
@@ -98,8 +103,11 @@ export default function DashboardShell({ user, routerConfig }: Props) {
         {activeMenu === "userlog"      && <UserLogReport subdomain={user.subdomain} />}
         {activeMenu === "traffic"   && <TrafficMonitor subdomain={user.subdomain} />}
         {activeMenu === "dhcp"      && <DhcpLeases    subdomain={user.subdomain} />}
-        {activeMenu === "scheduler" && <SchedulerPage subdomain={user.subdomain} />}
-        {activeMenu === "system"    && <SystemPage    subdomain={user.subdomain} routerIp={routerConfig.routerIp} />}
+        {activeMenu === "scheduler"        && <SchedulerPage     subdomain={user.subdomain} />}
+        {activeMenu === "script-installer" && <ScriptInstaller   subdomain={user.subdomain} />}
+        {activeMenu === "system"           && <SystemPage        subdomain={user.subdomain} routerIp={routerConfig.routerIp} />}
+        {activeMenu === "router-settings"  && <RouterSettings    subdomain={user.subdomain} routerConfig={routerConfig} />}
+        {activeMenu === "account"          && <AccountSettings   subdomain={user.subdomain} userName={user.name} userEmail={user.email} />}
       </main>
     </div>
   );
@@ -711,6 +719,9 @@ function HostsList({ subdomain }: { subdomain: string }) {
 function IpBinding({ subdomain }: { subdomain: string }) {
   const [bindings, setBindings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ "mac-address": "", address: "", "to-address": "", server: "all", type: "regular" });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -727,9 +738,49 @@ function IpBinding({ subdomain }: { subdomain: string }) {
     load();
   };
 
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    const params: Record<string, string> = { "mac-address": form["mac-address"], type: form.type };
+    if (form.address)       params.address         = form.address;
+    if (form["to-address"]) params["to-address"]   = form["to-address"];
+    if (form.server && form.server !== "all") params.server = form.server;
+    await fetch("/api/router/action", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subdomain, action: "add-ipbinding", params }) });
+    setSaving(false);
+    setShowAdd(false);
+    setForm({ "mac-address": "", address: "", "to-address": "", server: "all", type: "regular" });
+    load();
+  };
+
   return (
     <div className="space-y-3">
-      <p className="text-white/30 text-sm">{bindings.length} binding</p>
+      <div className="flex justify-between items-center">
+        <p className="text-white/30 text-sm">{bindings.length} binding</p>
+        <Btn onClick={() => setShowAdd(true)}>+ Tambah Binding</Btn>
+      </div>
+
+      {showAdd && (
+        <form onSubmit={handleAdd} className="bg-white/5 border border-blue-500/30 rounded-xl p-5 space-y-3">
+          <h3 className="font-semibold text-sm">Tambah IP Binding</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="text-xs text-white/50 mb-1 block">MAC Address *</label><Input value={form["mac-address"]} onChange={v => setForm(p => ({ ...p, "mac-address": v }))} placeholder="AA:BB:CC:DD:EE:FF" required /></div>
+            <div><label className="text-xs text-white/50 mb-1 block">Tipe</label>
+              <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500">
+                <option value="regular">Regular</option>
+                <option value="bypassed">Bypassed</option>
+                <option value="blocked">Blocked</option>
+              </select>
+            </div>
+            <div><label className="text-xs text-white/50 mb-1 block">Address (opsional)</label><Input value={form.address} onChange={v => setForm(p => ({ ...p, address: v }))} placeholder="192.168.1.100" /></div>
+            <div><label className="text-xs text-white/50 mb-1 block">To Address (opsional)</label><Input value={form["to-address"]} onChange={v => setForm(p => ({ ...p, "to-address": v }))} placeholder="10.0.0.100" /></div>
+          </div>
+          <div className="flex gap-2">
+            <Btn type="submit" disabled={saving}>{saving ? "Menyimpan..." : "Simpan"}</Btn>
+            <Btn variant="ghost" onClick={() => setShowAdd(false)}>Batal</Btn>
+          </div>
+        </form>
+      )}
+
       <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -1739,35 +1790,362 @@ function PppActive({ subdomain }: { subdomain: string }) {
 function PppProfiles({ subdomain }: { subdomain: string }) {
   const [profiles, setProfiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+  const [editP, setEditP] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
+  const blank = { name: "", "local-address": "", "remote-address": "", "rate-limit": "", "dns-server": "" };
+  const [form, setForm] = useState({ ...blank });
 
-  useEffect(() => {
-    fetch(`/api/router/data?subdomain=${subdomain}&cmd=ppp-profiles`).then(r=>r.json()).then(d=>{ setLoading(false); if(Array.isArray(d)) setProfiles(d); });
+  const load = useCallback(async () => {
+    setLoading(true);
+    const res = await fetch(`/api/router/data?subdomain=${subdomain}&cmd=ppp-profiles`);
+    const d = await res.json();
+    setLoading(false);
+    if (Array.isArray(d)) setProfiles(d);
   }, [subdomain]);
 
+  useEffect(() => { load(); }, [load]);
+
+  const doAction = async (action: string, params: Record<string, string>) => {
+    setSaving(true);
+    await fetch("/api/router/action", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subdomain, action, params }) });
+    setSaving(false);
+    load();
+  };
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const params: Record<string, string> = { name: form.name };
+    if (form["local-address"])  params["local-address"]  = form["local-address"];
+    if (form["remote-address"]) params["remote-address"] = form["remote-address"];
+    if (form["rate-limit"])     params["rate-limit"]     = form["rate-limit"];
+    if (form["dns-server"])     params["dns-server"]     = form["dns-server"];
+    await doAction("add-ppp-profile", params);
+    setShowAdd(false);
+    setForm({ ...blank });
+  };
+
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await doAction("edit-ppp-profile", {
+      ".id": editP[".id"],
+      "local-address":  editP["local-address"]  || "",
+      "remote-address": editP["remote-address"] || "",
+      "rate-limit":     editP["rate-limit"]     || "",
+      "dns-server":     editP["dns-server"]     || "",
+    });
+    setEditP(null);
+  };
+
   return (
-    <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-white/10 text-white/50 text-xs">
-            <th className="text-left px-4 py-3">Nama</th>
-            <th className="text-left px-4 py-3">Local Address</th>
-            <th className="text-left px-4 py-3">Remote Address</th>
-            <th className="text-left px-4 py-3">Rate Limit</th>
-            <th className="text-left px-4 py-3">DNS</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loading ? <Loader cols={5} /> : profiles.map((p) => (
-            <tr key={p[".id"]} className="border-b border-white/5 hover:bg-white/5">
-              <td className="px-4 py-2.5 font-semibold">{p["name"]}</td>
-              <td className="px-4 py-2.5 font-mono text-xs text-white/60">{p["local-address"] || "-"}</td>
-              <td className="px-4 py-2.5 font-mono text-xs text-white/60">{p["remote-address"] || "-"}</td>
-              <td className="px-4 py-2.5 font-mono text-xs text-white/60">{p["rate-limit"] || "-"}</td>
-              <td className="px-4 py-2.5 text-xs text-white/50">{p["dns-server"] || "-"}</td>
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Btn onClick={() => { setShowAdd(true); setEditP(null); }}>+ Tambah Profile</Btn>
+      </div>
+
+      {showAdd && (
+        <form onSubmit={handleAdd} className="bg-white/5 border border-blue-500/30 rounded-xl p-5 space-y-3">
+          <h3 className="font-semibold text-sm">Profile Baru</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="text-xs text-white/50 mb-1 block">Nama *</label><Input value={form.name} onChange={v => setForm(p => ({ ...p, name: v }))} required /></div>
+            <div><label className="text-xs text-white/50 mb-1 block">Rate Limit</label><Input value={form["rate-limit"]} onChange={v => setForm(p => ({ ...p, "rate-limit": v }))} placeholder="2M/5M" /></div>
+            <div><label className="text-xs text-white/50 mb-1 block">Local Address</label><Input value={form["local-address"]} onChange={v => setForm(p => ({ ...p, "local-address": v }))} placeholder="192.168.1.1" /></div>
+            <div><label className="text-xs text-white/50 mb-1 block">Remote Address</label><Input value={form["remote-address"]} onChange={v => setForm(p => ({ ...p, "remote-address": v }))} placeholder="pool-ppp" /></div>
+            <div><label className="text-xs text-white/50 mb-1 block">DNS Server</label><Input value={form["dns-server"]} onChange={v => setForm(p => ({ ...p, "dns-server": v }))} placeholder="8.8.8.8,8.8.4.4" /></div>
+          </div>
+          <div className="flex gap-2">
+            <Btn type="submit" disabled={saving}>{saving ? "Menyimpan..." : "Simpan"}</Btn>
+            <Btn variant="ghost" onClick={() => setShowAdd(false)}>Batal</Btn>
+          </div>
+        </form>
+      )}
+
+      {editP && (
+        <form onSubmit={handleEdit} className="bg-white/5 border border-yellow-500/30 rounded-xl p-5 space-y-3">
+          <h3 className="font-semibold text-sm">Edit: <span className="text-yellow-400">{editP.name}</span></h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="text-xs text-white/50 mb-1 block">Rate Limit</label><Input value={editP["rate-limit"] || ""} onChange={v => setEditP((p: any) => ({ ...p, "rate-limit": v }))} placeholder="2M/5M" /></div>
+            <div><label className="text-xs text-white/50 mb-1 block">Local Address</label><Input value={editP["local-address"] || ""} onChange={v => setEditP((p: any) => ({ ...p, "local-address": v }))} /></div>
+            <div><label className="text-xs text-white/50 mb-1 block">Remote Address</label><Input value={editP["remote-address"] || ""} onChange={v => setEditP((p: any) => ({ ...p, "remote-address": v }))} /></div>
+            <div><label className="text-xs text-white/50 mb-1 block">DNS Server</label><Input value={editP["dns-server"] || ""} onChange={v => setEditP((p: any) => ({ ...p, "dns-server": v }))} /></div>
+          </div>
+          <div className="flex gap-2">
+            <Btn type="submit" disabled={saving} variant="warning">{saving ? "Menyimpan..." : "Update"}</Btn>
+            <Btn variant="ghost" onClick={() => setEditP(null)}>Batal</Btn>
+          </div>
+        </form>
+      )}
+
+      <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-white/10 text-white/50 text-xs">
+              <th className="text-left px-4 py-3">Nama</th>
+              <th className="text-left px-4 py-3">Local Address</th>
+              <th className="text-left px-4 py-3">Remote Address</th>
+              <th className="text-left px-4 py-3">Rate Limit</th>
+              <th className="text-left px-4 py-3">DNS</th>
+              <th className="text-left px-4 py-3">Aksi</th>
             </tr>
+          </thead>
+          <tbody>
+            {loading ? <Loader cols={6} /> : profiles.map((p) => (
+              <tr key={p[".id"]} className="border-b border-white/5 hover:bg-white/5">
+                <td className="px-4 py-2.5 font-semibold">{p["name"]}</td>
+                <td className="px-4 py-2.5 font-mono text-xs text-white/60">{p["local-address"] || "-"}</td>
+                <td className="px-4 py-2.5 font-mono text-xs text-white/60">{p["remote-address"] || "-"}</td>
+                <td className="px-4 py-2.5 font-mono text-xs text-white/60">{p["rate-limit"] || "-"}</td>
+                <td className="px-4 py-2.5 text-xs text-white/50">{p["dns-server"] || "-"}</td>
+                <td className="px-4 py-2.5">
+                  <div className="flex gap-1">
+                    <Btn size="xs" onClick={() => { setEditP({ ...p }); setShowAdd(false); }}>Edit</Btn>
+                    <Btn size="xs" variant="danger" onClick={() => confirm(`Hapus profile ${p["name"]}?`) && doAction("remove-ppp-profile", { ".id": p[".id"] })}>Hapus</Btn>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ── Script Installer ──────────────────────────────────────────────────────────
+function ScriptInstaller({ subdomain }: { subdomain: string }) {
+  const [profiles, setProfiles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [prices, setPrices] = useState<Record<string, { price: string; validity: string }>>({});
+  const [installing, setInstalling] = useState<string | null>(null);
+  const [done, setDone] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    fetch(`/api/router/data?subdomain=${subdomain}&cmd=profiles`).then(r => r.json()).then(d => {
+      setLoading(false);
+      if (Array.isArray(d)) {
+        setProfiles(d);
+        const init: Record<string, { price: string; validity: string }> = {};
+        d.forEach((p: any) => { init[p["name"]] = { price: "", validity: "" }; });
+        setPrices(init);
+      }
+    });
+  }, [subdomain]);
+
+  const buildOnLogin = (profileName: string, price: string, validity: string) =>
+    `/system script add name=([/system clock get date]."-|-".[/system clock get time]."-|-".$username."-|-"."${price}"."-|-".$address."-|-".$"mac-address"."-|-"."${validity}"."-|-"."${profileName}"."-|-"."mikhmon") comment="mikhmon" source=""`;
+
+  const install = async (p: any) => {
+    const cfg = prices[p["name"]] || { price: "0", validity: "" };
+    setInstalling(p["name"]);
+    const script = buildOnLogin(p["name"], cfg.price || "0", cfg.validity);
+    await fetch("/api/router/action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subdomain, action: "edit-profile", params: { ".id": p[".id"], "on-login": script } }),
+    });
+    setInstalling(null);
+    setDone(prev => ({ ...prev, [p["name"]]: true }));
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl px-5 py-4 text-sm text-blue-300 space-y-1">
+        <p className="font-semibold">Script Installer — Selling Report</p>
+        <p className="text-blue-300/70">Install on-login script ke setiap hotspot profile. Script ini mencatat transaksi ke router setiap kali user login, sehingga Selling Report bisa berjalan.</p>
+      </div>
+
+      {loading ? <LoadingBox /> : profiles.length === 0 ? (
+        <div className="bg-white/5 border border-white/10 rounded-xl p-8 text-center text-white/40">Tidak ada profile ditemukan</div>
+      ) : (
+        <div className="space-y-3">
+          {profiles.map((p) => (
+            <div key={p[".id"]} className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-wrap items-center gap-3">
+              <div className="font-semibold text-sm min-w-32">{p["name"]}</div>
+              <div className="flex-1 flex flex-wrap gap-2">
+                <div>
+                  <label className="text-xs text-white/40 block mb-1">Harga (Rp)</label>
+                  <input type="number" value={prices[p["name"]]?.price || ""}
+                    onChange={e => setPrices(prev => ({ ...prev, [p["name"]]: { ...prev[p["name"]], price: e.target.value } }))}
+                    className="w-32 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500" placeholder="50000" />
+                </div>
+                <div>
+                  <label className="text-xs text-white/40 block mb-1">Validity</label>
+                  <input type="text" value={prices[p["name"]]?.validity || ""}
+                    onChange={e => setPrices(prev => ({ ...prev, [p["name"]]: { ...prev[p["name"]], validity: e.target.value } }))}
+                    className="w-28 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500" placeholder="30d" />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {done[p["name"]] && <span className="text-green-400 text-xs">✓ Terpasang</span>}
+                <Btn variant={done[p["name"]] ? "ghost" : "primary"} disabled={installing === p["name"]} onClick={() => install(p)}>
+                  {installing === p["name"] ? "Installing..." : done[p["name"]] ? "Reinstall" : "Install Script"}
+                </Btn>
+              </div>
+            </div>
           ))}
-        </tbody>
-      </table>
+        </div>
+      )}
+
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+        <p className="text-xs text-white/40 mb-2 font-semibold">Contoh script yang akan dipasang:</p>
+        <pre className="text-xs text-white/50 font-mono bg-black/20 rounded p-3 overflow-x-auto whitespace-pre-wrap">
+          {buildOnLogin("NAMA_PROFILE", "HARGA", "VALIDITY")}
+        </pre>
+      </div>
+    </div>
+  );
+}
+
+// ── Router Settings ───────────────────────────────────────────────────────────
+function RouterSettings({ subdomain, routerConfig }: { subdomain: string; routerConfig: any }) {
+  const [form, setForm] = useState({
+    routerIp:    routerConfig.routerIp    || "",
+    apiPort:     String(routerConfig.apiPort || 8728),
+    routerUser:  routerConfig.routerUser  || "admin",
+    routerPass:  "",
+    hotspotName: routerConfig.hotspotName || "",
+  });
+  const [testing, setTesting]   = useState(false);
+  const [testOk, setTestOk]     = useState<string | null>(null);
+  const [saving, setSaving]     = useState(false);
+  const [error, setError]       = useState("");
+  const [success, setSuccess]   = useState(false);
+
+  const handleTest = async () => {
+    setError(""); setTestOk(null); setTesting(true);
+    const res = await fetch("/api/router/test", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...form, apiPort: Number(form.apiPort) }),
+    });
+    const d = await res.json();
+    setTesting(false);
+    if (!res.ok) setError(d.error || "Gagal terhubung");
+    else setTestOk(d.name);
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(""); setSaving(true);
+    const res = await fetch("/api/router/setup", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subdomain, ...form, apiPort: Number(form.apiPort) }),
+    });
+    const d = await res.json();
+    setSaving(false);
+    if (!res.ok) setError(d.error || "Gagal menyimpan");
+    else { setSuccess(true); setTimeout(() => setSuccess(false), 3000); }
+  };
+
+  return (
+    <div className="max-w-lg space-y-4">
+      <form onSubmit={handleSave} className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-4">
+        {error   && <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg px-4 py-3">{error}</div>}
+        {success && <div className="bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-lg px-4 py-3">✓ Konfigurasi tersimpan</div>}
+        {testOk  && <div className="bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-lg px-4 py-3">✓ Terhubung ke: <strong>{testOk}</strong></div>}
+
+        <div className="grid grid-cols-3 gap-3">
+          <div className="col-span-2">
+            <label className="text-xs text-white/50 mb-1 block">IP Router</label>
+            <Input value={form.routerIp} onChange={v => { setForm(p => ({ ...p, routerIp: v })); setTestOk(null); }} required />
+          </div>
+          <div>
+            <label className="text-xs text-white/50 mb-1 block">API Port</label>
+            <Input value={form.apiPort} onChange={v => { setForm(p => ({ ...p, apiPort: v })); setTestOk(null); }} required />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-white/50 mb-1 block">Username Router</label>
+            <Input value={form.routerUser} onChange={v => setForm(p => ({ ...p, routerUser: v }))} required />
+          </div>
+          <div>
+            <label className="text-xs text-white/50 mb-1 block">Password Baru (kosong = tidak berubah)</label>
+            <Input value={form.routerPass} onChange={v => setForm(p => ({ ...p, routerPass: v }))} placeholder="••••••" type="password" />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs text-white/50 mb-1 block">Nama Hotspot (opsional)</label>
+          <Input value={form.hotspotName} onChange={v => setForm(p => ({ ...p, hotspotName: v }))} placeholder="hotspot1" />
+        </div>
+
+        <div className="flex gap-3">
+          <button type="button" onClick={handleTest} disabled={testing || !form.routerIp}
+            className="flex-1 py-2.5 bg-white/10 hover:bg-white/15 disabled:opacity-50 rounded-lg text-sm font-semibold transition">
+            {testing ? "Testing..." : "Test Koneksi"}
+          </button>
+          <Btn type="submit" disabled={saving}>{saving ? "Menyimpan..." : "Simpan"}</Btn>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+// ── Account Settings ──────────────────────────────────────────────────────────
+function AccountSettings({ subdomain, userName, userEmail }: { subdomain: string; userName: string; userEmail: string }) {
+  const [name, setName]               = useState(userName);
+  const [currentPass, setCurrentPass] = useState("");
+  const [newPass, setNewPass]         = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
+  const [saving, setSaving]           = useState(false);
+  const [error, setError]             = useState("");
+  const [success, setSuccess]         = useState("");
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(""); setSuccess("");
+    if (newPass && newPass !== confirmPass) { setError("Password baru tidak cocok"); return; }
+    if (newPass && newPass.length < 6)     { setError("Password minimal 6 karakter"); return; }
+    setSaving(true);
+    const res = await fetch("/api/account", {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subdomain, name, currentPassword: currentPass || undefined, newPassword: newPass || undefined }),
+    });
+    const d = await res.json();
+    setSaving(false);
+    if (!res.ok) setError(d.error);
+    else { setSuccess("Perubahan tersimpan"); setCurrentPass(""); setNewPass(""); setConfirmPass(""); }
+  };
+
+  return (
+    <div className="max-w-lg space-y-4">
+      <div className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-2 text-sm">
+        <div className="flex gap-2"><span className="text-white/40 w-24">Subdomain</span><span className="font-mono text-blue-400">{subdomain}.mikroplay.com</span></div>
+        <div className="flex gap-2"><span className="text-white/40 w-24">Email</span><span>{userEmail}</span></div>
+      </div>
+
+      <form onSubmit={handleSave} className="bg-white/5 border border-white/10 rounded-xl p-6 space-y-4">
+        <h3 className="font-semibold text-sm">Edit Profil</h3>
+
+        {error   && <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg px-4 py-3">{error}</div>}
+        {success && <div className="bg-green-500/10 border border-green-500/30 text-green-400 text-sm rounded-lg px-4 py-3">✓ {success}</div>}
+
+        <div>
+          <label className="text-xs text-white/50 mb-1 block">Nama Tampilan</label>
+          <Input value={name} onChange={setName} placeholder="Nama Anda" required />
+        </div>
+
+        <hr className="border-white/10" />
+        <p className="text-xs text-white/40">Ganti Password — kosongkan jika tidak ingin berubah</p>
+
+        <div>
+          <label className="text-xs text-white/50 mb-1 block">Password Lama</label>
+          <Input value={currentPass} onChange={setCurrentPass} type="password" placeholder="••••••" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-white/50 mb-1 block">Password Baru</label>
+            <Input value={newPass} onChange={setNewPass} type="password" placeholder="••••••" />
+          </div>
+          <div>
+            <label className="text-xs text-white/50 mb-1 block">Konfirmasi</label>
+            <Input value={confirmPass} onChange={setConfirmPass} type="password" placeholder="••••••" />
+          </div>
+        </div>
+
+        <Btn type="submit" disabled={saving}>{saving ? "Menyimpan..." : "Simpan Perubahan"}</Btn>
+      </form>
     </div>
   );
 }
