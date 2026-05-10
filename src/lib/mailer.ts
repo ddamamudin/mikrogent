@@ -1,21 +1,13 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT) || 587,
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function sendVerificationEmail(email: string, name: string, token: string) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://mikroplay.com";
   const verifyUrl = `${appUrl}/verify-email?token=${token}`;
 
-  await transporter.sendMail({
-    from: `"Mikroplay" <${process.env.SMTP_FROM}>`,
+  await resend.emails.send({
+    from: "Mikroplay <noreply@mikroplay.com>",
     to: email,
     subject: "Konfirmasi Email Akun Mikroplay Anda",
     html: `
