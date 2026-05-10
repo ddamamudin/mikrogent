@@ -956,47 +956,54 @@ function HotspotLog({ subdomain }: { subdomain: string }) {
   );
 }
 
+// helper: owner format mikhmon = "<mon3><year4>" e.g. "may2026"
+function ownerKey(date: Date) {
+  return date.toLocaleDateString("en-US", { month: "short" }).toLowerCase() + date.getFullYear();
+}
+function ownerLabel(key: string) {
+  const mon = key.slice(0, 3);
+  const yr  = key.slice(3);
+  const idx = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"].indexOf(mon);
+  const months = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+  return (months[idx] || mon) + " " + yr;
+}
+function buildMonthOptions() {
+  const opts: { key: string; label: string }[] = [];
+  const now = new Date();
+  for (let i = 0; i < 24; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const k = ownerKey(d);
+    opts.push({ key: k, label: ownerLabel(k) });
+  }
+  return opts;
+}
+
 // ── Selling Report ──────────────────────────────────────────────────────────
 function SellingReport({ subdomain }: { subdomain: string }) {
+  const monthOpts = buildMonthOptions();
+  const [owner, setOwner]   = useState(monthOpts[0].key);
   const [scripts, setScripts] = useState<any[]>([]);
-  const [allScripts, setAllScripts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [debugLoading, setDebugLoading] = useState(false);
-  const [showDebug, setShowDebug] = useState(false);
+  const [error, setError]   = useState("");
   const [search, setSearch] = useState("");
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (ownerKey: string) => {
     setLoading(true);
-    const res = await fetch(`/api/router/data?subdomain=${subdomain}&cmd=scripts&comment=mikhmon`);
-    const d = await res.json();
-    setLoading(false);
-    if (Array.isArray(d)) setScripts(d);
-  }, [subdomain]);
-
-  const [debugError, setDebugError] = useState("");
-
-  const loadAll = useCallback(async () => {
-    setDebugLoading(true);
-    setDebugError("");
-    setShowDebug(true);
+    setError("");
     try {
-      const ctrl = new AbortController();
-      const tid = setTimeout(() => ctrl.abort(), 15000);
-      const res = await fetch(`/api/router/data?subdomain=${subdomain}&cmd=scripts-all`, { signal: ctrl.signal });
-      clearTimeout(tid);
+      const res = await fetch(`/api/router/data?subdomain=${subdomain}&cmd=scripts&comment=mikhmon&owner=${ownerKey}`);
       const d = await res.json();
-      setDebugLoading(false);
-      if (Array.isArray(d)) setAllScripts(d);
-      else setDebugError(d?.error || "Response bukan array: " + JSON.stringify(d));
+      if (Array.isArray(d)) setScripts(d);
+      else setError(d?.error || "Gagal memuat data");
     } catch (e: any) {
-      setDebugLoading(false);
-      setDebugError(e.name === "AbortError" ? "Timeout 15s — router tidak respond untuk /system/script/print" : e.message);
+      setError(e.message);
     }
+    setLoading(false);
   }, [subdomain]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(owner); }, [load, owner]);
 
-  // Mikhmon stores: name = "date-|-time-|-user-|-price-|-address-|-mac-|-validity-|-profile-|-comment"
+  // Mikhmon name: "date-|-time-|-user-|-price-|-address-|-mac-|-validity-|-profile-|-comment"
   const rows = scripts.map((s) => {
     const parts = (s["name"] || "").split("-|-");
     return {
@@ -1009,69 +1016,88 @@ function SellingReport({ subdomain }: { subdomain: string }) {
       mac:      parts[5] || "-",
       validity: parts[6] || "-",
       profile:  parts[7] || "-",
-      comment:  parts[8] || "-",
     };
   }).filter((r) => !search || r.user.toLowerCase().includes(search.toLowerCase()) || r.profile.toLowerCase().includes(search.toLowerCase()));
 
   const total = rows.reduce((s, r) => s + (Number(r.price) || 0), 0);
 
+  // group by day for resume
+  const byDay: Record<string, { count: number; total: number }> = {};
+  rows.forEach((r) => {
+    const day = r.date || "-";
+    if (!byDay[day]) byDay[day] = { count: 0, total: 0 };
+    byDay[day].count++;
+    byDay[day].total += Number(r.price) || 0;
+  });
+  const days = Object.keys(byDay).sort();
+
   return (
     <div className="space-y-3">
+      {/* Month selector + search */}
       <div className="flex gap-3">
+        <select value={owner} onChange={(e) => setOwner(e.target.value)}
+          className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500">
+          {monthOpts.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
+        </select>
         <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari user / profile..."
           className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:border-blue-500 text-sm" />
-        <Btn onClick={load} variant="ghost">Refresh</Btn>
-        <Btn onClick={loadAll} variant="ghost">Debug: Semua Script</Btn>
+        <Btn onClick={() => load(owner)} variant="ghost">Refresh</Btn>
       </div>
 
-      {/* Debug panel: all scripts on router */}
-      {showDebug && (
-        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 space-y-2">
-          <div className="flex items-center justify-between">
-            <p className="text-yellow-400 text-xs font-semibold">Debug — Semua /system/script di router (max 100)</p>
-            <button onClick={() => setShowDebug(false)} className="text-white/40 hover:text-white text-xs">tutup</button>
+      {error && <p className="text-red-400 text-xs px-1">{error}</p>}
+
+      {/* Monthly summary */}
+      {!loading && scripts.length > 0 && (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-green-500/10 border border-green-500/20 rounded-xl px-5 py-4">
+            <p className="text-green-400/60 text-xs mb-1">Total Pendapatan {ownerLabel(owner)}</p>
+            <p className="text-green-400 font-bold text-xl">Rp {total.toLocaleString("id-ID")}</p>
           </div>
-          {debugLoading ? (
-            <p className="text-white/40 text-xs">Memuat... (timeout 15s)</p>
-          ) : debugError ? (
-            <p className="text-red-400 text-xs font-mono">{debugError}</p>
-          ) : allScripts.length === 0 ? (
-            <p className="text-white/40 text-xs">Tidak ada script sama sekali di router.</p>
-          ) : (
-            <div className="space-y-1 max-h-64 overflow-y-auto">
-              {allScripts.map((s, i) => (
-                <div key={i} className="text-xs font-mono bg-black/30 rounded px-3 py-1.5 text-white/70">
-                  <span className="text-yellow-400/70">[{s["comment"] || "no-comment"}]</span>{" "}
-                  {s["name"] || "(no name)"}
-                </div>
-              ))}
-            </div>
-          )}
-          <p className="text-white/30 text-xs">Total: {allScripts.length} script. Yang muncul di Selling Report harus punya comment=mikhmon.</p>
+          <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl px-5 py-4">
+            <p className="text-blue-400/60 text-xs mb-1">Transaksi</p>
+            <p className="text-blue-400 font-bold text-xl">{rows.length} login</p>
+          </div>
         </div>
       )}
 
-      {!loading && scripts.length === 0 && (
-        <div className="bg-white/5 border border-white/10 rounded-xl p-8 text-center space-y-2">
-          <p className="text-white/50">Tidak ada data laporan (comment=mikhmon)</p>
-          <p className="text-white/30 text-xs">
-            Klik <strong className="text-yellow-400">Debug: Semua Script</strong> untuk lihat apa yang ada di router.
-          </p>
-        </div>
-      )}
-
-      {total > 0 && (
-        <div className="bg-green-500/10 border border-green-500/20 rounded-xl px-5 py-3 flex items-center justify-between">
-          <span className="text-green-400 text-sm">Total Pendapatan</span>
-          <span className="text-green-400 font-bold text-lg">Rp {total.toLocaleString("id-ID")}</span>
-        </div>
-      )}
-
-      {scripts.length > 0 && (
+      {/* Daily resume */}
+      {!loading && days.length > 0 && (
         <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+          <div className="px-4 py-2 border-b border-white/10 text-white/50 text-xs font-semibold">Resume Harian</div>
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/10 text-white/50 text-xs">
+              <tr className="border-b border-white/10 text-white/40 text-xs">
+                <th className="text-left px-4 py-2">Tanggal</th>
+                <th className="text-right px-4 py-2">Transaksi</th>
+                <th className="text-right px-4 py-2">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {days.map((d) => (
+                <tr key={d} className="border-b border-white/5 hover:bg-white/5">
+                  <td className="px-4 py-2 text-xs">{d}</td>
+                  <td className="px-4 py-2 text-xs text-right text-white/60">{byDay[d].count}</td>
+                  <td className="px-4 py-2 text-xs text-right text-green-400">Rp {byDay[d].total.toLocaleString("id-ID")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {!loading && scripts.length === 0 && !error && (
+        <div className="bg-white/5 border border-white/10 rounded-xl p-8 text-center">
+          <p className="text-white/50">Tidak ada data untuk {ownerLabel(owner)}</p>
+        </div>
+      )}
+
+      {/* Detail transaksi */}
+      {scripts.length > 0 && (
+        <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+          <div className="px-4 py-2 border-b border-white/10 text-white/50 text-xs font-semibold">Detail Transaksi</div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-white/10 text-white/40 text-xs">
                 <th className="text-left px-4 py-3">Tanggal</th>
                 <th className="text-left px-4 py-3">Waktu</th>
                 <th className="text-left px-4 py-3">User</th>
