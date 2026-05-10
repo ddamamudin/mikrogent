@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Mikroplay";
 
@@ -31,15 +30,15 @@ export default function ForgotPasswordPage() {
 
   if (done) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center max-w-md px-6">
           <div className="text-5xl mb-4">📧</div>
-          <h2 className="text-2xl font-bold mb-2">Cek Email Anda</h2>
-          <p className="text-gray-500 dark:text-white/60">
-            Jika email <strong className="text-gray-900 dark:text-white">{email}</strong> terdaftar,
+          <h2 className="text-2xl font-bold mb-2 text-gray-900">Cek Email Anda</h2>
+          <p className="text-gray-500">
+            Jika email <strong className="text-gray-900">{email}</strong> terdaftar,
             link reset password sudah dikirim. Link berlaku selama 1 jam.
           </p>
-          <Link href="/login" className="inline-block mt-6 text-blue-600 dark:text-blue-400 hover:underline text-sm">
+          <Link href="/login" className="inline-block mt-6 text-blue-600 hover:underline text-sm">
             Kembali ke halaman masuk
           </Link>
         </div>
@@ -48,42 +47,37 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 relative">
-      <div className="absolute top-4 right-4">
-        <ThemeToggle />
-      </div>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link href="/" className="text-2xl font-bold text-blue-600 dark:text-blue-400">{APP_NAME}</Link>
-          <h1 className="text-xl font-semibold mt-3">Lupa Password</h1>
-          <p className="text-gray-500 dark:text-white/50 text-sm mt-1">
+          <Link href="/" className="text-2xl font-bold text-blue-600">{APP_NAME}</Link>
+          <h1 className="text-xl font-semibold mt-3 text-gray-900">Lupa Password</h1>
+          <p className="text-gray-500 text-sm mt-1">
             Masukkan email Anda dan kami akan kirimkan link reset password.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-8 space-y-4 shadow-sm">
+        <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-2xl p-8 space-y-4 shadow-sm">
           {error && (
-            <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 text-sm rounded-lg px-4 py-3">
+            <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-3">
               {error}
             </div>
           )}
-
           <div>
-            <label className="block text-sm text-gray-600 dark:text-white/70 mb-1">Email</label>
+            <label className="block text-sm text-gray-600 mb-1">Email</label>
             <input
               type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-              className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2.5 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-blue-500"
+              className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500"
               placeholder="admin@bisnis.com"
             />
           </div>
-
           <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg font-semibold transition">
             {loading ? "Mengirim..." : "Kirim Link Reset"}
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-500 dark:text-white/40 mt-6">
-          <Link href="/login" className="text-blue-600 dark:text-blue-400 hover:underline">Kembali ke halaman masuk</Link>
+        <p className="text-center text-sm text-gray-500 mt-6">
+          <Link href="/login" className="text-blue-600 hover:underline">Kembali ke halaman masuk</Link>
         </p>
       </div>
     </div>
