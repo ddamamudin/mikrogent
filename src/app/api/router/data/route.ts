@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 import { prisma } from "@/lib/prisma";
 import { RouterOSAPI } from "@/lib/routeros";
 import { decrypt } from "@/lib/encrypt";
@@ -91,7 +92,13 @@ export async function GET(req: NextRequest) {
 
     if (cmd === "scheduler") return NextResponse.json(await api.query("/system/scheduler/print"));
 
-    if (cmd === "scripts") {
+    if (cmd === "scripts" || cmd === "scripts-all") {
+      // Use longer timeout — router may take >10s to scan 70k+ scripts
+      const apiSlow = new RouterOSAPI(routerIp, apiPort, routerUser, decrypt(routerPass), 60000);
+      if (cmd === "scripts-all") {
+        const all = await apiSlow.query("/system/script/print", { ".proplist": ".id,name,comment" });
+        return NextResponse.json(all.slice(0, 100));
+      }
       const comment = req.nextUrl.searchParams.get("comment") || "mikhmon";
       const owner   = req.nextUrl.searchParams.get("owner") || "";
       const params: Record<string, string> = {
@@ -99,12 +106,7 @@ export async function GET(req: NextRequest) {
         ".proplist": ".id,name,comment,owner",
       };
       if (owner) params["?owner"] = owner;
-      return NextResponse.json(await api.query("/system/script/print", params));
-    }
-
-    if (cmd === "scripts-all") {
-      const all = await api.query("/system/script/print", { ".proplist": ".id,name,comment" });
-      return NextResponse.json(all.slice(0, 100));
+      return NextResponse.json(await apiSlow.query("/system/script/print", params));
     }
 
     if (cmd === "quickprint") {

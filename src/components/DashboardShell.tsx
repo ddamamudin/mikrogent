@@ -991,12 +991,18 @@ function SellingReport({ subdomain }: { subdomain: string }) {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`/api/router/data?subdomain=${subdomain}&cmd=scripts&comment=mikhmon&owner=${ownerKey}`);
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), 65000);
+      const res = await fetch(
+        `/api/router/data?subdomain=${subdomain}&cmd=scripts&comment=mikhmon&owner=${ownerKey}`,
+        { signal: ctrl.signal }
+      );
+      clearTimeout(tid);
       const d = await res.json();
       if (Array.isArray(d)) setScripts(d);
       else setError(d?.error || "Gagal memuat data");
     } catch (e: any) {
-      setError(e.message);
+      setError(e.name === "AbortError" ? "Timeout — router terlalu lama merespons" : e.message);
     }
     setLoading(false);
   }, [subdomain]);
