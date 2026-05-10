@@ -2,7 +2,7 @@
 
 import { User, RouterConfig } from "@/generated/prisma/client";
 
-type Props = { user: User; routerConfig: RouterConfig };
+type Props = { user: User; routerConfig: RouterConfig | null };
 
 export default function DashboardShell({ user, routerConfig }: Props) {
   const handleLogout = async () => {
@@ -37,7 +37,7 @@ export default function DashboardShell({ user, routerConfig }: Props) {
           <div className="border-t border-white/10 pt-4 space-y-2 text-sm">
             <div className="flex justify-between text-white/60">
               <span>Router</span>
-              <span className="text-white/80">{routerConfig.routerIp}</span>
+              <span className="text-white/80">{routerConfig?.routerIp ?? "—"}</span>
             </div>
             <div className="flex justify-between text-white/60">
               <span>Subdomain</span>

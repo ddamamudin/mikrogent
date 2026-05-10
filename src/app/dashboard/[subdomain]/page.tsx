@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { getSessionFromCookie } from "@/lib/session";
-import RouterSetup from "@/components/RouterSetup";
 import DashboardShell from "@/components/DashboardShell";
 
 const LOGIN_URL =
@@ -19,7 +18,6 @@ export default async function DashboardPage({
 }) {
   const { subdomain } = await params;
 
-  // Verify session
   const cookieStore = await cookies();
   const session = getSessionFromCookie(cookieStore.get("session")?.value);
   if (!session || session.subdomain !== subdomain) {
@@ -32,10 +30,6 @@ export default async function DashboardPage({
   });
 
   if (!user) return notFound();
-
-  if (!user.routerConfig) {
-    return <RouterSetup subdomain={subdomain} userName={user.name} />;
-  }
 
   return <DashboardShell user={user} routerConfig={user.routerConfig} />;
 }
