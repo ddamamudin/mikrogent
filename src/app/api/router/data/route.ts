@@ -94,13 +94,16 @@ export async function GET(req: NextRequest) {
     if (cmd === "scripts") {
       const comment = req.nextUrl.searchParams.get("comment") || "mikhmon";
       const owner   = req.nextUrl.searchParams.get("owner") || "";
-      const params: Record<string, string> = { "?comment": comment };
+      const params: Record<string, string> = {
+        "?comment": comment,
+        ".proplist": ".id,name,comment,owner",
+      };
       if (owner) params["?owner"] = owner;
       return NextResponse.json(await api.query("/system/script/print", params));
     }
 
     if (cmd === "scripts-all") {
-      const all = await api.query("/system/script/print");
+      const all = await api.query("/system/script/print", { ".proplist": ".id,name,comment" });
       return NextResponse.json(all.slice(0, 100));
     }
 
