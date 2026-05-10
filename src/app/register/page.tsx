@@ -2,25 +2,35 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+
+const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
+const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Mikroplay";
 
 export default function RegisterPage() {
-  const router = useRouter();
-  const [form, setForm] = useState({ name: "", email: "", subdomain: "", password: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    brand: "",
+    alamat: "",
+    noWa: "",
+    password: "",
+  });
+  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({
       ...prev,
-      [name]: name === "subdomain" ? value.toLowerCase().replace(/[^a-z0-9-]/g, "") : value,
+      [name]: name === "brand" ? value.toLowerCase().replace(/[^a-z0-9-]/g, "") : value,
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!agreed) return setError("Anda harus menyetujui syarat dan ketentuan");
     setError("");
     setLoading(true);
     const res = await fetch("/api/auth/register", {
@@ -36,7 +46,7 @@ export default function RegisterPage() {
 
   if (done) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
         <div className="text-center max-w-md px-6">
           <div className="text-5xl mb-4">📧</div>
           <h2 className="text-2xl font-bold mb-2">Cek Email Anda</h2>
@@ -50,12 +60,11 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white px-4">
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link href="/" className="text-2xl font-bold text-blue-400">Mikroplay</Link>
-          <h1 className="text-xl font-semibold mt-4">Buat Akun Baru</h1>
-          <p className="text-white/50 text-sm mt-1">Gratis, tanpa kartu kredit</p>
+          <Link href="/" className="text-2xl font-bold text-blue-400">{APP_NAME}</Link>
+          <h1 className="text-xl font-semibold mt-3">Buat Akun Baru</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white/5 border border-white/10 rounded-2xl p-8 space-y-4">
@@ -66,18 +75,6 @@ export default function RegisterPage() {
           )}
 
           <div>
-            <label className="block text-sm text-white/70 mb-1">Nama Bisnis / Nama Anda</label>
-            <input
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              required
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:border-blue-500"
-              placeholder="PT. Jaringan Sejahtera"
-            />
-          </div>
-
-          <div>
             <label className="block text-sm text-white/70 mb-1">Email</label>
             <input
               name="email"
@@ -86,24 +83,8 @@ export default function RegisterPage() {
               onChange={handleChange}
               required
               className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:border-blue-500"
-              placeholder="admin@bisnisanda.com"
+              placeholder="admin@bisnis.com"
             />
-          </div>
-
-          <div>
-            <label className="block text-sm text-white/70 mb-1">Subdomain</label>
-            <div className="flex items-center bg-white/5 border border-white/10 rounded-lg overflow-hidden focus-within:border-blue-500">
-              <input
-                name="subdomain"
-                value={form.subdomain}
-                onChange={handleChange}
-                required
-                minLength={3}
-                className="flex-1 bg-transparent px-4 py-2.5 text-white placeholder-white/30 focus:outline-none"
-                placeholder="bisnisanda"
-              />
-              <span className="px-3 text-white/30 text-sm border-l border-white/10">.mikroplay.com</span>
-            </div>
           </div>
 
           <div>
@@ -120,12 +101,80 @@ export default function RegisterPage() {
             />
           </div>
 
+          <div>
+            <label className="block text-sm text-white/70 mb-1">Brand / Slug</label>
+            <div className="flex items-center bg-white/5 border border-white/10 rounded-lg overflow-hidden focus-within:border-blue-500">
+              <input
+                name="brand"
+                value={form.brand}
+                onChange={handleChange}
+                required
+                minLength={3}
+                className="flex-1 bg-transparent px-4 py-2.5 text-white placeholder-white/30 focus:outline-none"
+                placeholder="tokoanda"
+              />
+              <span className="px-3 text-white/30 text-sm border-l border-white/10 shrink-0">
+                .{APP_DOMAIN}
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm text-white/70 mb-1">Nama Lengkap</label>
+            <input
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              required
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:border-blue-500"
+              placeholder="Budi Santoso"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-white/70 mb-1">Alamat</label>
+            <input
+              name="alamat"
+              value={form.alamat}
+              onChange={handleChange}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:border-blue-500"
+              placeholder="Jl. Merdeka No. 1, Jakarta"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-white/70 mb-1">Nomor WhatsApp</label>
+            <input
+              name="noWa"
+              type="tel"
+              value={form.noWa}
+              onChange={handleChange}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:border-blue-500"
+              placeholder="08xxxxxxxxxx"
+            />
+          </div>
+
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              className="mt-0.5 accent-blue-500"
+            />
+            <span className="text-sm text-white/60">
+              Saya menyetujui{" "}
+              <Link href="/syarat-ketentuan" className="text-blue-400 hover:underline">
+                Syarat dan Ketentuan
+              </Link>
+            </span>
+          </label>
+
           <button
             type="submit"
             disabled={loading}
             className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-lg font-semibold transition"
           >
-            {loading ? "Mendaftarkan..." : "Daftar Sekarang"}
+            {loading ? "Mendaftarkan..." : "Daftar"}
           </button>
         </form>
 

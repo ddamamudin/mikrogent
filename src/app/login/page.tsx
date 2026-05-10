@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Mikroplay";
+
 export default function LoginPage() {
   const router = useRouter();
   const [form, setForm] = useState({ email: "", password: "" });
@@ -22,18 +24,15 @@ export default function LoginPage() {
     const data = await res.json();
     setLoading(false);
     if (!res.ok) return setError(data.error || "Email atau password salah");
-
-    const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
-    const protocol = window.location.protocol;
-    window.location.href = `${protocol}//${data.subdomain}.${appDomain}`;
+    router.push("/dashboard");
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white px-4">
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link href="/" className="text-2xl font-bold text-blue-400">Mikroplay</Link>
-          <h1 className="text-xl font-semibold mt-4">Masuk ke Akun Anda</h1>
+          <Link href="/" className="text-2xl font-bold text-blue-400">{APP_NAME}</Link>
+          <h1 className="text-xl font-semibold mt-3">Masuk ke Akun Anda</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white/5 border border-white/10 rounded-2xl p-8 space-y-4">
@@ -51,12 +50,17 @@ export default function LoginPage() {
               onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
               required
               className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-white/30 focus:outline-none focus:border-blue-500"
-              placeholder="admin@bisnisanda.com"
+              placeholder="admin@bisnis.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm text-white/70 mb-1">Password</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-sm text-white/70">Password</label>
+              <Link href="/forgot-password" className="text-xs text-blue-400 hover:underline">
+                Lupa password?
+              </Link>
+            </div>
             <input
               type="password"
               value={form.password}
@@ -78,7 +82,7 @@ export default function LoginPage() {
 
         <p className="text-center text-sm text-white/40 mt-6">
           Belum punya akun?{" "}
-          <Link href="/register" className="text-blue-400 hover:underline">Daftar Gratis</Link>
+          <Link href="/register" className="text-blue-400 hover:underline">Daftar</Link>
         </p>
       </div>
     </div>

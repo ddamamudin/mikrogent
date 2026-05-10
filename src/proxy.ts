@@ -7,20 +7,20 @@ export function proxy(req: NextRequest) {
   const host = req.headers.get("host") || "";
   const hostname = host.split(":")[0];
 
-  let subdomain: string | null = null;
+  let brand: string | null = null;
 
   if (hostname.endsWith(`.${APP_DOMAIN}`)) {
-    subdomain = hostname.slice(0, -(APP_DOMAIN.length + 1));
+    brand = hostname.slice(0, -(APP_DOMAIN.length + 1));
   } else if (hostname.endsWith(".localhost")) {
-    subdomain = hostname.slice(0, -(".localhost".length));
+    brand = hostname.slice(0, -(".localhost".length));
   }
 
-  if (!subdomain || ROOT_HOSTNAMES.has(hostname)) {
+  if (!brand || ROOT_HOSTNAMES.has(hostname)) {
     return NextResponse.next();
   }
 
   const url = req.nextUrl.clone();
-  url.pathname = `/dashboard/${subdomain}${req.nextUrl.pathname === "/" ? "" : req.nextUrl.pathname}`;
+  url.pathname = `/site/${brand}${req.nextUrl.pathname === "/" ? "" : req.nextUrl.pathname}`;
   return NextResponse.rewrite(url);
 }
 

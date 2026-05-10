@@ -1,29 +1,36 @@
 "use client";
 
-import { User } from "@/generated/prisma/client";
 import { useState } from "react";
+import { User } from "@/generated/prisma/client";
 
-type Tab = "profile" | "security";
+type View = "profile" | "password";
 
-export default function DashboardShell({ user }: { user: User }) {
-  const [tab, setTab] = useState<Tab>("profile");
+const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Mikroplay";
+const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
+
+export default function DashboardShell({ user: initialUser }: { user: User }) {
+  const [user, setUser] = useState(initialUser);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [profileExpanded, setProfileExpanded] = useState(true);
+  const [view, setView] = useState<View>("profile");
+
   const [name, setName] = useState(user.name);
+  const [alamat, setAlamat] = useState(user.alamat || "");
+  const [noWa, setNoWa] = useState(user.noWa || "");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
-  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
+  const showMsg = (type: "ok" | "err", text: string) => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage(null), 3500);
+  };
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
-    window.location.href = `${window.location.protocol}//${appDomain}/login`;
-  };
-
-  const showMsg = (type: "ok" | "err", text: string) => {
-    setMessage({ type, text });
-    setTimeout(() => setMessage(null), 3000);
+    window.location.href = "/";
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -33,12 +40,16 @@ export default function DashboardShell({ user }: { user: User }) {
     const res = await fetch("/api/account", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ subdomain: user.subdomain, name }),
+      body: JSON.stringify({ name, alamat, noWa }),
     });
-    setLoading(false);
     const data = await res.json();
-    if (res.ok) showMsg("ok", "Profil berhasil diperbarui");
-    else showMsg("err", data.error || "Gagal memperbarui profil");
+    setLoading(false);
+    if (res.ok) {
+      setUser((u) => ({ ...u, name, alamat, noWa }));
+      showMsg("ok", "Profil berhasil diperbarui");
+    } else {
+      showMsg("err", data.error || "Gagal memperbarui profil");
+    }
   };
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
@@ -50,10 +61,10 @@ export default function DashboardShell({ user }: { user: User }) {
     const res = await fetch("/api/account", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ subdomain: user.subdomain, currentPassword, newPassword }),
+      body: JSON.stringify({ currentPassword, newPassword }),
     });
-    setLoading(false);
     const data = await res.json();
+    setLoading(false);
     if (res.ok) {
       showMsg("ok", "Password berhasil diperbarui");
       setCurrentPassword("");
@@ -64,143 +75,230 @@ export default function DashboardShell({ user }: { user: User }) {
     }
   };
 
+  const brandUrl = `${window !== undefined ? window.location.protocol : "https:"}//${user.brand}.${APP_DOMAIN}`;
+
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex flex-col">
-      <header className="bg-slate-800 border-b border-white/10 px-6 py-4 flex items-center justify-between">
-        <div className="text-blue-400 font-bold text-lg">Mikroplay</div>
+    <div className="min-h-screen bg-slate-950 text-white flex flex-col">
+      {/* Header */}
+      <header className="h-14 bg-slate-900 border-b border-white/10 flex items-center justify-between px-4 shrink-0 z-10">
         <div className="flex items-center gap-3">
-          <span className="text-white/40 text-sm hidden sm:block">
-            {user.subdomain}.{appDomain}
-          </span>
+          <button
+            onClick={() => setSidebarOpen((o) => !o)}
+            className="p-2 rounded-lg hover:bg-white/10 transition text-white/60 hover:text-white"
+            aria-label="Toggle sidebar"
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <rect y="2" width="18" height="2" rx="1" fill="currentColor" />
+              <rect y="8" width="18" height="2" rx="1" fill="currentColor" />
+              <rect y="14" width="18" height="2" rx="1" fill="currentColor" />
+            </svg>
+          </button>
+          <span className="font-bold text-blue-400 text-lg">{APP_NAME}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-white/60 hidden sm:block">{user.name}</span>
           <button
             onClick={handleLogout}
-            className="px-4 py-1.5 rounded-lg text-sm text-white/60 hover:text-red-400 hover:bg-red-500/10 transition"
+            className="p-2 rounded-lg hover:bg-red-500/10 text-white/50 hover:text-red-400 transition"
+            title="Keluar"
           >
-            Keluar
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
           </button>
         </div>
       </header>
 
-      <main className="flex-1 flex items-start justify-center py-12 px-4">
-        <div className="w-full max-w-md space-y-4">
-          {/* Avatar & info */}
-          <div className="bg-slate-800 rounded-xl border border-white/10 p-6 flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-blue-600/20 flex items-center justify-center shrink-0">
-              <span className="text-2xl font-bold text-blue-400">
-                {user.name.charAt(0).toUpperCase()}
-              </span>
-            </div>
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <aside
+          className={`${
+            sidebarOpen ? "w-56" : "w-0"
+          } transition-all duration-200 overflow-hidden shrink-0 bg-slate-900 border-r border-white/10 flex flex-col`}
+        >
+          <nav className="flex-1 py-4 px-2 space-y-1">
+            {/* Profil menu */}
             <div>
-              <p className="font-semibold text-white">{user.name}</p>
-              <p className="text-white/40 text-sm">{user.email}</p>
-              <p className="text-white/30 text-xs mt-0.5">
-                {user.subdomain}.{appDomain}
-              </p>
-            </div>
-          </div>
-
-          {/* Tabs */}
-          <div className="flex gap-1 bg-slate-800/50 rounded-lg p-1 border border-white/10">
-            {(["profile", "security"] as Tab[]).map((t) => (
               <button
-                key={t}
-                onClick={() => { setTab(t); setMessage(null); }}
-                className={`flex-1 py-2 text-sm rounded-md transition font-medium ${
-                  tab === t
-                    ? "bg-slate-700 text-white"
-                    : "text-white/40 hover:text-white/70"
+                onClick={() => setProfileExpanded((o) => !o)}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition"
+              >
+                <div className="flex items-center gap-2">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                  <span>Profil</span>
+                </div>
+                <svg
+                  width="12" height="12" viewBox="0 0 12 12" fill="none"
+                  className={`transition-transform ${profileExpanded ? "rotate-180" : ""}`}
+                >
+                  <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+
+              {profileExpanded && (
+                <div className="mt-1 ml-4 space-y-1">
+                  <button
+                    onClick={() => setView("profile")}
+                    className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition ${
+                      view === "profile"
+                        ? "text-blue-400 bg-blue-500/10"
+                        : "text-white/50 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    Update Profil
+                  </button>
+                  <button
+                    onClick={() => setView("password")}
+                    className={`w-full text-left px-3 py-1.5 rounded-lg text-sm transition ${
+                      view === "password"
+                        ? "text-blue-400 bg-blue-500/10"
+                        : "text-white/50 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    Ganti Password
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Buka Situs */}
+            <a
+              href={`//${user.brand}.${APP_DOMAIN}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 transition"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="2" y1="12" x2="22" y2="12" />
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+              </svg>
+              <span>Buka Situs</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto opacity-50">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+            </a>
+          </nav>
+
+          {/* Brand info di bawah sidebar */}
+          <div className="px-3 py-3 border-t border-white/10">
+            <p className="text-xs text-white/30 truncate">{user.brand}.{APP_DOMAIN}</p>
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto p-6">
+          <div className="max-w-lg mx-auto space-y-4">
+            {/* Toast */}
+            {message && (
+              <div
+                className={`text-sm px-4 py-3 rounded-lg ${
+                  message.type === "ok"
+                    ? "bg-green-500/10 text-green-400 border border-green-500/20"
+                    : "bg-red-500/10 text-red-400 border border-red-500/20"
                 }`}
               >
-                {t === "profile" ? "Profil" : "Keamanan"}
-              </button>
-            ))}
-          </div>
-
-          {/* Toast */}
-          {message && (
-            <div
-              className={`text-sm px-4 py-3 rounded-lg ${
-                message.type === "ok"
-                  ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                  : "bg-red-500/10 text-red-400 border border-red-500/20"
-              }`}
-            >
-              {message.text}
-            </div>
-          )}
-
-          {/* Tab: Profil */}
-          {tab === "profile" && (
-            <form
-              onSubmit={handleUpdateProfile}
-              className="bg-slate-800 rounded-xl border border-white/10 p-6 space-y-4"
-            >
-              <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wider">
-                Edit Profil
-              </h3>
-              <div className="space-y-1">
-                <label className="text-sm text-white/50">Nama</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-slate-700 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-blue-500/50"
-                />
+                {message.text}
               </div>
-              <div className="space-y-1">
-                <label className="text-sm text-white/50">Email</label>
-                <input
-                  type="text"
-                  value={user.email}
-                  disabled
-                  className="w-full bg-slate-700/50 border border-white/5 rounded-lg px-3 py-2 text-sm text-white/30 cursor-not-allowed"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-sm font-medium transition disabled:opacity-50"
-              >
-                {loading ? "Menyimpan..." : "Simpan Perubahan"}
-              </button>
-            </form>
-          )}
+            )}
 
-          {/* Tab: Keamanan */}
-          {tab === "security" && (
-            <form
-              onSubmit={handleUpdatePassword}
-              className="bg-slate-800 rounded-xl border border-white/10 p-6 space-y-4"
-            >
-              <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wider">
-                Ganti Password
-              </h3>
-              {[
-                { label: "Password Lama", value: currentPassword, set: setCurrentPassword },
-                { label: "Password Baru", value: newPassword, set: setNewPassword },
-                { label: "Konfirmasi Password Baru", value: confirmPassword, set: setConfirmPassword },
-              ].map(({ label, value, set }) => (
-                <div key={label} className="space-y-1">
-                  <label className="text-sm text-white/50">{label}</label>
+            {/* Update Profil */}
+            {view === "profile" && (
+              <form onSubmit={handleUpdateProfile} className="bg-slate-900 rounded-xl border border-white/10 p-6 space-y-4">
+                <h2 className="text-sm font-semibold text-white/50 uppercase tracking-wider">Update Profil</h2>
+
+                <div className="space-y-1">
+                  <label className="text-sm text-white/60">Nama Lengkap</label>
                   <input
-                    type="password"
-                    value={value}
-                    onChange={(e) => set(e.target.value)}
-                    className="w-full bg-slate-700 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-blue-500/50"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50"
                   />
                 </div>
-              ))}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-sm font-medium transition disabled:opacity-50"
-              >
-                {loading ? "Menyimpan..." : "Perbarui Password"}
-              </button>
-            </form>
-          )}
-        </div>
-      </main>
+
+                <div className="space-y-1">
+                  <label className="text-sm text-white/60">Email</label>
+                  <input
+                    type="text"
+                    value={user.email}
+                    disabled
+                    className="w-full bg-slate-800/50 border border-white/5 rounded-lg px-3 py-2 text-sm text-white/30 cursor-not-allowed"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm text-white/60">Alamat</label>
+                  <input
+                    type="text"
+                    value={alamat}
+                    onChange={(e) => setAlamat(e.target.value)}
+                    className="w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                    placeholder="Jl. Merdeka No. 1, Jakarta"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm text-white/60">Nomor WhatsApp</label>
+                  <input
+                    type="tel"
+                    value={noWa}
+                    onChange={(e) => setNoWa(e.target.value)}
+                    className="w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                    placeholder="08xxxxxxxxxx"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-sm font-medium transition disabled:opacity-50"
+                >
+                  {loading ? "Menyimpan..." : "Simpan Perubahan"}
+                </button>
+              </form>
+            )}
+
+            {/* Ganti Password */}
+            {view === "password" && (
+              <form onSubmit={handleUpdatePassword} className="bg-slate-900 rounded-xl border border-white/10 p-6 space-y-4">
+                <h2 className="text-sm font-semibold text-white/50 uppercase tracking-wider">Ganti Password</h2>
+
+                {[
+                  { label: "Password Lama", value: currentPassword, set: setCurrentPassword },
+                  { label: "Password Baru", value: newPassword, set: setNewPassword },
+                  { label: "Konfirmasi Password Baru", value: confirmPassword, set: setConfirmPassword },
+                ].map(({ label, value, set }) => (
+                  <div key={label} className="space-y-1">
+                    <label className="text-sm text-white/60">{label}</label>
+                    <input
+                      type="password"
+                      value={value}
+                      onChange={(e) => set(e.target.value)}
+                      className="w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                    />
+                  </div>
+                ))}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-sm font-medium transition disabled:opacity-50"
+                >
+                  {loading ? "Menyimpan..." : "Perbarui Password"}
+                </button>
+              </form>
+            )}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function VerifyEmailContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const token = searchParams.get("token");
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
-  const [subdomain, setSubdomain] = useState("");
 
   useEffect(() => {
     if (!token) return setStatus("error");
@@ -19,21 +19,19 @@ export default function VerifyEmailContent() {
     })
       .then((r) => r.json())
       .then((data) => {
-        if (data.subdomain) {
-          setSubdomain(data.subdomain);
+        if (data.ok) {
           setStatus("success");
+          setTimeout(() => router.push("/dashboard"), 2000);
         } else {
           setStatus("error");
         }
       })
       .catch(() => setStatus("error"));
-  }, [token]);
-
-  const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
+  }, [token, router]);
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
         <p className="text-white/60">Memverifikasi email...</p>
       </div>
     );
@@ -41,26 +39,18 @@ export default function VerifyEmailContent() {
 
   if (status === "success") {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
         <div className="text-center max-w-md px-6">
           <div className="text-5xl mb-4">✅</div>
           <h2 className="text-2xl font-bold mb-2">Email Terverifikasi!</h2>
-          <p className="text-white/60 mb-6">
-            Akun Anda sudah aktif. Dashboard Anda siap di:
-          </p>
-          <a
-            href={`https://${subdomain}.${appDomain}`}
-            className="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-semibold transition"
-          >
-            Buka Dashboard →
-          </a>
+          <p className="text-white/60">Akun Anda sudah aktif. Mengarahkan ke dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
       <div className="text-center max-w-md px-6">
         <div className="text-5xl mb-4">❌</div>
         <h2 className="text-2xl font-bold mb-2">Link Tidak Valid</h2>
