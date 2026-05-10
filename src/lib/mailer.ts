@@ -5,7 +5,7 @@ const FROM = "Mikroplay <noreply@mikroplay.com>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://mikroplay.com";
 
 export async function sendVerificationEmail(email: string, name: string, token: string) {
-  const url = `${APP_URL}/verify-email?token=${token}`;
+  const url = `${APP_URL}/verifikasi-email?token=${token}`;
   await resend.emails.send({
     from: FROM,
     to: email,
@@ -24,7 +24,7 @@ export async function sendVerificationEmail(email: string, name: string, token: 
 }
 
 export async function sendPasswordResetEmail(email: string, name: string, token: string) {
-  const url = `${APP_URL}/reset-password?token=${token}`;
+  const url = `${APP_URL}/atur-ulang-password?token=${token}`;
   await resend.emails.send({
     from: FROM,
     to: email,

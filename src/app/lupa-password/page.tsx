@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
             Jika email <strong className="text-gray-900">{email}</strong> terdaftar,
             link reset password sudah dikirim. Link berlaku selama 1 jam.
           </p>
-          <Link href="/login" className="inline-block mt-6 text-blue-600 hover:underline text-sm">
+          <Link href="/masuk" className="inline-block mt-6 text-blue-600 hover:underline text-sm">
             Kembali ke halaman masuk
           </Link>
         </div>
@@ -59,16 +59,14 @@ export default function ForgotPasswordPage() {
 
         <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-2xl p-8 space-y-4 shadow-sm">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-3">
-              {error}
-            </div>
+            <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-3">{error}</div>
           )}
           <div>
             <label className="block text-sm text-gray-600 mb-1">Email</label>
             <input
               type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
               className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500"
-              placeholder="admin@bisnis.com"
+              placeholder="nama@mail.com"
             />
           </div>
           <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg font-semibold transition">
@@ -77,7 +75,7 @@ export default function ForgotPasswordPage() {
         </form>
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          <Link href="/login" className="text-blue-600 hover:underline">Kembali ke halaman masuk</Link>
+          <Link href="/masuk" className="text-blue-600 hover:underline">Kembali ke halaman masuk</Link>
         </p>
       </div>
     </div>

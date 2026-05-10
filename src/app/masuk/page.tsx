@@ -45,25 +45,23 @@ export default function LoginPage() {
           <div>
             <label className="block text-sm text-gray-600 mb-1">Email</label>
             <input
-              type="email"
-              value={form.email}
+              type="email" value={form.email}
               onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
               required
               className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500"
-              placeholder="admin@bisnis.com"
+              placeholder="nama@mail.com"
             />
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="text-sm text-gray-600">Password</label>
-              <Link href="/forgot-password" className="text-xs text-blue-600 hover:underline">
+              <Link href="/lupa-password" className="text-xs text-blue-600 hover:underline">
                 Lupa password?
               </Link>
             </div>
             <input
-              type="password"
-              value={form.password}
+              type="password" value={form.password}
               onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
               required
               className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500"
@@ -71,18 +69,14 @@ export default function LoginPage() {
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg font-semibold transition"
-          >
+          <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg font-semibold transition">
             {loading ? "Masuk..." : "Masuk"}
           </button>
         </form>
 
         <p className="text-center text-sm text-gray-500 mt-6">
           Belum punya akun?{" "}
-          <Link href="/register" className="text-blue-600 hover:underline">Daftar</Link>
+          <Link href="/daftar" className="text-blue-600 hover:underline">Daftar</Link>
         </p>
       </div>
     </div>

@@ -73,7 +73,7 @@ export default function RegisterPage() {
 
           <div>
             <label className="block text-sm text-gray-600 mb-1">Email</label>
-            <input name="email" type="email" value={form.email} onChange={handleChange} required className={inputClass} placeholder="admin@bisnis.com" />
+            <input name="email" type="email" value={form.email} onChange={handleChange} required className={inputClass} placeholder="nama@mail.com" />
           </div>
 
           <div>
@@ -82,12 +82,12 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Brand / Slug</label>
+            <label className="block text-sm text-gray-600 mb-1">Brand / Bisnis</label>
             <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg overflow-hidden focus-within:border-blue-500">
               <input
                 name="brand" value={form.brand} onChange={handleChange} required minLength={3}
                 className="flex-1 bg-transparent px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none"
-                placeholder="tokoanda"
+                placeholder="namabrand"
               />
               <span className="px-3 text-gray-400 text-sm border-l border-gray-200 shrink-0">
                 .{APP_DOMAIN}
@@ -97,12 +97,12 @@ export default function RegisterPage() {
 
           <div>
             <label className="block text-sm text-gray-600 mb-1">Nama Lengkap</label>
-            <input name="name" value={form.name} onChange={handleChange} required className={inputClass} placeholder="Budi Santoso" />
+            <input name="name" value={form.name} onChange={handleChange} required className={inputClass} placeholder="Diki Damamudin" />
           </div>
 
           <div>
             <label className="block text-sm text-gray-600 mb-1">Alamat</label>
-            <input name="alamat" value={form.alamat} onChange={handleChange} className={inputClass} placeholder="Jl. Merdeka No. 1, Jakarta" />
+            <input name="alamat" value={form.alamat} onChange={handleChange} className={inputClass} placeholder="Jl. Bahagia No. 1, Ciwiru" />
           </div>
 
           <div>
@@ -125,7 +125,7 @@ export default function RegisterPage() {
 
         <p className="text-center text-sm text-gray-500 mt-6">
           Sudah punya akun?{" "}
-          <Link href="/login" className="text-blue-600 hover:underline">Masuk</Link>
+          <Link href="/masuk" className="text-blue-600 hover:underline">Masuk</Link>
         </p>
       </div>
     </div>

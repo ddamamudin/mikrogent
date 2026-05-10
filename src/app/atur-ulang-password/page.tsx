@@ -32,7 +32,7 @@ function ResetPasswordForm() {
     setLoading(false);
     if (!res.ok) return setError(data.error || "Terjadi kesalahan");
     setDone(true);
-    setTimeout(() => router.push("/login"), 2000);
+    setTimeout(() => router.push("/masuk"), 2000);
   };
 
   if (!token) {
@@ -40,7 +40,7 @@ function ResetPasswordForm() {
       <div className="text-center">
         <div className="text-5xl mb-4">❌</div>
         <h2 className="text-2xl font-bold mb-2 text-gray-900">Link Tidak Valid</h2>
-        <Link href="/forgot-password" className="text-blue-600 hover:underline text-sm">Minta link baru</Link>
+        <Link href="/lupa-password" className="text-blue-600 hover:underline text-sm">Minta link baru</Link>
       </div>
     );
   }
@@ -83,7 +83,7 @@ function ResetPasswordForm() {
   );
 }
 
-export default function ResetPasswordPage() {
+export default function AturUlangPasswordPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
