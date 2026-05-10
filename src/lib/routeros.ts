@@ -52,7 +52,6 @@ export class RouterOSAPI {
 
       let buf = Buffer.alloc(0);
       let loggedIn = false;
-      let challenge: string | null = null;
       const results: RosWord[] = [];
       let currentRow: RosWord = {};
 
@@ -66,19 +65,16 @@ export class RouterOSAPI {
 
             if (!loggedIn) {
               // Handle login flow
-              if (challenge !== null) {
-                // We already sent /login and got challenge, now send credentials
+              if (currentRow["ret"]) {
+                // RouterOS v6: got challenge in same sentence as !done — send credentials immediately
+                const ch = currentRow["ret"];
                 const md5 = crypto.createHash("md5");
                 md5.update("\x00");
                 md5.update(this.password);
-                md5.update(Buffer.from(challenge, "hex"));
+                md5.update(Buffer.from(ch, "hex"));
                 const response = "00" + md5.digest("hex");
                 loggedIn = true;
                 send(["/login", `=name=${this.user}`, `=response=${response}`]);
-              } else if (currentRow["ret"]) {
-                // RouterOS v6: got challenge
-                challenge = currentRow["ret"];
-                currentRow = {};
               } else if (currentRow["!done"] !== undefined) {
                 // RouterOS v7: /login returns !done directly (no challenge)
                 loggedIn = true;
