@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Akun Anda telah disuspend" }, { status: 403 });
 
   const cookieStore = await cookies();
-  cookieStore.set("session", createSession(user.id, user.brand), {
+  cookieStore.set("session", createSession(user.id, user.brand, user.role as "USER" | "ADMIN"), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

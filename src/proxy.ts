@@ -6,6 +6,7 @@ const ROOT_HOSTNAMES = new Set([APP_DOMAIN, `www.${APP_DOMAIN}`, "localhost"]);
 export function proxy(req: NextRequest) {
   const host = req.headers.get("host") || "";
   const hostname = host.split(":")[0];
+  const { pathname } = req.nextUrl;
 
   let brand: string | null = null;
 
@@ -15,13 +16,22 @@ export function proxy(req: NextRequest) {
     brand = hostname.slice(0, -(".localhost".length));
   }
 
-  if (!brand || ROOT_HOSTNAMES.has(hostname)) {
-    return NextResponse.next();
+  // Subdomain rewrite
+  if (brand && !ROOT_HOSTNAMES.has(hostname)) {
+    const url = req.nextUrl.clone();
+    url.pathname = `/site/${brand}${pathname === "/" ? "" : pathname}`;
+    return NextResponse.rewrite(url);
   }
 
-  const url = req.nextUrl.clone();
-  url.pathname = `/site/${brand}${req.nextUrl.pathname === "/" ? "" : req.nextUrl.pathname}`;
-  return NextResponse.rewrite(url);
+  // Guard /admin/** — redirect ke /admin/masuk jika tidak ada session
+  if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/masuk") && !pathname.startsWith("/admin/setup")) {
+    const session = req.cookies.get("session")?.value;
+    if (!session) {
+      return NextResponse.redirect(new URL("/admin/masuk", req.url));
+    }
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {
