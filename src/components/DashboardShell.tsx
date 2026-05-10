@@ -28,11 +28,10 @@ const SECTIONS = [
     { id: "userlog",    label: "User Log",       icon: "📋" },
   ]},
   { label: "Tools", items: [
-    { id: "traffic",          label: "Traffic Monitor",   icon: "📈" },
-    { id: "dhcp",             label: "DHCP Leases",       icon: "🔧" },
-    { id: "scheduler",        label: "Scheduler",         icon: "⏰" },
-    { id: "script-installer", label: "Script Installer",  icon: "📜" },
-    { id: "system",           label: "System",            icon: "⚙️" },
+    { id: "traffic",  label: "Traffic Monitor", icon: "📈" },
+    { id: "dhcp",     label: "DHCP Leases",     icon: "🔧" },
+    { id: "scheduler",label: "Scheduler",        icon: "⏰" },
+    { id: "system",   label: "System",           icon: "⚙️" },
   ]},
   { label: "Pengaturan", items: [
     { id: "router-settings", label: "Konfigurasi Router", icon: "🔌" },
@@ -124,9 +123,8 @@ export default function DashboardShell({ user, routerConfig }: Props) {
         {activeMenu === "userlog"      && <UserLogReport subdomain={user.subdomain} />}
         {activeMenu === "traffic"   && <TrafficMonitor subdomain={user.subdomain} />}
         {activeMenu === "dhcp"      && <DhcpLeases    subdomain={user.subdomain} />}
-        {activeMenu === "scheduler"        && <SchedulerPage     subdomain={user.subdomain} />}
-        {activeMenu === "script-installer" && <ScriptInstaller   subdomain={user.subdomain} />}
-        {activeMenu === "system"           && <SystemPage        subdomain={user.subdomain} routerIp={routerConfig.routerIp} />}
+        {activeMenu === "scheduler" && <SchedulerPage subdomain={user.subdomain} />}
+        {activeMenu === "system"    && <SystemPage    subdomain={user.subdomain} routerIp={routerConfig.routerIp} />}
         {activeMenu === "router-settings"  && <RouterSettings    subdomain={user.subdomain} routerConfig={routerConfig} />}
         {activeMenu === "account"          && <AccountSettings   subdomain={user.subdomain} userName={user.name} userEmail={user.email} />}
       </main>
@@ -544,6 +542,38 @@ function ActiveUsers({ subdomain }: { subdomain: string }) {
 }
 
 // ── User Profiles ───────────────────────────────────────────────────────────
+
+function parseOnLogin(onLogin: string): { price: string; sprice: string; validity: string; expmode: string } {
+  if (!onLogin) return { price: "", sprice: "", validity: "", expmode: "" };
+  // Format: :put (",expmode,price,validity,sprice,,lock,")
+  const m = onLogin.match(/:put\s*\(",(.*?),(.*?),(.*?),(.*?),,/);
+  if (m) return { expmode: m[1] || "", price: m[2] || "", validity: m[3] || "", sprice: m[4] || "" };
+  // noexp format: :put (",,price,,,noexp,...)
+  const m2 = onLogin.match(/:put\s*\(",,(.*?),,,noexp/);
+  if (m2) return { expmode: "0", price: m2[1] || "", validity: "", sprice: "" };
+  return { price: "", sprice: "", validity: "", expmode: "" };
+}
+
+function buildOnLogin(name: string, price: string, sprice: string, validity: string, expmode: string): string {
+  if (!expmode) return "";
+
+  const record = `; :local mac $"mac-address"; :local time [/system clock get time ]; /system script add name="$date-|-$time-|-$user-|-${price}-|-$address-|-$mac-|-${validity}-|-${name}-|-$comment" owner="$month$year" source="$date" comment="mikhmon"`;
+
+  if (expmode === "0") {
+    return price ? `:put (",,${price},,,noexp,Disable,")` : "";
+  }
+
+  const expiry = `:local date [ /system clock get date ];:local year [ :pick $date 7 11 ];:local month [ :pick $date 0 3 ]; /sys sch add name="$user" disable=no start-date=$date interval="${validity}"; :delay 5s; :local exp [ /sys sch get [ /sys sch find where name="$user" ] next-run]; :local getxp [len $exp]; :if ($getxp = 15) do={ :local d [:pic $exp 0 6]; :local t [:pic $exp 7 16]; :local s ("/"); :local exp ("$d$s$year $t"); /ip hotspot user set comment="$exp" [find where name="$user"];}; :if ($getxp = 8) do={ /ip hotspot user set comment="$date $exp" [find where name="$user"];}; :if ($getxp > 15) do={ /ip hotspot user set comment="$exp" [find where name="$user"];};:delay 5s; /sys sch remove [find where name="$user"]`;
+
+  const base = `:put (",${expmode},${price},${validity},${sprice || "0"},,Disable,"); {:local comment [ /ip hotspot user get [/ip hotspot user find where name="$user"] comment]; :local ucode [:pic $comment 0 2]; :if ($ucode = "vc" or $ucode = "up" or $comment = "") do={ ${expiry}`;
+
+  if (expmode === "remc") return base + record + `; /ip hotspot user remove [find where name="$user"]}}`;
+  if (expmode === "ntfc") return base + record + `; /ip hotspot user set limit-uptime=1s [find where name="$user"]}}`;
+  if (expmode === "rem")  return base + `; /ip hotspot user remove [find where name="$user"]}}`;
+  if (expmode === "ntf")  return base + `; /ip hotspot user set limit-uptime=1s [find where name="$user"]}}`;
+  return "";
+}
+
 function UserProfiles({ subdomain }: { subdomain: string }) {
   const [profiles, setProfiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -551,7 +581,8 @@ function UserProfiles({ subdomain }: { subdomain: string }) {
   const [showAdd, setShowAdd] = useState(false);
   const [editP, setEditP] = useState<any>(null);
   const [saving, setSaving] = useState(false);
-  const blank = { name: "", "rate-limit": "", "session-timeout": "", "shared-users": "1", "address-pool": "" };
+
+  const blank = { name: "", "rate-limit": "", "session-timeout": "", "shared-users": "1", "address-pool": "", price: "", sprice: "", validity: "", expmode: "" };
   const [form, setForm] = useState({ ...blank });
 
   const load = useCallback(async () => {
@@ -572,30 +603,78 @@ function UserProfiles({ subdomain }: { subdomain: string }) {
     load();
   };
 
+  const buildParams = (f: typeof blank, id?: string) => {
+    const p: Record<string, string> = {};
+    if (id) p[".id"] = id;
+    if (!id) p.name = f.name;
+    if (f["rate-limit"])      p["rate-limit"]      = f["rate-limit"];
+    if (f["session-timeout"]) p["session-timeout"] = f["session-timeout"];
+    if (f["shared-users"])    p["shared-users"]    = f["shared-users"];
+    if (f["address-pool"])    p["address-pool"]    = f["address-pool"];
+    const script = buildOnLogin(f.name || editP?.name || "", f.price, f.sprice, f.validity, f.expmode);
+    p["on-login"] = script;
+    return p;
+  };
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    const params: Record<string, string> = { name: form.name };
-    if (form["rate-limit"])      params["rate-limit"]      = form["rate-limit"];
-    if (form["session-timeout"]) params["session-timeout"] = form["session-timeout"];
-    if (form["shared-users"])    params["shared-users"]    = form["shared-users"];
-    if (form["address-pool"])    params["address-pool"]    = form["address-pool"];
-    await doAction("add-profile", params);
+    await doAction("add-profile", buildParams(form));
     setShowAdd(false);
     setForm({ ...blank });
   };
 
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await doAction("edit-profile", {
-      ".id": editP[".id"],
-      "rate-limit":      editP["rate-limit"] || "",
-      "session-timeout": editP["session-timeout"] || "",
-      "shared-users":    editP["shared-users"] || "1",
-    });
+    await doAction("edit-profile", buildParams(editP, editP[".id"]));
     setEditP(null);
   };
 
   if (error) return <ErrorBox message={error} onRetry={load} />;
+
+  const expmodeOptions = [
+    { value: "",     label: "— Tidak ada script —" },
+    { value: "0",    label: "Catat Penjualan (tanpa expiry)" },
+    { value: "remc", label: "Catat + Hapus user saat expired" },
+    { value: "ntfc", label: "Catat + Blokir user saat expired" },
+    { value: "rem",  label: "Hapus user saat expired (tanpa catat)" },
+    { value: "ntf",  label: "Blokir user saat expired (tanpa catat)" },
+  ];
+
+  const ProfileForm = ({ f, setF, onSubmit, variant = "blue" }: { f: any; setF: (fn: (p: any) => any) => void; onSubmit: (e: React.FormEvent) => void; variant?: string }) => (
+    <form onSubmit={onSubmit} className={`bg-white/5 border border-${variant === "yellow" ? "yellow" : "blue"}-500/30 rounded-xl p-5 space-y-4`}>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        {!f[".id"] && <div className="md:col-span-3"><label className="text-xs text-white/50 mb-1 block">Nama *</label><Input value={f.name} onChange={v => setF(p => ({ ...p, name: v }))} required /></div>}
+        <div><label className="text-xs text-white/50 mb-1 block">Rate Limit</label><Input value={f["rate-limit"] || ""} onChange={v => setF(p => ({ ...p, "rate-limit": v }))} placeholder="2M/5M" /></div>
+        <div><label className="text-xs text-white/50 mb-1 block">Session Timeout</label><Input value={f["session-timeout"] || ""} onChange={v => setF(p => ({ ...p, "session-timeout": v }))} placeholder="1d, 8h, 30m" /></div>
+        <div><label className="text-xs text-white/50 mb-1 block">Shared Users</label><Input value={f["shared-users"] || "1"} onChange={v => setF(p => ({ ...p, "shared-users": v }))} /></div>
+      </div>
+
+      <hr className="border-white/10" />
+      <p className="text-xs text-white/40 font-semibold">Harga & Selling Report</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="md:col-span-2"><label className="text-xs text-white/50 mb-1 block">Expired Mode</label>
+          <select value={f.expmode || ""} onChange={e => setF(p => ({ ...p, expmode: e.target.value }))}
+            className="w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500">
+            {expmodeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
+        </div>
+        <div><label className="text-xs text-white/50 mb-1 block">Validity</label><Input value={f.validity || ""} onChange={v => setF(p => ({ ...p, validity: v }))} placeholder="30d, 7d, 1d" /></div>
+        <div><label className="text-xs text-white/50 mb-1 block">Harga Jual (Rp)</label><Input value={f.price || ""} onChange={v => setF(p => ({ ...p, price: v }))} placeholder="50000" /></div>
+        <div><label className="text-xs text-white/50 mb-1 block">Harga Modal (Rp)</label><Input value={f.sprice || ""} onChange={v => setF(p => ({ ...p, sprice: v }))} placeholder="45000" /></div>
+      </div>
+      {f.expmode && f.expmode !== "" && (
+        <div className="text-xs text-white/30 bg-black/20 rounded-lg px-3 py-2">
+          {(f.expmode === "remc" || f.expmode === "ntfc" || f.expmode === "0") && !f.price
+            ? "⚠ Isi Harga Jual agar Selling Report bisa mencatat transaksi"
+            : "✓ On-login script akan otomatis dipasang saat simpan"}
+        </div>
+      )}
+      <div className="flex gap-2">
+        <Btn type="submit" disabled={saving} variant={variant === "yellow" ? "warning" : "primary"}>{saving ? "Menyimpan..." : variant === "yellow" ? "Update" : "Simpan"}</Btn>
+        <Btn type="button" variant="ghost" onClick={() => { setShowAdd(false); setEditP(null); }}>Batal</Btn>
+      </div>
+    </form>
+  );
 
   return (
     <div className="space-y-4">
@@ -603,37 +682,8 @@ function UserProfiles({ subdomain }: { subdomain: string }) {
         <Btn onClick={() => { setShowAdd(true); setEditP(null); }}>+ Tambah Profile</Btn>
       </div>
 
-      {showAdd && (
-        <form onSubmit={handleAdd} className="bg-white/5 border border-blue-500/30 rounded-xl p-5 space-y-3">
-          <h3 className="font-semibold text-sm">Profile Baru</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <div><label className="text-xs text-white/50 mb-1 block">Nama *</label><Input value={form.name} onChange={(v) => setForm((p) => ({ ...p, name: v }))} required /></div>
-            <div><label className="text-xs text-white/50 mb-1 block">Rate Limit (up/down)</label><Input value={form["rate-limit"]} onChange={(v) => setForm((p) => ({ ...p, "rate-limit": v }))} placeholder="mis: 2M/5M" /></div>
-            <div><label className="text-xs text-white/50 mb-1 block">Session Timeout</label><Input value={form["session-timeout"]} onChange={(v) => setForm((p) => ({ ...p, "session-timeout": v }))} placeholder="mis: 1d, 8h, 30m" /></div>
-            <div><label className="text-xs text-white/50 mb-1 block">Shared Users</label><Input value={form["shared-users"]} onChange={(v) => setForm((p) => ({ ...p, "shared-users": v }))} placeholder="1" /></div>
-            <div><label className="text-xs text-white/50 mb-1 block">Address Pool</label><Input value={form["address-pool"]} onChange={(v) => setForm((p) => ({ ...p, "address-pool": v }))} placeholder="hs-pool (opsional)" /></div>
-          </div>
-          <div className="flex gap-2">
-            <Btn type="submit" disabled={saving}>{saving ? "Menyimpan..." : "Simpan"}</Btn>
-            <Btn type="button" variant="ghost" onClick={() => setShowAdd(false)}>Batal</Btn>
-          </div>
-        </form>
-      )}
-
-      {editP && (
-        <form onSubmit={handleEdit} className="bg-white/5 border border-yellow-500/30 rounded-xl p-5 space-y-3">
-          <h3 className="font-semibold text-sm">Edit: <span className="text-yellow-400">{editP.name}</span></h3>
-          <div className="grid grid-cols-2 gap-3">
-            <div><label className="text-xs text-white/50 mb-1 block">Rate Limit</label><Input value={editP["rate-limit"] || ""} onChange={(v) => setEditP((p: any) => ({ ...p, "rate-limit": v }))} placeholder="mis: 2M/5M" /></div>
-            <div><label className="text-xs text-white/50 mb-1 block">Session Timeout</label><Input value={editP["session-timeout"] || ""} onChange={(v) => setEditP((p: any) => ({ ...p, "session-timeout": v }))} placeholder="mis: 1d, 8h" /></div>
-            <div><label className="text-xs text-white/50 mb-1 block">Shared Users</label><Input value={editP["shared-users"] || "1"} onChange={(v) => setEditP((p: any) => ({ ...p, "shared-users": v }))} /></div>
-          </div>
-          <div className="flex gap-2">
-            <Btn type="submit" disabled={saving} variant="warning">{saving ? "Menyimpan..." : "Update"}</Btn>
-            <Btn type="button" variant="ghost" onClick={() => setEditP(null)}>Batal</Btn>
-          </div>
-        </form>
-      )}
+      {showAdd && <ProfileForm f={form} setF={setForm as any} onSubmit={handleAdd} />}
+      {editP   && <ProfileForm f={editP} setF={setEditP as any} onSubmit={handleEdit} variant="yellow" />}
 
       <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
         <table className="w-full text-sm">
@@ -641,26 +691,40 @@ function UserProfiles({ subdomain }: { subdomain: string }) {
             <tr className="border-b border-white/10 text-white/50 text-xs">
               <th className="text-left px-4 py-3">Nama</th>
               <th className="text-left px-4 py-3">Rate Limit</th>
-              <th className="text-left px-4 py-3">Session Timeout</th>
-              <th className="text-left px-4 py-3">Shared Users</th>
+              <th className="text-left px-4 py-3">Timeout</th>
+              <th className="text-left px-4 py-3">Validity</th>
+              <th className="text-left px-4 py-3">Harga</th>
+              <th className="text-left px-4 py-3">Expiry</th>
               <th className="text-left px-4 py-3">Aksi</th>
             </tr>
           </thead>
           <tbody>
-            {loading ? <Loader cols={5} /> : profiles.map((p) => (
-              <tr key={p[".id"]} className="border-b border-white/5 hover:bg-white/5">
-                <td className="px-4 py-2.5 font-semibold">{p["name"]}</td>
-                <td className="px-4 py-2.5 font-mono text-xs text-white/60">{p["rate-limit"] || "-"}</td>
-                <td className="px-4 py-2.5 text-xs text-white/60">{p["session-timeout"] || "∞"}</td>
-                <td className="px-4 py-2.5 text-xs text-white/60">{p["shared-users"] || "1"}</td>
-                <td className="px-4 py-2.5">
-                  <div className="flex gap-1">
-                    <Btn size="xs" onClick={() => { setEditP({ ...p }); setShowAdd(false); }}>Edit</Btn>
-                    <Btn size="xs" variant="danger" onClick={() => confirm(`Hapus profile ${p["name"]}?`) && doAction("remove-profile", { ".id": p[".id"] })}>Hapus</Btn>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {loading ? <Loader cols={7} /> : profiles.map((p) => {
+              const ol = parseOnLogin(p["on-login"] || "");
+              return (
+                <tr key={p[".id"]} className="border-b border-white/5 hover:bg-white/5">
+                  <td className="px-4 py-2.5 font-semibold">{p["name"]}</td>
+                  <td className="px-4 py-2.5 font-mono text-xs text-white/60">{p["rate-limit"] || "-"}</td>
+                  <td className="px-4 py-2.5 text-xs text-white/60">{p["session-timeout"] || "∞"}</td>
+                  <td className="px-4 py-2.5 text-xs text-white/60">{ol.validity || "-"}</td>
+                  <td className="px-4 py-2.5 text-xs text-green-400">{ol.price ? `Rp ${Number(ol.price).toLocaleString("id-ID")}` : "-"}</td>
+                  <td className="px-4 py-2.5 text-xs">
+                    {ol.expmode === "remc" && <Badge variant="green">Catat+Hapus</Badge>}
+                    {ol.expmode === "ntfc" && <Badge variant="blue">Catat+Blokir</Badge>}
+                    {ol.expmode === "rem"  && <Badge variant="red">Hapus</Badge>}
+                    {ol.expmode === "ntf"  && <Badge variant="gray">Blokir</Badge>}
+                    {ol.expmode === "0"    && <Badge variant="gray">Catat saja</Badge>}
+                    {!ol.expmode          && <span className="text-white/20">-</span>}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <div className="flex gap-1">
+                      <Btn size="xs" onClick={() => { setEditP({ ...p, ...ol }); setShowAdd(false); }}>Edit</Btn>
+                      <Btn size="xs" variant="danger" onClick={() => confirm(`Hapus profile ${p["name"]}?`) && doAction("remove-profile", { ".id": p[".id"] })}>Hapus</Btn>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
