@@ -973,13 +973,25 @@ function SellingReport({ subdomain }: { subdomain: string }) {
     if (Array.isArray(d)) setScripts(d);
   }, [subdomain]);
 
+  const [debugError, setDebugError] = useState("");
+
   const loadAll = useCallback(async () => {
     setDebugLoading(true);
+    setDebugError("");
     setShowDebug(true);
-    const res = await fetch(`/api/router/data?subdomain=${subdomain}&cmd=scripts-all`);
-    const d = await res.json();
-    setDebugLoading(false);
-    if (Array.isArray(d)) setAllScripts(d);
+    try {
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), 15000);
+      const res = await fetch(`/api/router/data?subdomain=${subdomain}&cmd=scripts-all`, { signal: ctrl.signal });
+      clearTimeout(tid);
+      const d = await res.json();
+      setDebugLoading(false);
+      if (Array.isArray(d)) setAllScripts(d);
+      else setDebugError(d?.error || "Response bukan array: " + JSON.stringify(d));
+    } catch (e: any) {
+      setDebugLoading(false);
+      setDebugError(e.name === "AbortError" ? "Timeout 15s — router tidak respond untuk /system/script/print" : e.message);
+    }
   }, [subdomain]);
 
   useEffect(() => { load(); }, [load]);
@@ -1020,7 +1032,9 @@ function SellingReport({ subdomain }: { subdomain: string }) {
             <button onClick={() => setShowDebug(false)} className="text-white/40 hover:text-white text-xs">tutup</button>
           </div>
           {debugLoading ? (
-            <p className="text-white/40 text-xs">Memuat...</p>
+            <p className="text-white/40 text-xs">Memuat... (timeout 15s)</p>
+          ) : debugError ? (
+            <p className="text-red-400 text-xs font-mono">{debugError}</p>
           ) : allScripts.length === 0 ? (
             <p className="text-white/40 text-xs">Tidak ada script sama sekali di router.</p>
           ) : (
