@@ -46,6 +46,12 @@ export default function DashboardShell({ user, routerConfig }: Props) {
   const [activeMenu, setActiveMenu] = useState("home");
   const current = allItems.find((m) => m.id === activeMenu);
 
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    const appDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
+    window.location.href = `${window.location.protocol}//${appDomain}/login`;
+  };
+
   return (
     <div className="min-h-screen bg-slate-900 text-white flex">
       <aside className="w-56 bg-slate-800 border-r border-white/10 flex flex-col shrink-0">
@@ -74,9 +80,13 @@ export default function DashboardShell({ user, routerConfig }: Props) {
             </div>
           ))}
         </nav>
-        <div className="p-4 border-t border-white/10">
+        <div className="p-4 border-t border-white/10 space-y-2">
           <div className="text-white/60 text-xs truncate">{user.name}</div>
           <div className="text-white/30 text-xs truncate">{user.email}</div>
+          <button onClick={handleLogout}
+            className="w-full mt-1 px-3 py-1.5 rounded-lg text-xs text-white/50 hover:text-red-400 hover:bg-red-500/10 transition text-left">
+            Keluar
+          </button>
         </div>
       </aside>
 

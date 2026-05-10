@@ -3,12 +3,17 @@ export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/prisma";
 import { RouterOSAPI } from "@/lib/routeros";
 import { decrypt } from "@/lib/encrypt";
+import { getSessionFromCookie } from "@/lib/session";
 
 export async function GET(req: NextRequest) {
   const subdomain = req.nextUrl.searchParams.get("subdomain");
   const cmd = req.nextUrl.searchParams.get("cmd") || "dashboard";
 
   if (!subdomain) return NextResponse.json({ error: "Missing subdomain" }, { status: 400 });
+
+  const session = getSessionFromCookie(req.cookies.get("session")?.value);
+  if (!session || session.subdomain !== subdomain)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const user = await prisma.user.findUnique({
     where: { subdomain },

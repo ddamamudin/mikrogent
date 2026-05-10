@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/prisma";
 import { RouterOSAPI } from "@/lib/routeros";
 import { decrypt } from "@/lib/encrypt";
+import { getSessionFromCookie } from "@/lib/session";
 
 function randomStr(len: number, type: string): string {
   const sets: Record<string, string> = {
@@ -26,6 +27,10 @@ export async function POST(req: NextRequest) {
 
   if (!subdomain || !qty || qty < 1 || qty > 500)
     return NextResponse.json({ error: "Invalid parameters" }, { status: 400 });
+
+  const session = getSessionFromCookie(req.cookies.get("session")?.value);
+  if (!session || session.subdomain !== subdomain)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const user = await prisma.user.findUnique({
     where: { subdomain },

@@ -12,6 +12,13 @@ export function proxy(req: NextRequest) {
     host.endsWith(`.${appDomain}`);
 
   if (isSubdomain) {
+    // If no session cookie, redirect to main domain login
+    const session = req.cookies.get("session")?.value;
+    if (!session) {
+      const proto = req.nextUrl.protocol;
+      return NextResponse.redirect(new URL(`${proto}//${appDomain}/login`));
+    }
+
     const subdomain = host.replace(`.${appDomain}`, "");
     const url = req.nextUrl.clone();
     url.pathname = `/dashboard/${subdomain}${url.pathname}`;

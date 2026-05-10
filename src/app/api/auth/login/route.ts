@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
-import crypto from "crypto";
+import { createSession } from "@/lib/session";
 
 export async function POST(req: NextRequest) {
   const { email, password } = await req.json();
@@ -19,14 +19,12 @@ export async function POST(req: NextRequest) {
   if (user.status === "SUSPENDED")
     return NextResponse.json({ error: "Akun Anda telah disuspend" }, { status: 403 });
 
-  // Simple session token
-  const sessionToken = crypto.randomBytes(32).toString("hex");
   const cookieStore = await cookies();
-  cookieStore.set("session", `${user.id}:${sessionToken}`, {
+  cookieStore.set("session", createSession(user.id, user.subdomain), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7, // 7 hari
+    maxAge: 60 * 60 * 24 * 7,
     path: "/",
     domain: process.env.NODE_ENV === "production" ? ".mikroplay.com" : undefined,
   });
