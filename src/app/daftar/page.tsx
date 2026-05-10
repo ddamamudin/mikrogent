@@ -49,6 +49,9 @@ export default function RegisterPage() {
             Link konfirmasi sudah dikirim ke <strong className="text-gray-900">{form.email}</strong>.
             Klik link tersebut untuk mengaktifkan akun Anda.
           </p>
+          <p className="text-sm text-gray-400 mt-3">
+            Tidak menemukan emailnya? Periksa folder <strong className="text-gray-500">Spam</strong> atau <strong className="text-gray-500">Promosi</strong>.
+          </p>
         </div>
       </div>
     );
