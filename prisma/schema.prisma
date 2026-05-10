@@ -21,7 +21,10 @@ model User {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
-  emailTokens EmailToken[]
+  emailTokens        EmailToken[]
+  mikrotikCredential MikrotikCredential?
+  agentMemory        AgentMemory?
+  agentDailyCount    AgentDailyCount?
 }
 
 model EmailToken {
@@ -39,6 +42,39 @@ model AppConfig {
   id                String  @id @default("singleton")
   adminSetupEnabled Boolean @default(true)
   showBrandField    Boolean @default(true)
+  claudeApiKey      String?
+  agentPersona      String?
+  agentKnowledge    String?
+  dailyChatLimit    Int     @default(50)
+}
+
+model MikrotikCredential {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  host      String
+  port      Int      @default(22)
+  sshUser   String
+  sshPass   String
+  connected Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AgentMemory {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  content   String
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AgentDailyCount {
+  id     String @id @default(cuid())
+  userId String @unique
+  count  Int    @default(0)
+  date   String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 enum UserStatus {

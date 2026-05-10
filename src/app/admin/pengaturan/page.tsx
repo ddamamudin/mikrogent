@@ -16,5 +16,10 @@ export default async function PengaturanPage() {
     select: { name: true, email: true },
   });
 
-  return <PengaturanClient config={config ?? { adminSetupEnabled: true, showBrandField: true }} admin={admin ?? { name: "", email: "" }} />;
+  return (
+    <PengaturanClient
+      config={config ?? { adminSetupEnabled: true, showBrandField: true, claudeApiKey: null, agentPersona: null, agentKnowledge: null, dailyChatLimit: 50 }}
+      admin={admin ?? { name: "", email: "" }}
+    />
+  );
 }

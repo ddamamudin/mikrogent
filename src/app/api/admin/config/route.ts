@@ -41,6 +41,16 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json(config);
   }
 
+  if (body.agentConfig) {
+    const { claudeApiKey, agentPersona, agentKnowledge, dailyChatLimit } = body.agentConfig;
+    const config = await prisma.appConfig.upsert({
+      where: { id: "singleton" },
+      update: { claudeApiKey, agentPersona, agentKnowledge, dailyChatLimit },
+      create: { id: "singleton", claudeApiKey, agentPersona, agentKnowledge, dailyChatLimit },
+    });
+    return NextResponse.json(config);
+  }
+
   if (body.newPassword) {
     const bcrypt = await import("bcryptjs");
     const hashed = await bcrypt.hash(body.newPassword, 12);

@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 
-type Config = { adminSetupEnabled: boolean; showBrandField: boolean };
+type Config = {
+  adminSetupEnabled: boolean;
+  showBrandField: boolean;
+  claudeApiKey: string | null;
+  agentPersona: string | null;
+  agentKnowledge: string | null;
+  dailyChatLimit: number;
+};
 type Admin = { name: string; email: string };
 
 export default function PengaturanClient({ config: initial, admin }: { config: Config; admin: Admin }) {
@@ -13,6 +20,12 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passLoading, setPassLoading] = useState(false);
+
+  const [claudeApiKey, setClaudeApiKey] = useState(initial.claudeApiKey ?? "");
+  const [agentPersona, setAgentPersona] = useState(initial.agentPersona ?? "");
+  const [agentKnowledge, setAgentKnowledge] = useState(initial.agentKnowledge ?? "");
+  const [dailyChatLimit, setDailyChatLimit] = useState(String(initial.dailyChatLimit));
+  const [agentLoading, setAgentLoading] = useState(false);
 
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
@@ -29,12 +42,8 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
       body: JSON.stringify({ adminSetupEnabled: val }),
     });
     setConfigLoading(false);
-    if (res.ok) {
-      setSetupEnabled(val);
-      showMsg("ok", `Halaman setup admin ${val ? "diaktifkan" : "dinonaktifkan"}`);
-    } else {
-      showMsg("err", "Gagal menyimpan pengaturan");
-    }
+    if (res.ok) { setSetupEnabled(val); showMsg("ok", `Halaman setup admin ${val ? "diaktifkan" : "dinonaktifkan"}`); }
+    else showMsg("err", "Gagal menyimpan pengaturan");
   };
 
   const handleToggleShowBrand = async (val: boolean) => {
@@ -45,12 +54,8 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
       body: JSON.stringify({ showBrandField: val }),
     });
     setConfigLoading(false);
-    if (res.ok) {
-      setShowBrand(val);
-      showMsg("ok", `Field brand ${val ? "ditampilkan" : "disembunyikan"}`);
-    } else {
-      showMsg("err", "Gagal menyimpan pengaturan");
-    }
+    if (res.ok) { setShowBrand(val); showMsg("ok", `Field brand ${val ? "ditampilkan" : "disembunyikan"}`); }
+    else showMsg("err", "Gagal menyimpan pengaturan");
   };
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
@@ -64,15 +69,35 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
       body: JSON.stringify({ newPassword }),
     });
     setPassLoading(false);
-    if (res.ok) {
-      showMsg("ok", "Password berhasil diperbarui");
-      setNewPassword(""); setConfirmPassword("");
-    } else {
-      showMsg("err", "Gagal memperbarui password");
-    }
+    if (res.ok) { showMsg("ok", "Password berhasil diperbarui"); setNewPassword(""); setConfirmPassword(""); }
+    else showMsg("err", "Gagal memperbarui password");
+  };
+
+  const handleSaveAgent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const limit = parseInt(dailyChatLimit);
+    if (!claudeApiKey.trim()) return showMsg("err", "API Key Claude wajib diisi");
+    if (isNaN(limit) || limit < 1) return showMsg("err", "Batas chat harus angka minimal 1");
+    setAgentLoading(true);
+    const res = await fetch("/api/admin/config", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        agentConfig: {
+          claudeApiKey: claudeApiKey.trim(),
+          agentPersona: agentPersona.trim(),
+          agentKnowledge: agentKnowledge.trim(),
+          dailyChatLimit: limit,
+        },
+      }),
+    });
+    setAgentLoading(false);
+    if (res.ok) showMsg("ok", "Pengaturan AI Agent disimpan");
+    else showMsg("err", "Gagal menyimpan pengaturan AI Agent");
   };
 
   const inputClass = "w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-blue-500";
+  const textareaClass = inputClass + " resize-none";
 
   return (
     <div className="max-w-lg space-y-6">
@@ -95,11 +120,8 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
             <p className="text-sm font-medium text-gray-900 dark:text-white">Aktifkan /admin/setup</p>
             <p className="text-xs text-gray-400 dark:text-white/30 mt-0.5">Matikan setelah semua admin dibuat</p>
           </div>
-          <button
-            onClick={() => handleToggleSetup(!setupEnabled)}
-            disabled={configLoading}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${setupEnabled ? "bg-blue-600" : "bg-gray-200 dark:bg-white/10"}`}
-          >
+          <button onClick={() => handleToggleSetup(!setupEnabled)} disabled={configLoading}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${setupEnabled ? "bg-blue-600" : "bg-gray-200 dark:bg-white/10"}`}>
             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${setupEnabled ? "translate-x-6" : "translate-x-1"}`} />
           </button>
         </div>
@@ -117,11 +139,8 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
             <p className="text-sm font-medium text-gray-900 dark:text-white">Tampilkan field brand saat daftar</p>
             <p className="text-xs text-gray-400 dark:text-white/30 mt-0.5">Matikan jika aplikasi belum menggunakan fitur subdomain</p>
           </div>
-          <button
-            onClick={() => handleToggleShowBrand(!showBrand)}
-            disabled={configLoading}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${showBrand ? "bg-blue-600" : "bg-gray-200 dark:bg-white/10"}`}
-          >
+          <button onClick={() => handleToggleShowBrand(!showBrand)} disabled={configLoading}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${showBrand ? "bg-blue-600" : "bg-gray-200 dark:bg-white/10"}`}>
             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showBrand ? "translate-x-6" : "translate-x-1"}`} />
           </button>
         </div>
@@ -129,6 +148,51 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
           Status: <span className={showBrand ? "text-green-600 dark:text-green-400" : "text-yellow-600 dark:text-yellow-400"}>{showBrand ? "Ditampilkan" : "Disembunyikan (brand di-generate otomatis dari email)"}</span>
         </p>
       </div>
+
+      {/* AI Agent Settings */}
+      <form onSubmit={handleSaveAgent} className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 p-5 shadow-sm space-y-4">
+        <h2 className="text-sm font-semibold text-gray-400 dark:text-white/50 uppercase tracking-wider">Pengaturan AI Agent</h2>
+
+        <div className="space-y-1">
+          <label className="text-sm text-gray-600 dark:text-white/60">Claude API Key</label>
+          <input
+            type="password" value={claudeApiKey} onChange={(e) => setClaudeApiKey(e.target.value)}
+            className={inputClass} placeholder="sk-ant-api03-..." autoComplete="off"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-sm text-gray-600 dark:text-white/60">Persona Agent</label>
+          <textarea
+            value={agentPersona} onChange={(e) => setAgentPersona(e.target.value)}
+            rows={4} className={textareaClass}
+            placeholder="Contoh: Kamu adalah asisten jaringan profesional yang membantu reseller ISP mengelola MikroTik mereka..."
+          />
+          <p className="text-xs text-gray-400 dark:text-white/30">Karakter dan gaya komunikasi agent kepada user</p>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-sm text-gray-600 dark:text-white/60">Knowledge Base</label>
+          <textarea
+            value={agentKnowledge} onChange={(e) => setAgentKnowledge(e.target.value)}
+            rows={5} className={textareaClass}
+            placeholder="Contoh: Semua user adalah reseller ISP dengan jaringan FTTH. Router yang digunakan umumnya RB series dengan RouterOS 6.x atau 7.x..."
+          />
+          <p className="text-xs text-gray-400 dark:text-white/30">Konteks bisnis dan pengetahuan khusus yang perlu diketahui agent</p>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-sm text-gray-600 dark:text-white/60">Batas Chat per Hari (per user)</label>
+          <input
+            type="number" min={1} max={9999} value={dailyChatLimit} onChange={(e) => setDailyChatLimit(e.target.value)}
+            className={inputClass} placeholder="50"
+          />
+        </div>
+
+        <button type="submit" disabled={agentLoading} className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition disabled:opacity-50">
+          {agentLoading ? "Menyimpan..." : "Simpan Pengaturan Agent"}
+        </button>
+      </form>
 
       {/* Ganti Password */}
       <form onSubmit={handleUpdatePassword} className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 p-5 shadow-sm space-y-4">

@@ -9,6 +9,19 @@ const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
 
 const NAV = [
   {
+    group: "AI Agent",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="3" width="20" height="14" rx="2" />
+        <path d="M8 21h8M12 17v4" />
+        <path d="M9 8h.01M15 8h.01M9 12h6" />
+      </svg>
+    ),
+    items: [
+      { href: "/dashboard/agent", label: "MikroTik Agent" },
+    ],
+  },
+  {
     group: "Profil",
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -29,7 +42,7 @@ type User = { name: string; brand: string | null; email: string };
 export default function DashboardLayoutClient({ user, showBrandField, children }: { user: User; showBrandField: boolean; children: React.ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({ Profil: true });
+  const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({ "AI Agent": true, Profil: true });
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
