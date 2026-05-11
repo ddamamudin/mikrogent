@@ -22,12 +22,12 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [toolLabel, setToolLabel] = useState("");
+  const [streamingText, setStreamingText] = useState("");
   const [error, setError] = useState("");
   const [chatCount, setChatCount] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Restore conversation from sessionStorage on mount
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem(`${SK}_msg`);
@@ -40,7 +40,6 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Persist to sessionStorage on change
   useEffect(() => {
     try { sessionStorage.setItem(`${SK}_msg`, JSON.stringify(messages)); } catch {}
   }, [SK, messages]);
@@ -53,7 +52,7 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading, toolLabel]);
+  }, [messages, loading, toolLabel, streamingText]);
 
   function autoResize() {
     const el = textareaRef.current;
@@ -77,10 +76,10 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
     if (textareaRef.current) textareaRef.current.style.height = "auto";
     setLoading(true);
     setToolLabel("");
+    setStreamingText("");
     setError("");
 
-    // Add empty assistant message we'll fill in as tokens arrive
-    setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+    let assembled = "";
 
     try {
       const res = await fetch("/api/agent/chat", {
@@ -89,16 +88,19 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
         body: JSON.stringify({ messages: newApiMessages }),
       });
 
+      if (!res.ok && !res.body) {
+        const txt = await res.text().catch(() => "");
+        setError(`HTTP ${res.status}: ${txt.slice(0, 200) || "Stream tidak tersedia"}`);
+        return;
+      }
       if (!res.body) {
         setError("Stream tidak tersedia");
-        setMessages((prev) => prev.slice(0, -1));
         return;
       }
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buf = "";
-      let assembled = "";
 
       while (true) {
         const { done, value } = await reader.read();
@@ -115,12 +117,7 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
 
           if (evt.type === "text" && evt.text) {
             assembled += evt.text;
-            const snap = assembled;
-            setMessages((prev) => {
-              const updated = [...prev];
-              updated[updated.length - 1] = { role: "assistant", content: snap };
-              return updated;
-            });
+            setStreamingText(assembled);
             setToolLabel("");
           } else if (evt.type === "tool" && evt.label) {
             setToolLabel(evt.label);
@@ -128,29 +125,21 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
             setApiMessages(evt.messages);
             setChatCount((c) => c + 1);
             setToolLabel("");
-            // Safety net: kalau ga ada text sama sekali, hapus bubble kosong
-            if (!assembled) {
-              setMessages((prev) => prev.slice(0, -1));
-              setError("Agent tidak memberikan balasan. Coba pertanyaan yang lebih spesifik.");
+            if (assembled) {
+              setMessages((prev) => [...prev, { role: "assistant", content: assembled }]);
             }
           } else if (evt.type === "error" && evt.error) {
             setError(evt.error);
-            // Remove the empty assistant placeholder if nothing was written
-            if (!assembled) setMessages((prev) => prev.slice(0, -1));
             setToolLabel("");
           }
         }
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Network error");
-      setMessages((prev) => {
-        const last = prev[prev.length - 1];
-        if (last?.role === "assistant" && !last.content) return prev.slice(0, -1);
-        return prev;
-      });
     } finally {
       setLoading(false);
       setToolLabel("");
+      setStreamingText("");
     }
   }
 
@@ -160,6 +149,8 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
   }
 
   const isEmpty = messages.length === 0;
+  const showStreaming = loading && streamingText.length > 0;
+  const showThinking = loading && !streamingText && !toolLabel;
 
   if (!agentReady) {
     return (
@@ -195,7 +186,7 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
           {messages.length > 0 && (
             <button
               onClick={() => {
-                setMessages([]); setApiMessages([]); setError(""); setToolLabel("");
+                setMessages([]); setApiMessages([]); setError(""); setToolLabel(""); setStreamingText("");
                 try { sessionStorage.removeItem(`${SK}_msg`); sessionStorage.removeItem(`${SK}_api`); sessionStorage.removeItem(`${SK}_count`); } catch {}
               }}
               className="text-xs text-gray-400 dark:text-white/30 border border-gray-200 dark:border-white/10 rounded-md px-2.5 py-1 hover:text-gray-600 dark:hover:text-white/60 transition"
@@ -208,7 +199,7 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto">
-        {isEmpty ? (
+        {isEmpty && !loading ? (
           <div className="flex flex-col items-center justify-center h-full px-6 py-12 text-center">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center text-3xl mb-4">
               🌐
@@ -257,6 +248,20 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
               </div>
             ))}
 
+            {/* Streaming bubble — shows assistant text live as it arrives */}
+            {showStreaming && (
+              <div className="flex gap-3 py-4 border-b border-gray-100 dark:border-white/5 items-start">
+                <div className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-xs font-bold bg-gradient-to-br from-blue-600 to-violet-600 text-white">
+                  🌐
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-gray-400 dark:text-white/30 mb-1.5">MikroTik Agent</p>
+                  <div className="md prose-sm text-sm text-gray-800 dark:text-white/80 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: renderMarkdown(streamingText) }} />
+                </div>
+              </div>
+            )}
+
             {/* Tool execution indicator */}
             {loading && toolLabel && (
               <div className="flex gap-3 py-3 items-center">
@@ -273,15 +278,18 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
               </div>
             )}
 
-            {/* Generic loading dots (when waiting for first token, no tool label yet) */}
-            {loading && !toolLabel && messages[messages.length - 1]?.role === "user" && (
+            {/* Thinking indicator — sebelum text pertama, tanpa tool sedang jalan */}
+            {showThinking && (
               <div className="flex gap-3 py-4 items-start">
                 <div className="w-8 h-8 rounded-lg shrink-0 bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center text-sm">🌐</div>
-                <div className="pt-2.5 flex gap-1">
-                  {[0, 1, 2].map((i) => (
-                    <div key={i} className="w-2 h-2 rounded-full bg-gray-300 dark:bg-white/30"
-                      style={{ animation: "bounce 1.2s infinite", animationDelay: `${i * 0.2}s` }} />
-                  ))}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-gray-400 dark:text-white/30 mb-1.5">MikroTik Agent</p>
+                  <div className="pt-1 flex gap-1">
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} className="w-2 h-2 rounded-full bg-gray-300 dark:bg-white/30"
+                        style={{ animation: "bounce 1.2s infinite", animationDelay: `${i * 0.2}s` }} />
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
