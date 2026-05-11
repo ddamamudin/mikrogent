@@ -295,7 +295,7 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
           <textarea ref={textareaRef} value={input}
             onChange={(e) => { setInput(e.target.value); autoResize(); }}
             onKeyDown={handleKeyDown}
-            placeholder={isConnected ? "Kirim pesan ke MikroTik AI..." : "Ketik 'halo' untuk mulai..."}
+            placeholder={isConnected ? "Kirim pesan ke Replay Agent..." : "Ketik 'halo' untuk mulai..."}
             rows={1}
             className="flex-1 resize-none border-none outline-none bg-transparent text-[15px] text-gray-900 placeholder-gray-400 leading-relaxed min-h-[24px] font-[inherit]"
           />
@@ -304,7 +304,7 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
             ↑
           </button>
         </form>
-        <p className="text-center text-xs text-gray-400 mt-2 px-2">MikroTik AI dapat membuat kesalahan. Verifikasi info penting.</p>
+        <p className="text-center text-xs text-gray-400 mt-2 px-2">Replay Agent dapat membuat kesalahan. Verifikasi info penting.</p>
       </div>
 
       <style>{`

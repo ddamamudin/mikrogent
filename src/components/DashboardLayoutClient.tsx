@@ -2,14 +2,13 @@
 
 import { useState, useEffect, createContext, useContext } from "react";
 import { usePathname } from "next/navigation";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Mikroplay";
 const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
 
 const NAV = [
   {
-    group: "AI Agent",
+    group: "Replay Agent",
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="3" width="20" height="14" rx="2" />
@@ -61,7 +60,7 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
   const pathname = usePathname();
   const isAgentPage = pathname === "/dashboard/agent";
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({ "AI Agent": true, Profil: true });
+  const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({ "Replay Agent": true, "Profil": true });
   const [agentState, setAgentState] = useState<AgentSidebarState | null>(null);
 
   // Close sidebar on route change for cleaner mobile UX
@@ -98,7 +97,6 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
           </div>
           <div className="flex items-center gap-1">
             <span className="text-sm text-gray-500 dark:text-white/60 hidden sm:block mr-2">{user.name}</span>
-            <ThemeToggle />
             <button
               onClick={handleLogout}
               className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-400 dark:text-white/50 hover:text-red-600 dark:hover:text-red-400 transition"
@@ -160,7 +158,7 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
                       })}
 
                       {/* Info agent: status koneksi, kuota, tombol chat baru */}
-                      {group === "AI Agent" && agentState && (
+                      {group === "Replay Agent" && agentState && (
                         <div className="mt-2 mx-1 px-3 py-2.5 bg-gray-50 dark:bg-white/5 rounded-lg space-y-1.5">
                           <div className="flex items-center gap-1.5 text-xs">
                             <span className={`w-1.5 h-1.5 rounded-full ${agentState.isConnected ? "bg-green-500" : "bg-yellow-500"}`} />

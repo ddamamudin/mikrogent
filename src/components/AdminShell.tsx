@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import type { SessionPayload } from "@/lib/session";
 
 const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Mikroplay";
@@ -78,7 +77,6 @@ export default function AdminShell({ session, children }: { session: SessionPayl
           <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400">Admin</span>
         </div>
         <div className="flex items-center gap-1">
-          <ThemeToggle />
           <button
             onClick={handleLogout}
             className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-400 dark:text-white/50 hover:text-red-600 dark:hover:text-red-400 transition"
