@@ -27,6 +27,8 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
   const [chatCount, setChatCount] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const streamBufRef = useRef<string>("");
+  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     try {
@@ -80,6 +82,17 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
     setError("");
 
     let assembled = "";
+    streamBufRef.current = "";
+
+    // Coalesce setState updates ke max 1x per frame supaya UI ga keteteran
+    const flushStream = () => {
+      rafRef.current = null;
+      setStreamingText(streamBufRef.current);
+    };
+    const scheduleFlush = () => {
+      if (rafRef.current != null) return;
+      rafRef.current = requestAnimationFrame(flushStream);
+    };
 
     try {
       const res = await fetch("/api/agent/chat", {
@@ -117,7 +130,8 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
 
           if (evt.type === "text" && evt.text) {
             assembled += evt.text;
-            setStreamingText(assembled);
+            streamBufRef.current = assembled;
+            scheduleFlush();
             setToolLabel("");
           } else if (evt.type === "tool" && evt.label) {
             setToolLabel(evt.label);
@@ -137,9 +151,14 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
     } catch (e) {
       setError(e instanceof Error ? e.message : "Network error");
     } finally {
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
       setLoading(false);
       setToolLabel("");
       setStreamingText("");
+      streamBufRef.current = "";
     }
   }
 
@@ -248,7 +267,7 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
               </div>
             ))}
 
-            {/* Streaming bubble — shows assistant text live as it arrives */}
+            {/* Streaming bubble — plain text untuk performa; markdown di-render saat selesai */}
             {showStreaming && (
               <div className="flex gap-3 py-4 border-b border-gray-100 dark:border-white/5 items-start">
                 <div className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-xs font-bold bg-gradient-to-br from-blue-600 to-violet-600 text-white">
@@ -256,8 +275,7 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-gray-400 dark:text-white/30 mb-1.5">MikroTik Agent</p>
-                  <div className="md prose-sm text-sm text-gray-800 dark:text-white/80 leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: renderMarkdown(streamingText) }} />
+                  <p className="text-sm text-gray-800 dark:text-white/80 leading-relaxed whitespace-pre-wrap">{streamingText}</p>
                 </div>
               </div>
             )}
