@@ -8,6 +8,15 @@ interface Message { role: Role; content: string; }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ApiMessage = any;
 
+type AttachmentType = "image" | "document";
+interface Attachment {
+  type: AttachmentType;
+  name: string;
+  data: string; // base64 (no prefix)
+  mimeType: string;
+  preview?: string; // data URL, for image thumbnails only
+}
+
 interface Props {
   userId: string;
   firstName: string;
@@ -39,11 +48,17 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
   const [error, setError] = useState("");
   const [chatCount, setChatCount] = useState(initialChatCount);
   const [greeting, setGreeting] = useState("");
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
   const streamBufRef = useRef<string>("");
   const rafRef = useRef<number | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const assembledRef = useRef<string>("");
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
 
   const { setState: setAgentSidebar } = useAgentSidebar();
 
@@ -84,6 +99,7 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
 
   const resetChat = useCallback(() => {
     setMessages([]); setApiMessages([]); setError(""); setToolLabel(""); setStreamingText("");
+    setAttachments([]); setShowAttachMenu(false);
     fetch("/api/agent/session", { method: "DELETE" }).catch(() => {});
   }, []);
 
@@ -115,8 +131,16 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
       return;
     }
 
+    const snapshot = [...attachments];
+    setAttachments([]);
+    setShowAttachMenu(false);
+
+    // Display message includes attachment names so user sees what was sent
+    const attachLabels = snapshot.map(a => `${a.type === "image" ? "📷" : "📄"} ${a.name}`).join("  ");
+    const displayContent = snapshot.length > 0 ? `${content}\n${attachLabels}` : content;
+
     const newApiMessages: ApiMessage[] = [...apiMessages, { role: "user", content }];
-    const newMessages: Message[] = [...messages, { role: "user", content }];
+    const newMessages: Message[] = [...messages, { role: "user", content: displayContent }];
     setMessages(newMessages);
     setApiMessages(newApiMessages);
     saveSession(newMessages, newApiMessages);
@@ -127,7 +151,7 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
     setStreamingText("");
     setError("");
 
-    let assembled = "";
+    assembledRef.current = "";
     streamBufRef.current = "";
 
     const flushStream = () => {
@@ -139,11 +163,20 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
       rafRef.current = requestAnimationFrame(flushStream);
     };
 
+    const abort = new AbortController();
+    abortRef.current = abort;
+
     try {
       const res = await fetch("/api/agent/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newApiMessages }),
+        body: JSON.stringify({
+          messages: newApiMessages,
+          attachments: snapshot.length > 0
+            ? snapshot.map(({ type, name, data, mimeType }) => ({ type, name, data, mimeType }))
+            : undefined,
+        }),
+        signal: abort.signal,
       });
 
       if (!res.ok && !res.body) {
@@ -174,8 +207,8 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
           try { evt = JSON.parse(line.slice(6)); } catch { continue; }
 
           if (evt.type === "text" && evt.text) {
-            assembled += evt.text;
-            streamBufRef.current = assembled;
+            assembledRef.current += evt.text;
+            streamBufRef.current = assembledRef.current;
             scheduleFlush();
             setToolLabel("");
           } else if (evt.type === "tool" && evt.label) {
@@ -185,9 +218,10 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
             setApiMessages(doneMessages);
             setChatCount((c) => c + 1);
             setToolLabel("");
-            if (assembled) {
+            if (assembledRef.current) {
+              const text = assembledRef.current;
               setMessages((prev) => {
-                const next = [...prev, { role: "assistant" as Role, content: assembled }];
+                const next = [...prev, { role: "assistant" as Role, content: text }];
                 saveSession(next, doneMessages);
                 return next;
               });
@@ -201,8 +235,17 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
         }
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Network error");
+      if (e instanceof Error && e.name === "AbortError") {
+        // User stopped — commit whatever text we have so far
+        const partial = assembledRef.current;
+        if (partial) {
+          setMessages((prev) => [...prev, { role: "assistant" as Role, content: partial }]);
+        }
+      } else {
+        setError(e instanceof Error ? e.message : "Network error");
+      }
     } finally {
+      abortRef.current = null;
       if (rafRef.current != null) {
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
@@ -211,12 +254,50 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
       setToolLabel("");
       setStreamingText("");
       streamBufRef.current = "";
+      assembledRef.current = "";
     }
   }
 
   function handleSubmit(e: FormEvent) { e.preventDefault(); sendMessage(); }
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  }
+  function stopStream() { abortRef.current?.abort(); }
+
+  function readFiles(files: FileList, type: AttachmentType) {
+    const accept = type === "image"
+      ? ["image/jpeg", "image/png", "image/gif", "image/webp"]
+      : ["application/pdf", "text/plain", "text/html", "text/csv", "text/markdown"];
+    const current = attachments.filter(a => a.type === type).length;
+    const slots = 5 - current;
+    Array.from(files).slice(0, slots).forEach(file => {
+      if (!accept.includes(file.type)) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const dataUrl = ev.target?.result as string;
+        const data = dataUrl.split(",")[1] ?? "";
+        setAttachments(prev => [...prev, {
+          type,
+          name: file.name,
+          data,
+          mimeType: file.type,
+          preview: type === "image" ? dataUrl : undefined,
+        }]);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function handleImageInput(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files) readFiles(e.target.files, "image");
+    e.target.value = "";
+    setShowAttachMenu(false);
+  }
+
+  function handleDocInput(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files) readFiles(e.target.files, "document");
+    e.target.value = "";
+    setShowAttachMenu(false);
   }
 
   const isEmpty = messages.length === 0;
@@ -300,19 +381,90 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
 
       {/* Input */}
       <div className="shrink-0 px-3 sm:px-4 pb-3 sm:pb-4 pt-2 bg-white">
+        {/* hidden file inputs */}
+        <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp" multiple className="hidden" onChange={handleImageInput} />
+        <input ref={docInputRef} type="file" accept=".pdf,.txt,.html,.csv,.md,text/plain,application/pdf,text/html,text/csv,text/markdown" multiple className="hidden" onChange={handleDocInput} />
+
         <form onSubmit={handleSubmit}
-          className="max-w-3xl mx-auto flex gap-2 items-end bg-white border border-gray-200 rounded-3xl px-4 py-3 shadow-sm focus-within:border-gray-300 focus-within:shadow-md transition">
-          <textarea ref={textareaRef} value={input}
-            onChange={(e) => { setInput(e.target.value); autoResize(); }}
-            onKeyDown={handleKeyDown}
-            placeholder={isConnected ? "Kirim pesan ke Replay Agent..." : "Ketik 'halo' untuk mulai..."}
-            rows={1}
-            className="flex-1 resize-none overflow-hidden border-none outline-none bg-transparent text-[15px] text-gray-900 placeholder-gray-400 leading-relaxed min-h-[24px] font-[inherit]"
-          />
-          <button type="submit" disabled={!input.trim() || loading || chatCount >= dailyChatLimit}
-            className={`shrink-0 w-8 h-8 rounded-full border-none flex items-center justify-center transition text-base ${input.trim() && !loading && chatCount < dailyChatLimit ? "bg-gray-900 text-white cursor-pointer hover:bg-gray-700" : "bg-gray-200 text-gray-400 cursor-not-allowed"}`}>
-            ↑
-          </button>
+          className="max-w-3xl mx-auto bg-white border border-gray-200 rounded-3xl px-4 py-3 shadow-sm focus-within:border-gray-300 focus-within:shadow-md transition">
+
+          {/* Attachment previews */}
+          {attachments.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {attachments.map((att, i) => (
+                <div key={i} className="flex items-center gap-1.5 bg-gray-100 rounded-xl px-2 py-1.5 max-w-[160px]">
+                  {att.type === "image" && att.preview ? (
+                    <img src={att.preview} alt={att.name} className="w-7 h-7 rounded object-cover shrink-0" />
+                  ) : (
+                    <svg className="shrink-0 text-gray-500" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                  )}
+                  <span className="text-xs text-gray-700 truncate">{att.name}</span>
+                  <button type="button" onClick={() => setAttachments(prev => prev.filter((_, j) => j !== i))}
+                    className="shrink-0 text-gray-400 hover:text-gray-600 leading-none border-none bg-transparent cursor-pointer p-0 ml-0.5">×</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-2 items-end">
+            {/* Attach button */}
+            <div className="relative shrink-0">
+              <button type="button" onClick={() => setShowAttachMenu(v => !v)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition border-none bg-transparent cursor-pointer">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+              </button>
+              {showAttachMenu && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowAttachMenu(false)} />
+                  <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-2xl shadow-lg p-1.5 flex gap-1 z-20">
+                    <button type="button"
+                      onClick={() => { imageInputRef.current?.click(); }}
+                      disabled={attachments.filter(a => a.type === "image").length >= 5}
+                      className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl hover:bg-gray-100 transition text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed border-none bg-transparent cursor-pointer">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                      </svg>
+                      <span className="text-[11px]">Gambar</span>
+                    </button>
+                    <button type="button"
+                      onClick={() => { docInputRef.current?.click(); }}
+                      disabled={attachments.filter(a => a.type === "document").length >= 5}
+                      className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl hover:bg-gray-100 transition text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed border-none bg-transparent cursor-pointer">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+                      </svg>
+                      <span className="text-[11px]">Dokumen</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <textarea ref={textareaRef} value={input}
+              onChange={(e) => { setInput(e.target.value); autoResize(); }}
+              onKeyDown={handleKeyDown}
+              placeholder={isConnected ? "Kirim pesan ke Replay Agent..." : "Ketik 'halo' untuk mulai..."}
+              rows={1}
+              className="flex-1 resize-none overflow-hidden border-none outline-none bg-transparent text-[15px] text-gray-900 placeholder-gray-400 leading-relaxed min-h-[24px] font-[inherit]"
+            />
+            {loading ? (
+              <button type="button" onClick={stopStream}
+                className="shrink-0 w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center cursor-pointer hover:bg-gray-700 transition border-none">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                  <rect x="1" y="1" width="10" height="10" rx="2"/>
+                </svg>
+              </button>
+            ) : (
+              <button type="submit" disabled={(!input.trim() && attachments.length === 0) || chatCount >= dailyChatLimit}
+                className={`shrink-0 w-8 h-8 rounded-full border-none flex items-center justify-center transition text-base ${(input.trim() || attachments.length > 0) && chatCount < dailyChatLimit ? "bg-gray-900 text-white cursor-pointer hover:bg-gray-700" : "bg-gray-200 text-gray-400 cursor-not-allowed"}`}>
+                ↑
+              </button>
+            )}
+          </div>
         </form>
       </div>
 

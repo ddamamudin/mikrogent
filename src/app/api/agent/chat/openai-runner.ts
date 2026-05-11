@@ -51,17 +51,37 @@ function toOpenAIMessages(
       out.push(msg);
     } else {
       // role === "user" dengan content array
-      for (const b of m.content) {
-        if (b.type === "tool_result") {
-          const content =
-            typeof b.content === "string"
-              ? b.content
-              : Array.isArray(b.content)
-                ? b.content.map((c) => (c.type === "text" ? c.text : "")).join("")
-                : "";
-          out.push({ role: "tool", tool_call_id: b.tool_use_id, content });
-        } else if (b.type === "text") {
-          out.push({ role: "user", content: b.text });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const blocks = m.content as any[];
+      const hasMedia = blocks.some((b) => b.type === "image" || b.type === "document");
+
+      if (hasMedia) {
+        // Combine into one multimodal user message
+        const parts: OpenAI.Chat.ChatCompletionContentPart[] = [];
+        for (const b of blocks) {
+          if (b.type === "text") {
+            parts.push({ type: "text", text: b.text });
+          } else if (b.type === "image" && b.source?.type === "base64") {
+            parts.push({ type: "image_url", image_url: { url: `data:${b.source.media_type};base64,${b.source.data}` } });
+          } else if (b.type === "document") {
+            // OpenAI doesn't support native document; include as text note
+            parts.push({ type: "text", text: `[Dokumen dilampirkan — konten tidak tersedia untuk model ini]` });
+          }
+        }
+        if (parts.length > 0) out.push({ role: "user", content: parts });
+      } else {
+        for (const b of blocks) {
+          if (b.type === "tool_result") {
+            const content =
+              typeof b.content === "string"
+                ? b.content
+                : Array.isArray(b.content)
+                  ? b.content.map((c: { type: string; text?: string }) => (c.type === "text" ? c.text : "")).join("")
+                  : "";
+            out.push({ role: "tool", tool_call_id: b.tool_use_id, content });
+          } else if (b.type === "text") {
+            out.push({ role: "user", content: b.text });
+          }
         }
       }
     }

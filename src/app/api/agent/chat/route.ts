@@ -70,15 +70,46 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  type AttachmentIn = { type: "image" | "document"; name: string; data: string; mimeType: string };
+
   let inputMessages: Anthropic.MessageParam[];
+  let attachments: AttachmentIn[] = [];
   try {
     const body = await req.json();
     inputMessages = validateMessages(body?.messages);
+    if (Array.isArray(body?.attachments)) {
+      attachments = (body.attachments as AttachmentIn[]).slice(0, 10);
+    }
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Request tidak valid";
     return new Response(sseRaw({ type: "error", error: msg }), {
       status: 400, headers: { "Content-Type": "text/event-stream" },
     });
+  }
+
+  // Inject attachments into the last user message as content blocks
+  if (attachments.length > 0) {
+    const last = inputMessages[inputMessages.length - 1];
+    if (last?.role === "user") {
+      const textContent = typeof last.content === "string" ? last.content : "";
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const blocks: any[] = [];
+
+      for (const att of attachments) {
+        if (att.type === "image") {
+          const validImg = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+          if (!validImg.includes(att.mimeType)) continue;
+          blocks.push({ type: "image", source: { type: "base64", media_type: att.mimeType, data: att.data } });
+        } else {
+          const validDoc = ["application/pdf", "text/plain", "text/html", "text/csv", "text/markdown"];
+          const mime = validDoc.includes(att.mimeType) ? att.mimeType : "text/plain";
+          blocks.push({ type: "document", source: { type: "base64", media_type: mime, data: att.data } });
+        }
+      }
+
+      if (textContent) blocks.push({ type: "text", text: textContent });
+      inputMessages[inputMessages.length - 1] = { role: "user", content: blocks };
+    }
   }
 
   const [user, cred, memory] = await Promise.all([
