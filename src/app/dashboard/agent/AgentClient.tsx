@@ -15,7 +15,8 @@ interface Props {
   dailyChatLimit: number;
 }
 
-export default function AgentClient({ isConnected, hasMemory, agentReady, dailyChatLimit }: Props) {
+export default function AgentClient({ userId, isConnected, hasMemory, agentReady, dailyChatLimit }: Props) {
+  const SK = `agent_${userId}`;
   const [messages, setMessages] = useState<Message[]>([]);
   const [apiMessages, setApiMessages] = useState<ApiMessage[]>([]);
   const [input, setInput] = useState("");
@@ -25,6 +26,30 @@ export default function AgentClient({ isConnected, hasMemory, agentReady, dailyC
   const [chatCount, setChatCount] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Restore conversation from sessionStorage on mount
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(`${SK}_msg`);
+      const savedApi = sessionStorage.getItem(`${SK}_api`);
+      const savedCount = sessionStorage.getItem(`${SK}_count`);
+      if (saved) setMessages(JSON.parse(saved));
+      if (savedApi) setApiMessages(JSON.parse(savedApi));
+      if (savedCount) setChatCount(parseInt(savedCount, 10));
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist to sessionStorage on change
+  useEffect(() => {
+    try { sessionStorage.setItem(`${SK}_msg`, JSON.stringify(messages)); } catch {}
+  }, [SK, messages]);
+  useEffect(() => {
+    try { sessionStorage.setItem(`${SK}_api`, JSON.stringify(apiMessages)); } catch {}
+  }, [SK, apiMessages]);
+  useEffect(() => {
+    try { sessionStorage.setItem(`${SK}_count`, String(chatCount)); } catch {}
+  }, [SK, chatCount]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -164,7 +189,10 @@ export default function AgentClient({ isConnected, hasMemory, agentReady, dailyC
           <span className="text-xs text-gray-400 dark:text-white/30">{chatCount}/{dailyChatLimit} hari ini</span>
           {messages.length > 0 && (
             <button
-              onClick={() => { setMessages([]); setApiMessages([]); setError(""); setToolLabel(""); }}
+              onClick={() => {
+                setMessages([]); setApiMessages([]); setError(""); setToolLabel("");
+                try { sessionStorage.removeItem(`${SK}_msg`); sessionStorage.removeItem(`${SK}_api`); sessionStorage.removeItem(`${SK}_count`); } catch {}
+              }}
               className="text-xs text-gray-400 dark:text-white/30 border border-gray-200 dark:border-white/10 rounded-md px-2.5 py-1 hover:text-gray-600 dark:hover:text-white/60 transition"
             >
               Baru
