@@ -39,6 +39,7 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
   const [greeting, setGreeting] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
   const streamBufRef = useRef<string>("");
   const rafRef = useRef<number | null>(null);
 
@@ -70,6 +71,22 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
     setGreeting(greetingByTime());
     const t = setInterval(() => setGreeting(greetingByTime()), 60_000);
     return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    const container = messagesRef.current;
+    if (!container) return;
+    const handler = (e: MouseEvent) => {
+      const btn = (e.target as Element).closest(".copy-code-btn") as HTMLElement | null;
+      if (!btn) return;
+      const code = btn.parentElement?.querySelector("code")?.textContent ?? "";
+      navigator.clipboard.writeText(code).then(() => {
+        btn.textContent = "✓ Tersalin";
+        setTimeout(() => { btn.textContent = "Salin"; }, 2000);
+      }).catch(() => {});
+    };
+    container.addEventListener("click", handler);
+    return () => container.removeEventListener("click", handler);
   }, []);
 
   const resetChat = useCallback(() => {
@@ -220,7 +237,7 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto">
+      <div ref={messagesRef} className="flex-1 overflow-y-auto">
         {isEmpty && !loading ? (
           <div className="flex flex-col items-center justify-center h-full px-6 py-12 text-center">
             <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-3 leading-tight">
@@ -302,6 +319,10 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
 
       <style>{`
         @keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-5px)} }
+        .code-wrap { position: relative; }
+        .copy-code-btn { position: absolute; top: 8px; right: 8px; background: #e5e7eb; border: none; border-radius: 5px; padding: 3px 10px; font-size: 0.72em; cursor: pointer; color: #374151; font-family: inherit; transition: background 0.15s; }
+        .copy-code-btn:hover { background: #d1d5db; }
+        .copy-code-btn:active { background: #9ca3af; }
         .md p { margin: 0 0 0.75em 0; }
         .md p:last-child { margin-bottom: 0; }
         .md h1, .md h2, .md h3 { font-weight: 600; margin: 1em 0 0.5em; line-height: 1.3; }
@@ -326,7 +347,7 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
 
 function renderMarkdown(raw: string): string {
   let html = raw.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  html = html.replace(/```[\w]*\n?([\s\S]*?)```/g, "<pre><code>$1</code></pre>");
+  html = html.replace(/```[\w]*\n?([\s\S]*?)```/g, '<div class="code-wrap"><button class="copy-code-btn">Salin</button><pre><code>$1</code></pre></div>');
   html = html.replace(/`([^`\n]+)`/g, "<code>$1</code>");
   html = html.replace(/\*\*\*(.+?)\*\*\*/g, "<strong><em>$1</em></strong>");
   html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
