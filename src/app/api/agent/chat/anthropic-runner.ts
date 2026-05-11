@@ -61,16 +61,9 @@ export async function runAnthropic(opts: {
   let cacheWrite = 0;
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
-    // Add PDF beta header when document blocks are present in messages
-    const hasPdf = messages.some(m =>
-      Array.isArray(m.content) &&
-      (m.content as { type: string }[]).some(b => b.type === "document")
-    );
-
-    const msgStream = client.messages.stream(
-      { model: opts.model, max_tokens: 1024, system: systemBlocks, tools: ANTHROPIC_TOOLS, messages },
-      hasPdf ? { headers: { "anthropic-beta": "pdfs-2024-09-25" } } : undefined,
-    );
+    const msgStream = client.messages.stream({
+      model: opts.model, max_tokens: 1024, system: systemBlocks, tools: ANTHROPIC_TOOLS, messages,
+    });
 
     for await (const event of msgStream) {
       if (

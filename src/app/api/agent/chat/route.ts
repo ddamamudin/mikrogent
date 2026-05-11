@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  type AttachmentIn = { type: "image" | "document"; name: string; data: string; mimeType: string };
+  type AttachmentIn = { name: string; data: string; mimeType: string };
 
   let inputMessages: Anthropic.MessageParam[];
   let attachments: AttachmentIn[] = [];
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     inputMessages = validateMessages(body?.messages);
     if (Array.isArray(body?.attachments)) {
-      attachments = (body.attachments as AttachmentIn[]).slice(0, 10);
+      attachments = (body.attachments as AttachmentIn[]).slice(0, 5);
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Request tidak valid";
@@ -87,35 +87,24 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // Inject attachments into the last user message as content blocks
+  // Inject image attachments into the last user message as content blocks
   if (attachments.length > 0) {
     const last = inputMessages[inputMessages.length - 1];
     if (last?.role === "user") {
       const textContent = typeof last.content === "string" ? last.content : "";
+      const validImg = ["image/jpeg", "image/png", "image/gif", "image/webp"];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const blocks: any[] = [];
 
       for (const att of attachments) {
-        if (att.type === "image") {
-          const validImg = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-          if (!validImg.includes(att.mimeType)) continue;
-          blocks.push({ type: "image", source: { type: "base64", media_type: att.mimeType, data: att.data } });
-        } else if (att.mimeType === "application/pdf") {
-          // PDF: native document block (Anthropic PDF support)
-          blocks.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: att.data } });
-        } else {
-          // Text-based files (txt, html, csv, md): decode and inject as plain text block
-          try {
-            const decoded = Buffer.from(att.data, "base64").toString("utf-8");
-            blocks.push({ type: "text", text: `[File: ${att.name}]\n\n${decoded}` });
-          } catch {
-            // skip unreadable
-          }
-        }
+        if (!validImg.includes(att.mimeType)) continue;
+        blocks.push({ type: "image", source: { type: "base64", media_type: att.mimeType, data: att.data } });
       }
 
       if (textContent) blocks.push({ type: "text", text: textContent });
-      inputMessages[inputMessages.length - 1] = { role: "user", content: blocks };
+      if (blocks.length > 0) {
+        inputMessages[inputMessages.length - 1] = { role: "user", content: blocks };
+      }
     }
   }
 
