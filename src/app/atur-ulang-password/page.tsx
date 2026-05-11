@@ -4,7 +4,6 @@ import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 
-const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Mikroplay";
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -60,7 +59,10 @@ function ResetPasswordForm() {
   return (
     <>
       <div className="text-center mb-8">
-        <Link href="/" className="text-2xl font-bold text-blue-600">{APP_NAME}</Link>
+        <Link href="/" className="inline-block">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/mikroplay-logo-text.png" alt="Mikroplay" className="h-10 w-auto mx-auto" />
+        </Link>
         <h1 className="text-xl font-semibold mt-3 text-gray-900">Buat Password Baru</h1>
       </div>
       <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-2xl p-8 space-y-4 shadow-sm">

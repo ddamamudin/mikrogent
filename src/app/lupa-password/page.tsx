@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 
-const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Mikroplay";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -50,7 +49,10 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link href="/" className="text-2xl font-bold text-blue-600">{APP_NAME}</Link>
+          <Link href="/" className="inline-block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/mikroplay-logo-text.png" alt="Mikroplay" className="h-10 w-auto mx-auto" />
+          </Link>
           <h1 className="text-xl font-semibold mt-3 text-gray-900">Lupa Password</h1>
           <p className="text-gray-500 text-sm mt-1">
             Masukkan email Anda dan kami akan kirimkan link reset password.

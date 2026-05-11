@@ -4,7 +4,6 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import type { SessionPayload } from "@/lib/session";
 
-const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Mikroplay";
 
 const NAV = [
   {
@@ -73,7 +72,8 @@ export default function AdminShell({ session, children }: { session: SessionPayl
               <rect y="14" width="18" height="2" rx="1" fill="currentColor" />
             </svg>
           </button>
-          <span className="font-bold text-blue-600 dark:text-blue-400 text-lg">{APP_NAME}</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/mikroplay-logo-text.png" alt="Mikroplay" className="h-7 w-auto" />
           <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400">Admin</span>
         </div>
         <div className="flex items-center gap-1">

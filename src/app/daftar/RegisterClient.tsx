@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 
 const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
-const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Mikroplay";
 
 export default function RegisterClient({ showBrandField }: { showBrandField: boolean }) {
   const [form, setForm] = useState({
@@ -63,7 +62,10 @@ export default function RegisterClient({ showBrandField }: { showBrandField: boo
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link href="/" className="text-2xl font-bold text-blue-600">{APP_NAME}</Link>
+          <Link href="/" className="inline-block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/mikroplay-logo-text.png" alt="Mikroplay" className="h-10 w-auto mx-auto" />
+          </Link>
           <h1 className="text-xl font-semibold mt-3 text-gray-900">Buat Akun Baru</h1>
         </div>
 

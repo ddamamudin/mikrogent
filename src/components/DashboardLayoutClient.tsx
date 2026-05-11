@@ -3,7 +3,6 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { usePathname } from "next/navigation";
 
-const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Mikroplay";
 const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
 
 const NAV = [
@@ -93,7 +92,10 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
                 <rect y="14" width="18" height="2" rx="1" fill="currentColor" />
               </svg>
             </button>
-            <span className="font-bold text-blue-600 dark:text-blue-400 text-lg">{APP_NAME}</span>
+            <a href="/dashboard/agent" className="flex items-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/mikroplay-logo-text.png" alt="Mikroplay" className="h-7 w-auto" />
+            </a>
           </div>
           <div className="flex items-center gap-1">
             <span className="text-sm text-gray-500 dark:text-white/60 hidden sm:block mr-2">{user.name}</span>

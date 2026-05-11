@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Mikroplay";
 
 export default function AdminSetupClient() {
   const router = useRouter();
@@ -34,8 +33,9 @@ export default function AdminSetupClient() {
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-slate-950 px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{APP_NAME}</h1>
-          <p className="text-sm text-gray-500 dark:text-white/50 mt-1">Setup Admin Pertama</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/mikroplay-logo-text.png" alt="Mikroplay" className="h-10 w-auto mx-auto" />
+          <p className="text-sm text-gray-500 dark:text-white/50 mt-2">Setup Admin Pertama</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 p-6 space-y-4 shadow-sm">

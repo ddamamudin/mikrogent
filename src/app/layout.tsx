@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { PwaRegister } from "@/components/PwaRegister";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,7 +15,27 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Mikroplay",
-  description: "SaaS Multi-Tenant Platform",
+  description: "Replay Agent — AI asisten MikroTik untuk reseller ISP",
+  applicationName: "Mikroplay",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Mikroplay",
+  },
+  icons: {
+    icon: [
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon-180.png", sizes: "180x180", type: "image/png" }],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#ffffff",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -30,6 +51,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         {children}
+        <PwaRegister />
       </body>
     </html>
   );
