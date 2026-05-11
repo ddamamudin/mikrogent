@@ -24,9 +24,8 @@ const ANTHROPIC_MODELS = [
 
 const OPENAI_MODELS = [
   { id: "gpt-4o", label: "GPT-4o (balance — direkomendasikan)" },
-  { id: "gpt-4o-mini", label: "GPT-4o mini (cepat & murah)" },
-  { id: "gpt-4-turbo", label: "GPT-4 Turbo" },
-  { id: "o3-mini", label: "o3-mini (reasoning)" },
+  { id: "gpt-4.1", label: "GPT-4.1 (paling pintar)" },
+  { id: "gpt-4.1-mini", label: "GPT-4.1 mini (cepat & murah)" },
 ];
 
 export default function PengaturanClient({ config: initial, admin }: { config: Config; admin: Admin }) {
