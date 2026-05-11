@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 
+const inputClass = "w-full bg-gray-100 rounded-xl px-4 py-3.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-gray-200 transition text-[15px]";
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -36,63 +37,65 @@ function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <div className="text-center">
-        <div className="text-5xl mb-4">❌</div>
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
+        <div className="text-5xl mb-5">❌</div>
         <h2 className="text-2xl font-bold mb-2 text-gray-900">Link Tidak Valid</h2>
-        <Link href="/lupa-password" className="text-blue-600 hover:underline text-sm">Minta link baru</Link>
+        <p className="text-gray-400 text-sm mb-6">Link sudah kedaluwarsa atau tidak valid.</p>
+        <Link href="/lupa-password" className="text-blue-600 font-medium text-sm">Minta link baru</Link>
       </div>
     );
   }
 
   if (done) {
     return (
-      <div className="text-center">
-        <div className="text-5xl mb-4">✅</div>
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
+        <div className="text-5xl mb-5">✅</div>
         <h2 className="text-2xl font-bold mb-2 text-gray-900">Password Berhasil Direset</h2>
-        <p className="text-gray-500">Mengarahkan ke halaman masuk...</p>
+        <p className="text-gray-400 text-sm">Mengarahkan ke halaman masuk...</p>
       </div>
     );
   }
 
-  const inputClass = "w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500";
-
   return (
-    <>
-      <div className="text-center mb-8">
-        <Link href="/" className="inline-block">
+    <div className="min-h-screen bg-white flex flex-col px-6">
+      <div className="pt-20 pb-10 text-center">
+        <Link href="/">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/mikroplay-logo-text.png" alt="Mikroplay" className="h-10 w-auto mx-auto" />
         </Link>
-        <h1 className="text-xl font-semibold mt-3 text-gray-900">Buat Password Baru</h1>
+        <h1 className="text-2xl font-bold mt-5 text-gray-900">Buat Password Baru</h1>
+        <p className="text-gray-400 text-sm mt-1">Buat password baru yang kuat untuk akun Anda</p>
       </div>
-      <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-2xl p-8 space-y-4 shadow-sm">
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-3">{error}</div>
+          <div className="bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3">{error}</div>
         )}
-        <div>
-          <label className="block text-sm text-gray-600 mb-1">Password Baru</label>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-gray-500 px-1">Password Baru</label>
           <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={inputClass} placeholder="Minimal 8 karakter" />
         </div>
-        <div>
-          <label className="block text-sm text-gray-600 mb-1">Konfirmasi Password</label>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-gray-500 px-1">Konfirmasi Password</label>
           <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required className={inputClass} placeholder="Ulangi password baru" />
         </div>
-        <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg font-semibold transition">
+        <button type="submit" disabled={loading}
+          className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-semibold transition text-[15px] mt-2">
           {loading ? "Menyimpan..." : "Simpan Password Baru"}
         </button>
       </form>
-    </>
+    </div>
   );
 }
 
 export default function AturUlangPasswordPage() {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <Suspense fallback={<p className="text-center text-gray-400">Memuat...</p>}>
-          <ResetPasswordForm />
-        </Suspense>
+    <Suspense fallback={
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <p className="text-gray-400 text-sm">Memuat...</p>
       </div>
-    </div>
+    }>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }

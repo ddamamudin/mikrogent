@@ -40,101 +40,100 @@ export default function RegisterClient({ showBrandField }: { showBrandField: boo
 
   if (done) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center max-w-md px-6">
-          <div className="text-5xl mb-4">📧</div>
-          <h2 className="text-2xl font-bold mb-2 text-gray-900">Cek Email Anda</h2>
-          <p className="text-gray-500">
-            Link konfirmasi sudah dikirim ke <strong className="text-gray-900">{form.email}</strong>.
-            Klik link tersebut untuk mengaktifkan akun Anda.
-          </p>
-          <p className="text-sm text-gray-400 mt-3">
-            Tidak menemukan emailnya? Periksa folder <strong className="text-gray-500">Spam</strong> atau <strong className="text-gray-500">Promosi</strong>.
-          </p>
-        </div>
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
+        <div className="text-5xl mb-5">📧</div>
+        <h2 className="text-2xl font-bold mb-2 text-gray-900">Cek Email Anda</h2>
+        <p className="text-gray-500 text-sm leading-relaxed">
+          Link konfirmasi sudah dikirim ke{" "}
+          <strong className="text-gray-900">{form.email}</strong>.
+          Klik link tersebut untuk mengaktifkan akun Anda.
+        </p>
+        <p className="text-sm text-gray-400 mt-3">
+          Tidak menemukan emailnya? Cek folder <strong className="text-gray-500">Spam</strong> atau <strong className="text-gray-500">Promosi</strong>.
+        </p>
       </div>
     );
   }
 
-  const inputClass = "w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500";
+  const inputClass = "w-full bg-gray-100 rounded-xl px-4 py-3.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-gray-200 transition text-[15px]";
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-block">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/mikroplay-logo-text.png" alt="Mikroplay" className="h-10 w-auto mx-auto" />
-          </Link>
-          <h1 className="text-xl font-semibold mt-3 text-gray-900">Buat Akun Baru</h1>
+    <div className="min-h-screen bg-white flex flex-col px-6">
+      <div className="pt-16 pb-8 text-center">
+        <Link href="/">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/mikroplay-logo-text.png" alt="Mikroplay" className="h-10 w-auto mx-auto" />
+        </Link>
+        <h1 className="text-2xl font-bold mt-5 text-gray-900">Buat Akun Baru</h1>
+        <p className="text-gray-400 text-sm mt-1">Daftar dan mulai kelola MikroTik Anda</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4 pb-10">
+        {error && (
+          <div className="bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3">
+            {error}
+          </div>
+        )}
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-gray-500 px-1">Email</label>
+          <input name="email" type="email" value={form.email} onChange={handleChange} required className={inputClass} placeholder="nama@mail.com" />
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-2xl p-8 space-y-4 shadow-sm">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-3">
-              {error}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-gray-500 px-1">Password</label>
+          <input name="password" type="password" value={form.password} onChange={handleChange} required minLength={8} className={inputClass} placeholder="Minimal 8 karakter" />
+        </div>
+
+        {showBrandField && (
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-gray-500 px-1">Brand / Bisnis</label>
+            <div className="flex items-center bg-gray-100 rounded-xl overflow-hidden focus-within:bg-gray-200 transition">
+              <input
+                name="brand" value={form.brand} onChange={handleChange} required minLength={3}
+                className="flex-1 bg-transparent px-4 py-3.5 text-gray-900 placeholder-gray-400 focus:outline-none text-[15px]"
+                placeholder="namabrand"
+              />
+              <span className="px-3 text-gray-400 text-sm border-l border-gray-200 shrink-0 py-3.5">
+                .{APP_DOMAIN}
+              </span>
             </div>
-          )}
-
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">Email</label>
-            <input name="email" type="email" value={form.email} onChange={handleChange} required className={inputClass} placeholder="nama@mail.com" />
           </div>
+        )}
 
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">Password</label>
-            <input name="password" type="password" value={form.password} onChange={handleChange} required minLength={8} className={inputClass} placeholder="Minimal 8 karakter" />
-          </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-gray-500 px-1">Nama Lengkap</label>
+          <input name="name" value={form.name} onChange={handleChange} required className={inputClass} placeholder="Diki Damamudin" />
+        </div>
 
-          {showBrandField && (
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Brand / Bisnis</label>
-              <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg overflow-hidden focus-within:border-blue-500">
-                <input
-                  name="brand" value={form.brand} onChange={handleChange} required minLength={3}
-                  className="flex-1 bg-transparent px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none"
-                  placeholder="namabrand"
-                />
-                <span className="px-3 text-gray-400 text-sm border-l border-gray-200 shrink-0">
-                  .{APP_DOMAIN}
-                </span>
-              </div>
-            </div>
-          )}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-gray-500 px-1">Alamat</label>
+          <input name="alamat" value={form.alamat} onChange={handleChange} className={inputClass} placeholder="Jl. Bahagia No. 1, Ciwiru" />
+        </div>
 
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">Nama Lengkap</label>
-            <input name="name" value={form.name} onChange={handleChange} required className={inputClass} placeholder="Diki Damamudin" />
-          </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-gray-500 px-1">Nomor WhatsApp</label>
+          <input name="noWa" type="tel" value={form.noWa} onChange={handleChange} className={inputClass} placeholder="08xxxxxxxxxx" />
+        </div>
 
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">Alamat</label>
-            <input name="alamat" value={form.alamat} onChange={handleChange} className={inputClass} placeholder="Jl. Bahagia No. 1, Ciwiru" />
-          </div>
+        <label className="flex items-start gap-3 cursor-pointer px-1 mt-1">
+          <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 accent-blue-600 w-4 h-4 shrink-0" />
+          <span className="text-sm text-gray-500">
+            Saya menyetujui{" "}
+            <Link href="/syarat-ketentuan" className="text-blue-600">Syarat dan Ketentuan</Link>
+          </span>
+        </label>
 
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">Nomor WhatsApp</label>
-            <input name="noWa" type="tel" value={form.noWa} onChange={handleChange} className={inputClass} placeholder="08xxxxxxxxxx" />
-          </div>
+        <button type="submit" disabled={loading}
+          className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-semibold transition text-[15px] mt-2">
+          {loading ? "Mendaftarkan..." : "Daftar"}
+        </button>
 
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 accent-blue-600" />
-            <span className="text-sm text-gray-500">
-              Saya menyetujui{" "}
-              <Link href="/syarat-ketentuan" className="text-blue-600 hover:underline">Syarat dan Ketentuan</Link>
-            </span>
-          </label>
-
-          <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg font-semibold transition">
-            {loading ? "Mendaftarkan..." : "Daftar"}
-          </button>
-        </form>
-
-        <p className="text-center text-sm text-gray-500 mt-6">
+        <p className="text-center text-sm text-gray-400 mt-2">
           Sudah punya akun?{" "}
-          <Link href="/masuk" className="text-blue-600 hover:underline">Masuk</Link>
+          <Link href="/masuk" className="text-blue-600 font-medium">Masuk</Link>
         </p>
-      </div>
+      </form>
     </div>
   );
 }

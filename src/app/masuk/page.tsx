@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-
 export default function LoginPage() {
   const router = useRouter();
   const [form, setForm] = useState({ email: "", password: "" });
@@ -26,61 +25,57 @@ export default function LoginPage() {
     router.push("/dashboard");
   };
 
+  const inputClass = "w-full bg-gray-100 rounded-xl px-4 py-3.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-gray-200 transition text-[15px]";
+
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-block">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/mikroplay-logo-and-text.png" alt="Mikroplay" className="h-20 w-auto mx-auto" />
-          </Link>
-          <h1 className="text-xl font-semibold mt-3 text-gray-900">Masuk ke Akun Anda</h1>
+    <div className="min-h-screen bg-white flex flex-col px-6">
+      <div className="pt-20 pb-10 text-center">
+        <Link href="/">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/mikroplay-logo-and-text.png" alt="Mikroplay" className="h-16 w-auto mx-auto" />
+        </Link>
+        <h1 className="text-2xl font-bold mt-5 text-gray-900">Selamat datang</h1>
+        <p className="text-gray-400 text-sm mt-1">Masuk ke akun Mikroplay Anda</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {error && (
+          <div className="bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3">
+            {error}
+          </div>
+        )}
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-gray-500 px-1">Email</label>
+          <input
+            type="email" value={form.email}
+            onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+            required className={inputClass} placeholder="nama@mail.com"
+          />
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-2xl p-8 space-y-4 shadow-sm">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-3">
-              {error}
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">Email</label>
-            <input
-              type="email" value={form.email}
-              onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-              required
-              className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500"
-              placeholder="nama@mail.com"
-            />
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between px-1">
+            <label className="text-sm font-medium text-gray-500">Password</label>
+            <Link href="/lupa-password" className="text-xs text-blue-600">Lupa password?</Link>
           </div>
+          <input
+            type="password" value={form.password}
+            onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+            required className={inputClass} placeholder="Password Anda"
+          />
+        </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-sm text-gray-600">Password</label>
-              <Link href="/lupa-password" className="text-xs text-blue-600 hover:underline">
-                Lupa password?
-              </Link>
-            </div>
-            <input
-              type="password" value={form.password}
-              onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-              required
-              className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500"
-              placeholder="Password Anda"
-            />
-          </div>
+        <button type="submit" disabled={loading}
+          className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-semibold transition text-[15px] mt-2">
+          {loading ? "Masuk..." : "Masuk"}
+        </button>
+      </form>
 
-          <button type="submit" disabled={loading} className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg font-semibold transition">
-            {loading ? "Masuk..." : "Masuk"}
-          </button>
-        </form>
-
-        <p className="text-center text-sm text-gray-500 mt-6">
-          Belum punya akun?{" "}
-          <Link href="/daftar" className="text-blue-600 hover:underline">Daftar</Link>
-        </p>
-      </div>
+      <p className="text-center text-sm text-gray-400 mt-auto pt-10 pb-10">
+        Belum punya akun?{" "}
+        <Link href="/daftar" className="text-blue-600 font-medium">Daftar</Link>
+      </p>
     </div>
   );
 }
