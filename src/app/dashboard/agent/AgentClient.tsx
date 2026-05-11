@@ -181,17 +181,18 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
           } else if (evt.type === "tool" && evt.label) {
             setToolLabel(evt.label);
           } else if (evt.type === "done" && evt.messages) {
-            setApiMessages(evt.messages);
+            const doneMessages: ApiMessage[] = evt.messages ?? [];
+            setApiMessages(doneMessages);
             setChatCount((c) => c + 1);
             setToolLabel("");
             if (assembled) {
               setMessages((prev) => {
                 const next = [...prev, { role: "assistant" as Role, content: assembled }];
-                saveSession(next, evt.messages);
+                saveSession(next, doneMessages);
                 return next;
               });
             } else {
-              saveSession(messages, evt.messages);
+              saveSession(messages, doneMessages);
             }
           } else if (evt.type === "error" && evt.error) {
             setError(evt.error);
