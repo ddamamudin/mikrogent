@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
-import { createSession } from "@/lib/session";
+import { createSession, sessionCookieOptions } from "@/lib/session";
 
 export async function POST(req: NextRequest) {
   const { token } = await req.json();
@@ -23,14 +23,7 @@ export async function POST(req: NextRequest) {
   await prisma.emailToken.delete({ where: { token } });
 
   const cookieStore = await cookies();
-  cookieStore.set("session", createSession(emailToken.user.id, emailToken.user.brand), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7,
-    path: "/",
-    domain: process.env.NODE_ENV === "production" ? `.${process.env.NEXT_PUBLIC_APP_DOMAIN}` : undefined,
-  });
+  cookieStore.set("session", createSession(emailToken.user.id, emailToken.user.brand), sessionCookieOptions());
 
   return NextResponse.json({ ok: true });
 }

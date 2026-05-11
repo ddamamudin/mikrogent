@@ -1,7 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  verifySession,
+  createSession,
+  sessionCookieOptions,
+  SESSION_RENEW_THRESHOLD_MS,
+} from "@/lib/session";
 
 const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
 const ROOT_HOSTNAMES = new Set([APP_DOMAIN, `www.${APP_DOMAIN}`, "localhost"]);
+
+function maybeRenewSession(req: NextRequest, res: NextResponse): NextResponse {
+  const token = req.cookies.get("session")?.value;
+  if (!token) return res;
+  const verified = verifySession(token);
+  if (!verified) return res;
+  const remaining = verified.exp - Date.now();
+  if (remaining > SESSION_RENEW_THRESHOLD_MS) return res;
+  const fresh = createSession(verified.userId, verified.brand, verified.role);
+  res.cookies.set("session", fresh, sessionCookieOptions());
+  return res;
+}
 
 export function proxy(req: NextRequest) {
   const host = req.headers.get("host") || "";
@@ -20,7 +38,7 @@ export function proxy(req: NextRequest) {
   if (brand && !ROOT_HOSTNAMES.has(hostname)) {
     const url = req.nextUrl.clone();
     url.pathname = `/site/${brand}${pathname === "/" ? "" : pathname}`;
-    return NextResponse.rewrite(url);
+    return maybeRenewSession(req, NextResponse.rewrite(url));
   }
 
   // Guard /admin/** — redirect ke /admin/masuk jika tidak ada session
@@ -31,7 +49,7 @@ export function proxy(req: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  return maybeRenewSession(req, NextResponse.next());
 }
 
 export const config = {

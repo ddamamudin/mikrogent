@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
-import { createSession } from "@/lib/session";
+import { createSession, sessionCookieOptions } from "@/lib/session";
 
 export async function POST(req: NextRequest) {
   const { email, password } = await req.json();
@@ -20,14 +20,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Akun Anda telah disuspend" }, { status: 403 });
 
   const cookieStore = await cookies();
-  cookieStore.set("session", createSession(user.id, user.brand, user.role as "USER" | "ADMIN"), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7,
-    path: "/",
-    domain: process.env.NODE_ENV === "production" ? `.${process.env.NEXT_PUBLIC_APP_DOMAIN}` : undefined,
-  });
+  cookieStore.set("session", createSession(user.id, user.brand, user.role as "USER" | "ADMIN"), sessionCookieOptions());
 
   return NextResponse.json({ ok: true });
 }
