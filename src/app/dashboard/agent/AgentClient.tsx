@@ -128,6 +128,11 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
             setApiMessages(evt.messages);
             setChatCount((c) => c + 1);
             setToolLabel("");
+            // Safety net: kalau ga ada text sama sekali, hapus bubble kosong
+            if (!assembled) {
+              setMessages((prev) => prev.slice(0, -1));
+              setError("Agent tidak memberikan balasan. Coba pertanyaan yang lebih spesifik.");
+            }
           } else if (evt.type === "error" && evt.error) {
             setError(evt.error);
             // Remove the empty assistant placeholder if nothing was written

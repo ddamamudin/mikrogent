@@ -14,28 +14,16 @@ function sse(data: object): Uint8Array {
   return enc.encode(`data: ${JSON.stringify(data)}\n\n`);
 }
 
-function buildSystemPrompt(opts: {
+function buildSystemBlocks(opts: {
   persona: string;
   knowledge: string;
   isConnected: boolean;
   memory: string | null;
-}): string {
+}): Anthropic.TextBlockParam[] {
   const base = opts.persona ||
     "Kamu adalah asisten jaringan profesional yang membantu reseller ISP mengelola router MikroTik mereka menggunakan bahasa Indonesia yang ramah dan mudah dipahami.";
 
-  const knowledge = opts.knowledge
-    ? `\n\nKonteks bisnis:\n${opts.knowledge}`
-    : "";
-
-  const MAX_MEMORY = 15000;
-  const memoryContent = opts.memory
-    ? opts.memory.length > MAX_MEMORY
-      ? opts.memory.slice(0, MAX_MEMORY) + `\n\n...[snapshot terpotong, gunakan execute_mikrotik_command untuk detail lebih lanjut]`
-      : opts.memory
-    : null;
-  const mikrotikCtx = opts.isConnected && memoryContent
-    ? `\n\nKonfigurasi MikroTik user (snapshot terakhir):\n${memoryContent}`
-    : "";
+  const knowledge = opts.knowledge ? `\n\nKonteks bisnis:\n${opts.knowledge}` : "";
 
   const onboarding = !opts.isConnected
     ? `\n\nMikroTik user BELUM terhubung. Tugasmu saat ini:
@@ -53,14 +41,55 @@ function buildSystemPrompt(opts: {
     : "";
 
   const capabilities = opts.isConnected
-    ? `\n\nKamu memiliki akses penuh ke router MikroTik user. Gunakan tool execute_mikrotik_command untuk mengambil data real-time atau menjalankan perintah konfigurasi. Selalu jelaskan hasil dengan bahasa sederhana. Untuk perintah destruktif (delete, reset, reboot), minta konfirmasi terlebih dahulu.`
+    ? `\n\nKamu memiliki akses penuh ke router MikroTik user. Gunakan tool execute_mikrotik_command untuk mengambil data real-time atau menjalankan perintah konfigurasi. Selalu jelaskan hasil dengan bahasa sederhana. Untuk perintah destruktif (delete, reset, reboot), minta konfirmasi terlebih dahulu.
+
+PENTING: Setiap kali user bertanya, kamu HARUS selalu memberikan respons teks yang jelas. Jika kamu memanggil tool, lanjutkan dengan menjelaskan hasilnya. Jangan pernah diam tanpa balasan.`
     : "";
 
-  return base + knowledge + mikrotikCtx + onboarding + capabilities;
+  const blocks: Anthropic.TextBlockParam[] = [];
+
+  // Block 1: persona + knowledge + onboarding/capabilities (stabil per sesi)
+  blocks.push({ type: "text", text: base + knowledge + onboarding + capabilities });
+
+  // Block 2: memory snapshot (besar tapi stabil sampai user re-scan)
+  if (opts.isConnected && opts.memory) {
+    blocks.push({
+      type: "text",
+      text: `\n\nKonfigurasi MikroTik user (snapshot terakhir):\n${opts.memory}`,
+    });
+  }
+
+  // Cache breakpoint pada block terakhir — cover tools + semua system blocks
+  blocks[blocks.length - 1].cache_control = { type: "ephemeral" };
+
+  return blocks;
 }
 
 function getTodayString(): string {
   return new Date().toISOString().slice(0, 10);
+}
+
+// Validate incoming messages array — prevent fake assistant turns / tool_result injection
+function validateMessages(raw: unknown): Anthropic.MessageParam[] {
+  if (!Array.isArray(raw)) throw new Error("messages harus array");
+  if (raw.length === 0) throw new Error("messages tidak boleh kosong");
+  if (raw.length > 200) throw new Error("Riwayat terlalu panjang, mulai chat baru");
+
+  const out: Anthropic.MessageParam[] = [];
+  for (const m of raw) {
+    if (!m || typeof m !== "object") throw new Error("Format pesan tidak valid");
+    const msg = m as { role?: unknown; content?: unknown };
+    if (msg.role !== "user" && msg.role !== "assistant") {
+      throw new Error("Role pesan tidak valid");
+    }
+    // assistant content boleh array (text + tool_use blocks dari turn sebelumnya)
+    // user content boleh string atau array (text + tool_result blocks)
+    if (typeof msg.content !== "string" && !Array.isArray(msg.content)) {
+      throw new Error("Format content tidak valid");
+    }
+    out.push(msg as Anthropic.MessageParam);
+  }
+  return out;
 }
 
 export async function POST(req: NextRequest) {
@@ -94,16 +123,30 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Load user MikroTik data
-  const [cred, memory] = await Promise.all([
+  // Parse + validate input
+  let inputMessages: Anthropic.MessageParam[];
+  try {
+    const body = await req.json();
+    inputMessages = validateMessages(body?.messages);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Request tidak valid";
+    return new Response(
+      `data: ${JSON.stringify({ type: "error", error: msg })}\n\n`,
+      { status: 400, headers: { "Content-Type": "text/event-stream" } }
+    );
+  }
+
+  // Load user MikroTik data — `credRef` is mutable so we can refresh after verify_and_connect
+  const [initialCred, memory] = await Promise.all([
     prisma.mikrotikCredential.findUnique({ where: { userId } }),
     prisma.agentMemory.findUnique({ where: { userId } }),
   ]);
-  const isConnected = cred?.connected ?? false;
+  let credRef = initialCred;
+  let isConnected = credRef?.connected ?? false;
 
   const anthropic = new Anthropic({ apiKey: config.claudeApiKey });
 
-  const systemPrompt = buildSystemPrompt({
+  const systemBlocks = buildSystemBlocks({
     persona: config.agentPersona ?? "",
     knowledge: config.agentKnowledge ?? "",
     isConnected,
@@ -146,8 +189,7 @@ export async function POST(req: NextRequest) {
     },
   ];
 
-  const { messages }: { messages: Anthropic.MessageParam[] } = await req.json();
-  const claudeMessages: Anthropic.MessageParam[] = [...messages];
+  const claudeMessages: Anthropic.MessageParam[] = [...inputMessages];
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -156,13 +198,20 @@ export async function POST(req: NextRequest) {
         try { controller.enqueue(enc.encode(": ping\n\n")); } catch {}
       }, 15000);
 
+      let totalTextEmitted = 0;
+      let cacheReadTokens = 0;
+      let cacheWriteTokens = 0;
+
       try {
         while (true) {
           // Stream Claude response
           const msgStream = anthropic.messages.stream({
             model: "claude-sonnet-4-6",
-            max_tokens: 4096,
-            system: systemPrompt,
+            max_tokens: 8192,
+            thinking: { type: "adaptive" },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ...({ output_config: { effort: "medium" } } as any),
+            system: systemBlocks,
             tools,
             messages: claudeMessages,
           });
@@ -173,6 +222,7 @@ export async function POST(req: NextRequest) {
               event.delta.type === "text_delta" &&
               event.delta.text
             ) {
+              totalTextEmitted += event.delta.text.length;
               controller.enqueue(sse({ type: "text", text: event.delta.text }));
             }
           }
@@ -180,13 +230,35 @@ export async function POST(req: NextRequest) {
           const finalMsg = await msgStream.finalMessage();
           claudeMessages.push({ role: "assistant", content: finalMsg.content });
 
+          // Track caching stats
+          if (finalMsg.usage) {
+            cacheReadTokens += finalMsg.usage.cache_read_input_tokens ?? 0;
+            cacheWriteTokens += finalMsg.usage.cache_creation_input_tokens ?? 0;
+          }
+
           if (finalMsg.stop_reason === "end_turn") {
             await prisma.agentDailyCount.upsert({
               where: { userId },
               update: { count: dailyCount?.date === today ? { increment: 1 } : 1, date: today },
               create: { userId, count: 1, date: today },
             });
-            controller.enqueue(sse({ type: "done", messages: claudeMessages }));
+
+            // Fallback jika agent tidak emit text sama sekali
+            if (totalTextEmitted === 0) {
+              controller.enqueue(sse({
+                type: "text",
+                text: isConnected
+                  ? "Maaf, saya tidak bisa memproses pertanyaan itu. Coba ketik pertanyaan yang lebih spesifik tentang router MikroTik kamu."
+                  : "Halo! Saya MikroTik AI Agent. Untuk mulai, silakan berikan IP public router MikroTik kamu.",
+              }));
+            }
+
+            controller.enqueue(sse({
+              type: "done",
+              messages: claudeMessages,
+              cacheRead: cacheReadTokens,
+              cacheWrite: cacheWriteTokens,
+            }));
             controller.close();
             return;
           }
@@ -260,6 +332,9 @@ INSTRUKSI MENJALANKAN:
                           create: { userId, content: snapshot },
                         }),
                       ]);
+                      // Refresh in-memory state so execute_mikrotik_command works in same loop
+                      credRef = { ...latestCred, connected: true };
+                      isConnected = true;
                       result = `SUKSES: Koneksi SSH ke ${latestCred.host}:${latestCred.port} berhasil. Konfigurasi MikroTik sudah dipelajari dan disimpan ke memory.`;
                     } catch (e) {
                       result = `GAGAL: Tidak bisa konek ke ${latestCred.host}:${latestCred.port}. Error: ${e instanceof Error ? e.message : String(e)}. Pastikan script sudah dijalankan dan IP/port benar.`;
@@ -267,13 +342,13 @@ INSTRUKSI MENJALANKAN:
                   }
 
                 } else if (block.name === "execute_mikrotik_command") {
-                  if (!isConnected || !cred) {
+                  if (!isConnected || !credRef) {
                     result = "ERROR: MikroTik belum terhubung.";
                   } else {
                     const input = block.input as { command: string };
                     const mikrotikConfig: MikrotikConfig = {
-                      host: cred.host, port: cred.port,
-                      username: cred.sshUser, password: cred.sshPass,
+                      host: credRef.host, port: credRef.port,
+                      username: credRef.sshUser, password: credRef.sshPass,
                     };
                     result = await executeMikrotikCommand(input.command, mikrotikConfig);
                   }
