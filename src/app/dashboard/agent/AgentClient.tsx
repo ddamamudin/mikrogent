@@ -272,6 +272,10 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
     const slots = 5 - current;
     Array.from(files).slice(0, slots).forEach(file => {
       if (!accept.includes(file.type)) return;
+      if (file.size > 4 * 1024 * 1024) {
+        setError(`File "${file.name}" terlalu besar. Maksimal 4MB per file.`);
+        return;
+      }
       const reader = new FileReader();
       reader.onload = (ev) => {
         const dataUrl = ev.target?.result as string;

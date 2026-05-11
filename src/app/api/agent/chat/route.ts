@@ -100,10 +100,17 @@ export async function POST(req: NextRequest) {
           const validImg = ["image/jpeg", "image/png", "image/gif", "image/webp"];
           if (!validImg.includes(att.mimeType)) continue;
           blocks.push({ type: "image", source: { type: "base64", media_type: att.mimeType, data: att.data } });
+        } else if (att.mimeType === "application/pdf") {
+          // PDF: native document block (Anthropic PDF support)
+          blocks.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: att.data } });
         } else {
-          const validDoc = ["application/pdf", "text/plain", "text/html", "text/csv", "text/markdown"];
-          const mime = validDoc.includes(att.mimeType) ? att.mimeType : "text/plain";
-          blocks.push({ type: "document", source: { type: "base64", media_type: mime, data: att.data } });
+          // Text-based files (txt, html, csv, md): decode and inject as plain text block
+          try {
+            const decoded = Buffer.from(att.data, "base64").toString("utf-8");
+            blocks.push({ type: "text", text: `[File: ${att.name}]\n\n${decoded}` });
+          } catch {
+            // skip unreadable
+          }
         }
       }
 
