@@ -34,7 +34,7 @@ export default async function AgentPage() {
       agentReady={agentReady}
       dailyChatLimit={config?.dailyChatLimit ?? 50}
       initialChatCount={initialChatCount}
-      initialMessages={(chatSession?.messages as { role: string; content: string }[]) ?? []}
+      initialMessages={(chatSession?.messages as { role: "user" | "assistant"; content: string }[]) ?? []}
       initialApiMessages={(chatSession?.apiMessages as unknown[]) ?? []}
     />
   );
