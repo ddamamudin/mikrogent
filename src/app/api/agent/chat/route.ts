@@ -22,8 +22,14 @@ function buildSystemPrompt(opts: {
     ? `\n\nKonteks bisnis:\n${opts.knowledge}`
     : "";
 
-  const mikrotikCtx = opts.isConnected && opts.memory
-    ? `\n\nKonfigurasi MikroTik user (snapshot terakhir):\n${opts.memory}`
+  const MAX_MEMORY = 15000;
+  const memoryContent = opts.memory
+    ? opts.memory.length > MAX_MEMORY
+      ? opts.memory.slice(0, MAX_MEMORY) + `\n\n...[snapshot terpotong, gunakan execute_mikrotik_command untuk detail lebih lanjut]`
+      : opts.memory
+    : null;
+  const mikrotikCtx = opts.isConnected && memoryContent
+    ? `\n\nKonfigurasi MikroTik user (snapshot terakhir):\n${memoryContent}`
     : "";
 
   const onboarding = !opts.isConnected
