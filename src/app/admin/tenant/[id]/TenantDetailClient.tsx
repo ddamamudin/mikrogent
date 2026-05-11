@@ -14,6 +14,8 @@ type Tenant = {
   emailVerified: boolean;
   createdAt: string | Date;
   updatedAt: string | Date;
+  chatCount: number;
+  dailyChatLimit: number;
 };
 
 const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
@@ -21,6 +23,7 @@ const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
 export default function TenantDetailClient({ tenant: initial }: { tenant: Tenant }) {
   const router = useRouter();
   const [tenant, setTenant] = useState(initial);
+  const [chatCount, setChatCount] = useState(initial.chatCount);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
@@ -45,6 +48,23 @@ export default function TenantDetailClient({ tenant: initial }: { tenant: Tenant
     }
   };
 
+  const handleResetQuota = async () => {
+    if (!confirm(`Reset kuota chat "${tenant.name}" ke 0?`)) return;
+    setLoading(true);
+    const res = await fetch(`/api/admin/tenants/${tenant.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "resetChatQuota" }),
+    });
+    setLoading(false);
+    if (res.ok) {
+      setChatCount(0);
+      showMsg("ok", "Kuota chat berhasil direset ke 0");
+    } else {
+      showMsg("err", "Gagal mereset kuota");
+    }
+  };
+
   const handleDelete = async () => {
     if (!confirm(`Hapus tenant "${tenant.name}"? Tindakan ini tidak dapat dibatalkan.`)) return;
     setLoading(true);
@@ -63,6 +83,14 @@ export default function TenantDetailClient({ tenant: initial }: { tenant: Tenant
     { label: "Alamat", value: tenant.alamat || "—" },
     { label: "No. WhatsApp", value: tenant.noWa || "—" },
     { label: "Email Verified", value: tenant.emailVerified ? "Ya" : "Belum" },
+    {
+      label: "Kuota Chat Hari Ini",
+      value: (
+        <span className={`font-medium ${chatCount >= tenant.dailyChatLimit ? "text-red-500" : "text-gray-900 dark:text-white"}`}>
+          {chatCount}/{tenant.dailyChatLimit} chat
+        </span>
+      ),
+    },
     { label: "Bergabung", value: new Date(tenant.createdAt).toLocaleString("id-ID") },
     { label: "Terakhir Update", value: new Date(tenant.updatedAt).toLocaleString("id-ID") },
   ];
@@ -113,6 +141,9 @@ export default function TenantDetailClient({ tenant: initial }: { tenant: Tenant
               Aktifkan Tenant
             </button>
           )}
+          <button onClick={handleResetQuota} disabled={loading || chatCount === 0} className="px-4 py-2 rounded-lg bg-blue-100 dark:bg-blue-500/10 hover:bg-blue-200 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-sm font-medium transition disabled:opacity-50">
+            Reset Kuota Chat
+          </button>
           <button onClick={handleDelete} disabled={loading} className="px-4 py-2 rounded-lg bg-red-100 dark:bg-red-500/10 hover:bg-red-200 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 text-sm font-medium transition disabled:opacity-50">
             Hapus Tenant
           </button>

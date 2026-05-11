@@ -14,18 +14,38 @@ async function requireAdmin() {
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!await requireAdmin()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
-  const tenant = await prisma.user.findUnique({
-    where: { id, role: "USER" },
-    select: { id: true, name: true, email: true, brand: true, alamat: true, noWa: true, status: true, emailVerified: true, createdAt: true, updatedAt: true },
-  });
+  const today = new Date().toISOString().slice(0, 10);
+  const [tenant, config] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id, role: "USER" },
+      select: {
+        id: true, name: true, email: true, brand: true, alamat: true, noWa: true,
+        status: true, emailVerified: true, createdAt: true, updatedAt: true,
+        agentDailyCount: { select: { count: true, date: true } },
+      },
+    }),
+    prisma.appConfig.findUnique({ where: { id: "singleton" }, select: { dailyChatLimit: true } }),
+  ]);
   if (!tenant) return NextResponse.json({ error: "Tenant tidak ditemukan" }, { status: 404 });
-  return NextResponse.json(tenant);
+  const { agentDailyCount, ...rest } = tenant;
+  return NextResponse.json({
+    ...rest,
+    chatCount: agentDailyCount?.date === today ? (agentDailyCount.count ?? 0) : 0,
+    dailyChatLimit: config?.dailyChatLimit ?? 50,
+  });
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!await requireAdmin()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
-  const { status } = await req.json();
+  const body = await req.json();
+
+  if (body.action === "resetChatQuota") {
+    await prisma.agentDailyCount.deleteMany({ where: { userId: id } });
+    return NextResponse.json({ ok: true });
+  }
+
+  const { status } = body;
   if (status !== "ACTIVE" && status !== "SUSPENDED")
     return NextResponse.json({ error: "Status tidak valid" }, { status: 400 });
 

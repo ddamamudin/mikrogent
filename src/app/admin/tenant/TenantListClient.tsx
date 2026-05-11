@@ -10,6 +10,7 @@ type Tenant = {
   status: "ACTIVE" | "SUSPENDED";
   emailVerified: boolean;
   createdAt: string;
+  chatCount: number;
 };
 
 const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
@@ -17,6 +18,7 @@ const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
 export default function TenantListClient() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [total, setTotal] = useState(0);
+  const [dailyChatLimit, setDailyChatLimit] = useState(50);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [q, setQ] = useState("");
@@ -38,6 +40,7 @@ export default function TenantListClient() {
     setTenants(data.tenants ?? []);
     setTotal(data.total ?? 0);
     setTotalPages(data.totalPages ?? 1);
+    setDailyChatLimit(data.dailyChatLimit ?? 50);
     setLoading(false);
   }, [page, q, status]);
 
@@ -56,6 +59,23 @@ export default function TenantListClient() {
       fetchTenants();
     } else {
       showMsg("err", "Gagal mengubah status");
+    }
+  };
+
+  const handleResetQuota = async (id: string, name: string) => {
+    if (!confirm(`Reset kuota chat "${name}" ke 0?`)) return;
+    setActionLoading(id);
+    const res = await fetch(`/api/admin/tenants/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "resetChatQuota" }),
+    });
+    setActionLoading(null);
+    if (res.ok) {
+      showMsg("ok", `Kuota chat ${name} berhasil direset`);
+      fetchTenants();
+    } else {
+      showMsg("err", "Gagal mereset kuota");
     }
   };
 
@@ -117,6 +137,7 @@ export default function TenantListClient() {
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide">Nama</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide hidden md:table-cell">Brand</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide hidden sm:table-cell">Status</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide hidden sm:table-cell">Kuota Hari Ini</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide hidden lg:table-cell">Bergabung</th>
                   <th className="px-4 py-3"></th>
                 </tr>
@@ -141,6 +162,23 @@ export default function TenantListClient() {
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${t.status === "ACTIVE" ? "bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400" : "bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400"}`}>
                         {t.status === "ACTIVE" ? "Aktif" : "Suspended"}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 hidden sm:table-cell">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-sm font-medium ${t.chatCount >= dailyChatLimit ? "text-red-500 dark:text-red-400" : t.chatCount > 0 ? "text-gray-700 dark:text-white/70" : "text-gray-300 dark:text-white/20"}`}>
+                          {t.chatCount}/{dailyChatLimit}
+                        </span>
+                        {t.chatCount > 0 && (
+                          <button
+                            onClick={() => handleResetQuota(t.id, t.name)}
+                            disabled={actionLoading === t.id}
+                            title="Reset kuota"
+                            className="text-xs px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-500 dark:text-blue-400 transition disabled:opacity-50"
+                          >
+                            Reset
+                          </button>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell text-gray-400 dark:text-white/30 text-xs">
                       {new Date(t.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}

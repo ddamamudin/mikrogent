@@ -11,11 +11,24 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
   if (!session || session.role !== "ADMIN") redirect("/admin/masuk");
 
   const { id } = await params;
-  const tenant = await prisma.user.findUnique({
-    where: { id, role: "USER" },
-    select: { id: true, name: true, email: true, brand: true, alamat: true, noWa: true, status: true, emailVerified: true, createdAt: true, updatedAt: true },
-  });
+  const today = new Date().toISOString().slice(0, 10);
+  const [tenant, dailyCount, config] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id, role: "USER" },
+      select: { id: true, name: true, email: true, brand: true, alamat: true, noWa: true, status: true, emailVerified: true, createdAt: true, updatedAt: true },
+    }),
+    prisma.agentDailyCount.findUnique({ where: { userId: id } }),
+    prisma.appConfig.findUnique({ where: { id: "singleton" }, select: { dailyChatLimit: true } }),
+  ]);
   if (!tenant) notFound();
 
-  return <TenantDetailClient tenant={tenant} />;
+  return (
+    <TenantDetailClient
+      tenant={{
+        ...tenant,
+        chatCount: dailyCount?.date === today ? (dailyCount.count ?? 0) : 0,
+        dailyChatLimit: config?.dailyChatLimit ?? 50,
+      }}
+    />
+  );
 }

@@ -28,16 +28,28 @@ export async function GET(req: NextRequest) {
     } : {}),
   };
 
-  const [tenants, total] = await Promise.all([
+  const today = new Date().toISOString().slice(0, 10);
+  const [tenants, total, config] = await Promise.all([
     prisma.user.findMany({
       where,
-      select: { id: true, name: true, email: true, brand: true, status: true, emailVerified: true, createdAt: true },
+      select: {
+        id: true, name: true, email: true, brand: true, status: true, emailVerified: true, createdAt: true,
+        agentDailyCount: { select: { count: true, date: true } },
+      },
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * limit,
       take: limit,
     }),
     prisma.user.count({ where }),
+    prisma.appConfig.findUnique({ where: { id: "singleton" }, select: { dailyChatLimit: true } }),
   ]);
 
-  return NextResponse.json({ tenants, total, page, totalPages: Math.ceil(total / limit) });
+  const dailyChatLimit = config?.dailyChatLimit ?? 50;
+  const tenantsWithCount = tenants.map((t) => ({
+    ...t,
+    chatCount: t.agentDailyCount?.date === today ? (t.agentDailyCount.count ?? 0) : 0,
+    agentDailyCount: undefined,
+  }));
+
+  return NextResponse.json({ tenants: tenantsWithCount, total, page, totalPages: Math.ceil(total / limit), dailyChatLimit });
 }
