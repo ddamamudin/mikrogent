@@ -101,10 +101,11 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
           <div className="flex items-center gap-2">
             <InstallButton />
             <span className="text-sm text-gray-500 dark:text-white/60 hidden sm:block">{user.name}</span>
-            {isAgentPage && agentState?.hasMessages && (
+            {isAgentPage && (
               <button
-                onClick={agentState.onReset}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-white/60 hover:text-gray-900 dark:hover:text-white transition"
+                onClick={() => agentState?.onReset?.()}
+                disabled={!agentState?.hasMessages}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-white/60 hover:text-gray-900 dark:hover:text-white transition disabled:opacity-30 disabled:cursor-default disabled:hover:bg-transparent disabled:hover:text-gray-500 dark:disabled:hover:text-white/60"
                 title="Chat baru"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

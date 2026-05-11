@@ -306,7 +306,6 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
             ↑
           </button>
         </form>
-        <p className="text-center text-xs text-gray-400 mt-2 px-2">Replay Agent dapat membuat kesalahan. Verifikasi info penting.</p>
       </div>
 
       <style>{`
