@@ -179,9 +179,14 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
         signal: abort.signal,
       });
 
-      if (!res.ok && !res.body) {
+      const ct = res.headers.get("content-type") ?? "";
+      if (!ct.includes("text/event-stream")) {
         const txt = await res.text().catch(() => "");
-        setError(`HTTP ${res.status}: ${txt.slice(0, 200) || "Stream tidak tersedia"}`);
+        if (res.status === 413) {
+          setError("File terlalu besar untuk dikirim. Coba file yang lebih kecil.");
+        } else {
+          setError(`HTTP ${res.status}: ${txt.slice(0, 200) || "Response tidak valid"}`);
+        }
         return;
       }
       if (!res.body) {
@@ -272,8 +277,8 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
     const slots = 5 - current;
     Array.from(files).slice(0, slots).forEach(file => {
       if (!accept.includes(file.type)) return;
-      if (file.size > 4 * 1024 * 1024) {
-        setError(`File "${file.name}" terlalu besar. Maksimal 4MB per file.`);
+      if (file.size > 2 * 1024 * 1024) {
+        setError(`File "${file.name}" terlalu besar. Maksimal 2MB per file.`);
         return;
       }
       const reader = new FileReader();
