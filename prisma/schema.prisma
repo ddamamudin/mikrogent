@@ -43,6 +43,10 @@ model AppConfig {
   adminSetupEnabled Boolean @default(true)
   showBrandField    Boolean @default(true)
   claudeApiKey      String?
+  openaiApiKey      String?
+  llmProvider       String  @default("anthropic")
+  anthropicModel    String  @default("claude-sonnet-4-6")
+  openaiModel       String  @default("gpt-4o")
   agentPersona      String?
   agentKnowledge    String?
   dailyChatLimit    Int     @default(50)

@@ -16,9 +16,22 @@ export default async function PengaturanPage() {
     select: { name: true, email: true },
   });
 
+  const defaults = {
+    adminSetupEnabled: true,
+    showBrandField: true,
+    llmProvider: "anthropic" as const,
+    claudeApiKey: null,
+    openaiApiKey: null,
+    anthropicModel: "claude-sonnet-4-6",
+    openaiModel: "gpt-4o",
+    agentPersona: null,
+    agentKnowledge: null,
+    dailyChatLimit: 50,
+  };
+
   return (
     <PengaturanClient
-      config={config ?? { adminSetupEnabled: true, showBrandField: true, claudeApiKey: null, agentPersona: null, agentKnowledge: null, dailyChatLimit: 50 }}
+      config={config ?? defaults}
       admin={admin ?? { name: "", email: "" }}
     />
   );

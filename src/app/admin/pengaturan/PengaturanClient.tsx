@@ -5,12 +5,29 @@ import { useState } from "react";
 type Config = {
   adminSetupEnabled: boolean;
   showBrandField: boolean;
+  llmProvider: string;
   claudeApiKey: string | null;
+  openaiApiKey: string | null;
+  anthropicModel: string;
+  openaiModel: string;
   agentPersona: string | null;
   agentKnowledge: string | null;
   dailyChatLimit: number;
 };
 type Admin = { name: string; email: string };
+
+const ANTHROPIC_MODELS = [
+  { id: "claude-opus-4-7", label: "Claude Opus 4.7 (paling pintar, paling mahal)" },
+  { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6 (balance — direkomendasikan)" },
+  { id: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5 (cepat & murah)" },
+];
+
+const OPENAI_MODELS = [
+  { id: "gpt-4o", label: "GPT-4o (balance — direkomendasikan)" },
+  { id: "gpt-4o-mini", label: "GPT-4o mini (cepat & murah)" },
+  { id: "gpt-4-turbo", label: "GPT-4 Turbo" },
+  { id: "o3-mini", label: "o3-mini (reasoning)" },
+];
 
 export default function PengaturanClient({ config: initial, admin }: { config: Config; admin: Admin }) {
   const [setupEnabled, setSetupEnabled] = useState(initial.adminSetupEnabled);
@@ -21,7 +38,13 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passLoading, setPassLoading] = useState(false);
 
+  const [llmProvider, setLlmProvider] = useState<"anthropic" | "openai">(
+    initial.llmProvider === "openai" ? "openai" : "anthropic",
+  );
   const [claudeApiKey, setClaudeApiKey] = useState(initial.claudeApiKey ?? "");
+  const [openaiApiKey, setOpenaiApiKey] = useState(initial.openaiApiKey ?? "");
+  const [anthropicModel, setAnthropicModel] = useState(initial.anthropicModel || "claude-sonnet-4-6");
+  const [openaiModel, setOpenaiModel] = useState(initial.openaiModel || "gpt-4o");
   const [agentPersona, setAgentPersona] = useState(initial.agentPersona ?? "");
   const [agentKnowledge, setAgentKnowledge] = useState(initial.agentKnowledge ?? "");
   const [dailyChatLimit, setDailyChatLimit] = useState(String(initial.dailyChatLimit));
@@ -76,15 +99,24 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
   const handleSaveAgent = async (e: React.FormEvent) => {
     e.preventDefault();
     const limit = parseInt(dailyChatLimit);
-    if (!claudeApiKey.trim()) return showMsg("err", "API Key Claude wajib diisi");
     if (isNaN(limit) || limit < 1) return showMsg("err", "Batas chat harus angka minimal 1");
+    if (llmProvider === "anthropic" && !claudeApiKey.trim()) {
+      return showMsg("err", "API Key Anthropic wajib diisi karena provider aktif adalah Anthropic");
+    }
+    if (llmProvider === "openai" && !openaiApiKey.trim()) {
+      return showMsg("err", "API Key OpenAI wajib diisi karena provider aktif adalah OpenAI");
+    }
     setAgentLoading(true);
     const res = await fetch("/api/admin/config", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         agentConfig: {
+          llmProvider,
           claudeApiKey: claudeApiKey.trim(),
+          openaiApiKey: openaiApiKey.trim(),
+          anthropicModel,
+          openaiModel,
           agentPersona: agentPersona.trim(),
           agentKnowledge: agentKnowledge.trim(),
           dailyChatLimit: limit,
@@ -153,12 +185,63 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
       <form onSubmit={handleSaveAgent} className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 p-5 shadow-sm space-y-4">
         <h2 className="text-sm font-semibold text-gray-400 dark:text-white/50 uppercase tracking-wider">Pengaturan AI Agent</h2>
 
-        <div className="space-y-1">
-          <label className="text-sm text-gray-600 dark:text-white/60">Claude API Key</label>
-          <input
-            type="password" value={claudeApiKey} onChange={(e) => setClaudeApiKey(e.target.value)}
-            className={inputClass} placeholder="sk-ant-api03-..." autoComplete="off"
-          />
+        <div className="space-y-2">
+          <label className="text-sm text-gray-600 dark:text-white/60">Provider LLM</label>
+          <div className="grid grid-cols-2 gap-2">
+            {(["anthropic", "openai"] as const).map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setLlmProvider(p)}
+                className={`px-3 py-2 rounded-lg text-sm font-medium border transition ${
+                  llmProvider === p
+                    ? "bg-blue-50 dark:bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400"
+                    : "bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/60 hover:border-gray-300 dark:hover:border-white/20"
+                }`}
+              >
+                {p === "anthropic" ? "Anthropic (Claude)" : "OpenAI (GPT)"}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-gray-400 dark:text-white/30">Provider yang dipakai semua user untuk chat dengan Replay Agent</p>
+        </div>
+
+        <div className="space-y-3 rounded-lg border border-gray-100 dark:border-white/5 p-3 bg-gray-50/50 dark:bg-white/[0.02]">
+          <p className="text-xs font-semibold text-gray-500 dark:text-white/50 uppercase tracking-wider">Anthropic{llmProvider === "anthropic" && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 normal-case tracking-normal">aktif</span>}</p>
+          <div className="space-y-1">
+            <label className="text-sm text-gray-600 dark:text-white/60">API Key</label>
+            <input
+              type="password" value={claudeApiKey} onChange={(e) => setClaudeApiKey(e.target.value)}
+              className={inputClass} placeholder="sk-ant-api03-..." autoComplete="off"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm text-gray-600 dark:text-white/60">Model</label>
+            <select value={anthropicModel} onChange={(e) => setAnthropicModel(e.target.value)} className={inputClass}>
+              {ANTHROPIC_MODELS.map((m) => (
+                <option key={m.id} value={m.id}>{m.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="space-y-3 rounded-lg border border-gray-100 dark:border-white/5 p-3 bg-gray-50/50 dark:bg-white/[0.02]">
+          <p className="text-xs font-semibold text-gray-500 dark:text-white/50 uppercase tracking-wider">OpenAI{llmProvider === "openai" && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 normal-case tracking-normal">aktif</span>}</p>
+          <div className="space-y-1">
+            <label className="text-sm text-gray-600 dark:text-white/60">API Key</label>
+            <input
+              type="password" value={openaiApiKey} onChange={(e) => setOpenaiApiKey(e.target.value)}
+              className={inputClass} placeholder="sk-..." autoComplete="off"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm text-gray-600 dark:text-white/60">Model</label>
+            <select value={openaiModel} onChange={(e) => setOpenaiModel(e.target.value)} className={inputClass}>
+              {OPENAI_MODELS.map((m) => (
+                <option key={m.id} value={m.id}>{m.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="space-y-1">

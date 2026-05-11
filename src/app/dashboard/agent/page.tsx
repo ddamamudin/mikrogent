@@ -17,7 +17,8 @@ export default async function AgentPage() {
     prisma.appConfig.findUnique({ where: { id: "singleton" } }),
   ]);
 
-  const agentReady = !!config?.claudeApiKey;
+  const activeKey = config?.llmProvider === "openai" ? config?.openaiApiKey : config?.claudeApiKey;
+  const agentReady = !!activeKey;
   const firstName = (user?.name ?? "").trim().split(/\s+/)[0] || "Kak";
 
   return (

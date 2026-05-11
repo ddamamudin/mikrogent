@@ -42,11 +42,35 @@ export async function PATCH(req: NextRequest) {
   }
 
   if (body.agentConfig) {
-    const { claudeApiKey, agentPersona, agentKnowledge, dailyChatLimit } = body.agentConfig;
+    const {
+      llmProvider,
+      claudeApiKey,
+      openaiApiKey,
+      anthropicModel,
+      openaiModel,
+      agentPersona,
+      agentKnowledge,
+      dailyChatLimit,
+    } = body.agentConfig;
+
+    if (llmProvider !== undefined && llmProvider !== "anthropic" && llmProvider !== "openai") {
+      return NextResponse.json({ error: "Provider tidak valid" }, { status: 400 });
+    }
+
+    const data: Record<string, unknown> = {};
+    if (llmProvider !== undefined) data.llmProvider = llmProvider;
+    if (claudeApiKey !== undefined) data.claudeApiKey = claudeApiKey || null;
+    if (openaiApiKey !== undefined) data.openaiApiKey = openaiApiKey || null;
+    if (anthropicModel !== undefined && anthropicModel) data.anthropicModel = anthropicModel;
+    if (openaiModel !== undefined && openaiModel) data.openaiModel = openaiModel;
+    if (agentPersona !== undefined) data.agentPersona = agentPersona;
+    if (agentKnowledge !== undefined) data.agentKnowledge = agentKnowledge;
+    if (dailyChatLimit !== undefined) data.dailyChatLimit = dailyChatLimit;
+
     const config = await prisma.appConfig.upsert({
       where: { id: "singleton" },
-      update: { claudeApiKey, agentPersona, agentKnowledge, dailyChatLimit },
-      create: { id: "singleton", claudeApiKey, agentPersona, agentKnowledge, dailyChatLimit },
+      update: data,
+      create: { id: "singleton", ...data },
     });
     return NextResponse.json(config);
   }
