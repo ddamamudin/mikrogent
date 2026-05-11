@@ -18,14 +18,23 @@ type Tenant = {
   dailyChatLimit: number;
 };
 
+type MikrotikCred = {
+  host: string;
+  port: number;
+  sshUser: string;
+  sshPass: string;
+  connected: boolean;
+} | null;
+
 const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
 
-export default function TenantDetailClient({ tenant: initial }: { tenant: Tenant }) {
+export default function TenantDetailClient({ tenant: initial, mikrotikCred }: { tenant: Tenant; mikrotikCred: MikrotikCred }) {
   const router = useRouter();
   const [tenant, setTenant] = useState(initial);
   const [chatCount, setChatCount] = useState(initial.chatCount);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [showPass, setShowPass] = useState(false);
 
   const showMsg = (type: "ok" | "err", text: string) => {
     setMessage({ type, text });
@@ -118,6 +127,7 @@ export default function TenantDetailClient({ tenant: initial }: { tenant: Tenant
         </div>
       )}
 
+      {/* Info umum */}
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden shadow-sm">
         <dl className="divide-y divide-gray-50 dark:divide-white/5">
           {rows.map(({ label, value }) => (
@@ -129,6 +139,50 @@ export default function TenantDetailClient({ tenant: initial }: { tenant: Tenant
         </dl>
       </div>
 
+      {/* Kredensial MikroTik */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden shadow-sm">
+        <div className="px-5 py-3 border-b border-gray-50 dark:border-white/5 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-400 dark:text-white/50 uppercase tracking-wider">Kredensial MikroTik</h2>
+          {mikrotikCred && (
+            <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${mikrotikCred.connected ? "text-green-600 dark:text-green-400" : "text-gray-400 dark:text-white/30"}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${mikrotikCred.connected ? "bg-green-500" : "bg-gray-300 dark:bg-white/20"}`} />
+              {mikrotikCred.connected ? "Terhubung" : "Belum terhubung"}
+            </span>
+          )}
+        </div>
+        {mikrotikCred ? (
+          <dl className="divide-y divide-gray-50 dark:divide-white/5">
+            <div className="px-5 py-3 flex items-center gap-4">
+              <dt className="text-sm text-gray-400 dark:text-white/40 w-36 shrink-0">Host</dt>
+              <dd className="text-sm text-gray-900 dark:text-white font-mono">{mikrotikCred.host}</dd>
+            </div>
+            <div className="px-5 py-3 flex items-center gap-4">
+              <dt className="text-sm text-gray-400 dark:text-white/40 w-36 shrink-0">Port</dt>
+              <dd className="text-sm text-gray-900 dark:text-white font-mono">{mikrotikCred.port}</dd>
+            </div>
+            <div className="px-5 py-3 flex items-center gap-4">
+              <dt className="text-sm text-gray-400 dark:text-white/40 w-36 shrink-0">Username</dt>
+              <dd className="text-sm text-gray-900 dark:text-white font-mono">{mikrotikCred.sshUser}</dd>
+            </div>
+            <div className="px-5 py-3 flex items-center gap-4">
+              <dt className="text-sm text-gray-400 dark:text-white/40 w-36 shrink-0">Password</dt>
+              <dd className="text-sm text-gray-900 dark:text-white font-mono flex items-center gap-2">
+                {showPass ? mikrotikCred.sshPass : "••••••••"}
+                <button
+                  onClick={() => setShowPass((v) => !v)}
+                  className="text-xs text-blue-500 hover:text-blue-600 transition"
+                >
+                  {showPass ? "Sembunyikan" : "Tampilkan"}
+                </button>
+              </dd>
+            </div>
+          </dl>
+        ) : (
+          <p className="px-5 py-4 text-sm text-gray-400 dark:text-white/30">Belum ada kredensial MikroTik yang disimpan.</p>
+        )}
+      </div>
+
+      {/* Aksi */}
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 p-5 shadow-sm space-y-3">
         <h2 className="text-sm font-semibold text-gray-400 dark:text-white/50 uppercase tracking-wider">Aksi</h2>
         <div className="flex flex-wrap gap-3">
