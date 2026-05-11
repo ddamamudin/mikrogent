@@ -63,7 +63,7 @@ export async function runAnthropic(opts: {
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     const msgStream = client.messages.stream({
       model: opts.model,
-      max_tokens: 4096,
+      max_tokens: 1024,
       system: systemBlocks,
       tools: ANTHROPIC_TOOLS,
       messages,
