@@ -101,17 +101,19 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
           <div className="flex items-center gap-2">
             <InstallButton />
             <span className="text-sm text-gray-500 dark:text-white/60 hidden sm:block">{user.name}</span>
-            <button
-              onClick={handleLogout}
-              className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-400 dark:text-white/50 hover:text-red-600 dark:hover:text-red-400 transition"
-              title="Keluar"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-            </button>
+            {isAgentPage && agentState?.hasMessages && (
+              <button
+                onClick={agentState.onReset}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-white/60 hover:text-gray-900 dark:hover:text-white transition"
+                title="Chat baru"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  <line x1="12" y1="8" x2="12" y2="14" />
+                  <line x1="9" y1="11" x2="15" y2="11" />
+                </svg>
+              </button>
+            )}
           </div>
         </header>
 
@@ -173,14 +175,6 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
                           <div className="text-xs text-gray-500 dark:text-white/40">
                             {agentState.chatCount}/{agentState.dailyChatLimit} chat hari ini
                           </div>
-                          {agentState.hasMessages && (
-                            <button
-                              onClick={agentState.onReset}
-                              className="w-full mt-1 text-xs text-left text-gray-700 dark:text-white/70 hover:bg-gray-100 dark:hover:bg-white/5 px-2 py-1 rounded transition border border-gray-200 dark:border-white/10"
-                            >
-                              + Chat baru
-                            </button>
-                          )}
                         </div>
                       )}
                     </div>
@@ -208,8 +202,19 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
               )}
             </nav>
 
-            <div className="px-3 py-3 border-t border-gray-200 dark:border-white/10">
-              {showBrandField && user.brand && <p className="text-xs text-gray-400 dark:text-white/30 truncate">{user.brand}.{APP_DOMAIN}</p>}
+            <div className="px-3 py-3 border-t border-gray-200 dark:border-white/10 space-y-2">
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-500 dark:text-white/60 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                <span>Keluar</span>
+              </button>
+              {showBrandField && user.brand && <p className="text-xs text-gray-400 dark:text-white/30 truncate px-1">{user.brand}.{APP_DOMAIN}</p>}
             </div>
           </aside>
 
