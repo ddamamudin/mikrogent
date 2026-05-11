@@ -2,6 +2,7 @@
 
 import { useState, useEffect, createContext, useContext } from "react";
 import { usePathname } from "next/navigation";
+import { InstallButton } from "@/components/InstallButton";
 
 const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
 
@@ -97,8 +98,9 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
               <img src="/mikroplay-logo-text.png" alt="Mikroplay" className="h-7 w-auto" />
             </a>
           </div>
-          <div className="flex items-center gap-1">
-            <span className="text-sm text-gray-500 dark:text-white/60 hidden sm:block mr-2">{user.name}</span>
+          <div className="flex items-center gap-2">
+            <InstallButton />
+            <span className="text-sm text-gray-500 dark:text-white/60 hidden sm:block">{user.name}</span>
             <button
               onClick={handleLogout}
               className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-400 dark:text-white/50 hover:text-red-600 dark:hover:text-red-400 transition"

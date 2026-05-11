@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { usePathname } from "next/navigation";
+import { InstallButton } from "@/components/InstallButton";
 import type { SessionPayload } from "@/lib/session";
 
 
@@ -76,7 +77,8 @@ export default function AdminShell({ session, children }: { session: SessionPayl
           <img src="/mikroplay-logo-text.png" alt="Mikroplay" className="h-7 w-auto" />
           <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400">Admin</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
+          <InstallButton />
           <button
             onClick={handleLogout}
             className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-400 dark:text-white/50 hover:text-red-600 dark:hover:text-red-400 transition"
