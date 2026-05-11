@@ -15,6 +15,7 @@ interface Props {
   hasMemory: boolean;
   agentReady: boolean;
   dailyChatLimit: number;
+  initialChatCount: number;
 }
 
 function greetingByTime(d: Date = new Date()): string {
@@ -25,7 +26,7 @@ function greetingByTime(d: Date = new Date()): string {
   return "Selamat Malam";
 }
 
-export default function AgentClient({ userId, firstName, isConnected, hasMemory, agentReady, dailyChatLimit }: Props) {
+export default function AgentClient({ userId, firstName, isConnected, hasMemory, agentReady, dailyChatLimit, initialChatCount }: Props) {
   const SK = `agent_${userId}`;
   const [messages, setMessages] = useState<Message[]>([]);
   const [apiMessages, setApiMessages] = useState<ApiMessage[]>([]);
@@ -34,7 +35,7 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
   const [toolLabel, setToolLabel] = useState("");
   const [streamingText, setStreamingText] = useState("");
   const [error, setError] = useState("");
-  const [chatCount, setChatCount] = useState(0);
+  const [chatCount, setChatCount] = useState(initialChatCount);
   const [greeting, setGreeting] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -47,10 +48,8 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
     try {
       const saved = sessionStorage.getItem(`${SK}_msg`);
       const savedApi = sessionStorage.getItem(`${SK}_api`);
-      const savedCount = sessionStorage.getItem(`${SK}_count`);
       if (saved) setMessages(JSON.parse(saved));
       if (savedApi) setApiMessages(JSON.parse(savedApi));
-      if (savedCount) setChatCount(parseInt(savedCount, 10));
     } catch {}
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -61,9 +60,6 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
   useEffect(() => {
     try { sessionStorage.setItem(`${SK}_api`, JSON.stringify(apiMessages)); } catch {}
   }, [SK, apiMessages]);
-  useEffect(() => {
-    try { sessionStorage.setItem(`${SK}_count`, String(chatCount)); } catch {}
-  }, [SK, chatCount]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -81,7 +77,6 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
     try {
       sessionStorage.removeItem(`${SK}_msg`);
       sessionStorage.removeItem(`${SK}_api`);
-      sessionStorage.removeItem(`${SK}_count`);
     } catch {}
   }, [SK]);
 

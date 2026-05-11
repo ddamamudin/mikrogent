@@ -10,16 +10,19 @@ export default async function AgentPage() {
   const session = getSessionFromCookie(cookieStore.get("session")?.value);
   if (!session) redirect("/masuk");
 
-  const [user, cred, memory, config] = await Promise.all([
+  const today = new Date().toISOString().slice(0, 10);
+  const [user, cred, memory, config, dailyCount] = await Promise.all([
     prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } }),
     prisma.mikrotikCredential.findUnique({ where: { userId: session.userId } }),
     prisma.agentMemory.findUnique({ where: { userId: session.userId } }),
     prisma.appConfig.findUnique({ where: { id: "singleton" } }),
+    prisma.agentDailyCount.findUnique({ where: { userId: session.userId } }),
   ]);
 
   const activeKey = config?.llmProvider === "openai" ? config?.openaiApiKey : config?.claudeApiKey;
   const agentReady = !!activeKey;
   const firstName = (user?.name ?? "").trim().split(/\s+/)[0] || "Kak";
+  const initialChatCount = dailyCount?.date === today ? (dailyCount.count ?? 0) : 0;
 
   return (
     <AgentClient
@@ -29,6 +32,7 @@ export default async function AgentPage() {
       hasMemory={!!memory}
       agentReady={agentReady}
       dailyChatLimit={config?.dailyChatLimit ?? 50}
+      initialChatCount={initialChatCount}
     />
   );
 }
