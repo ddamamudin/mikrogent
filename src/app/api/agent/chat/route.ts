@@ -7,7 +7,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { executeMikrotikCommand, scanMikrotikConfig, MikrotikConfig } from "@/lib/mikrotik";
 import crypto from "crypto";
 
-const AGENT_SSH_USER = "mkp-agent";
+const AGENT_SSH_USER = "replay-agent";
 
 function buildSystemPrompt(opts: {
   persona: string;
