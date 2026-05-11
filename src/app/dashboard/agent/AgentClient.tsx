@@ -299,7 +299,7 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
             onKeyDown={handleKeyDown}
             placeholder={isConnected ? "Kirim pesan ke Replay Agent..." : "Ketik 'halo' untuk mulai..."}
             rows={1}
-            className="flex-1 resize-none border-none outline-none bg-transparent text-[15px] text-gray-900 placeholder-gray-400 leading-relaxed min-h-[24px] font-[inherit]"
+            className="flex-1 resize-none overflow-hidden border-none outline-none bg-transparent text-[15px] text-gray-900 placeholder-gray-400 leading-relaxed min-h-[24px] font-[inherit]"
           />
           <button type="submit" disabled={!input.trim() || loading || chatCount >= dailyChatLimit}
             className={`shrink-0 w-8 h-8 rounded-full border-none flex items-center justify-center transition text-base ${input.trim() && !loading && chatCount < dailyChatLimit ? "bg-gray-900 text-white cursor-pointer hover:bg-gray-700" : "bg-gray-200 text-gray-400 cursor-not-allowed"}`}>

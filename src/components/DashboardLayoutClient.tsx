@@ -78,7 +78,7 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
 
   return (
     <AgentSidebarCtx.Provider value={{ state: agentState, setState: setAgentState }}>
-      <div className={`h-screen flex flex-col ${isAgentPage ? "bg-white" : "bg-gray-100"} dark:bg-slate-950 text-gray-900 dark:text-white`}>
+      <div className={`h-[100dvh] flex flex-col ${isAgentPage ? "bg-white" : "bg-gray-100"} dark:bg-slate-950 text-gray-900 dark:text-white`}>
         {/* Header */}
         <header className="h-14 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-white/10 flex items-center justify-between px-4 shrink-0 z-40">
           <div className="flex items-center gap-3">
@@ -108,7 +108,7 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
                 className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-white/60 hover:text-gray-900 dark:hover:text-white transition disabled:opacity-30 disabled:cursor-default disabled:hover:bg-transparent disabled:hover:text-gray-500 dark:disabled:hover:text-white/60"
                 title="Chat baru"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                   <line x1="12" y1="8" x2="12" y2="14" />
                   <line x1="9" y1="11" x2="15" y2="11" />
