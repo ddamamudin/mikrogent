@@ -151,6 +151,11 @@ export async function POST(req: NextRequest) {
 
   const stream = new ReadableStream({
     async start(controller) {
+      // Periodic ping to keep Cloudflare/QUIC connection alive
+      const ping = setInterval(() => {
+        try { controller.enqueue(enc.encode(": ping\n\n")); } catch {}
+      }, 15000);
+
       try {
         while (true) {
           // Stream Claude response
@@ -308,6 +313,8 @@ INSTRUKSI MENJALANKAN:
         const msg = e instanceof Error ? e.message : String(e);
         controller.enqueue(sse({ type: "error", error: msg }));
         controller.close();
+      } finally {
+        clearInterval(ping);
       }
     },
   });
