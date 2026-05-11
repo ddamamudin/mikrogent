@@ -18,7 +18,7 @@ function getTodayString(): string {
 function validateMessages(raw: unknown): Anthropic.MessageParam[] {
   if (!Array.isArray(raw)) throw new Error("messages harus array");
   if (raw.length === 0) throw new Error("messages tidak boleh kosong");
-  if (raw.length > 200) throw new Error("Riwayat terlalu panjang, mulai chat baru");
+  if (raw.length > 50) throw new Error("Riwayat percakapan sudah mencapai 50 pesan. Mulai chat baru untuk melanjutkan.");
   const out: Anthropic.MessageParam[] = [];
   for (const m of raw) {
     if (!m || typeof m !== "object") throw new Error("Format pesan tidak valid");
