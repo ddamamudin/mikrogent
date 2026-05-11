@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, FormEvent } from "react";
+import { useState, useRef, useEffect, useCallback, FormEvent } from "react";
+import { useAgentSidebar } from "@/components/DashboardLayoutClient";
 
 type Role = "user" | "assistant";
 interface Message { role: Role; content: string; }
@@ -30,6 +31,8 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
   const streamBufRef = useRef<string>("");
   const rafRef = useRef<number | null>(null);
 
+  const { setState: setAgentSidebar } = useAgentSidebar();
+
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem(`${SK}_msg`);
@@ -55,6 +58,28 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading, toolLabel, streamingText]);
+
+  const resetChat = useCallback(() => {
+    setMessages([]); setApiMessages([]); setError(""); setToolLabel(""); setStreamingText("");
+    try {
+      sessionStorage.removeItem(`${SK}_msg`);
+      sessionStorage.removeItem(`${SK}_api`);
+      sessionStorage.removeItem(`${SK}_count`);
+    } catch {}
+  }, [SK]);
+
+  // Push agent state ke sidebar
+  useEffect(() => {
+    setAgentSidebar({
+      isConnected,
+      hasMemory,
+      chatCount,
+      dailyChatLimit,
+      hasMessages: messages.length > 0,
+      onReset: resetChat,
+    });
+    return () => setAgentSidebar(null);
+  }, [setAgentSidebar, isConnected, hasMemory, chatCount, dailyChatLimit, messages.length, resetChat]);
 
   function autoResize() {
     const el = textareaRef.current;
@@ -166,15 +191,6 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   }
 
-  function resetChat() {
-    setMessages([]); setApiMessages([]); setError(""); setToolLabel(""); setStreamingText("");
-    try {
-      sessionStorage.removeItem(`${SK}_msg`);
-      sessionStorage.removeItem(`${SK}_api`);
-      sessionStorage.removeItem(`${SK}_count`);
-    } catch {}
-  }
-
   const isEmpty = messages.length === 0;
   const showStreaming = loading && streamingText.length > 0;
   const showThinking = loading && !streamingText && !toolLabel;
@@ -191,27 +207,6 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
 
   return (
     <div className="flex flex-col h-full bg-white">
-
-      {/* Header — minimal */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 shrink-0">
-        <div className="flex items-center gap-2">
-          <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? "bg-green-500" : "bg-yellow-500"}`} />
-          <p className="text-sm font-medium text-gray-900">MikroTik AI</p>
-          <span className="text-xs text-gray-400">
-            · {isConnected ? (hasMemory ? "Terhubung" : "Terhubung") : "Belum terhubung"}
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-gray-400">{chatCount}/{dailyChatLimit}</span>
-          {messages.length > 0 && (
-            <button onClick={resetChat}
-              className="text-xs text-gray-500 border border-gray-200 rounded-md px-2.5 py-1 hover:bg-gray-50 transition">
-              Chat baru
-            </button>
-          )}
-        </div>
-      </div>
-
       {/* Messages */}
       <div className="flex-1 overflow-y-auto">
         {isEmpty && !loading ? (
@@ -223,7 +218,7 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
                 : "Hubungkan MikroTik kamu terlebih dahulu, lalu tanyakan apa saja."}
             </p>
             {isConnected && (
-              <div className="grid grid-cols-2 gap-2.5 w-full max-w-lg">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-lg">
                 {[
                   { label: "Lihat semua interface", prompt: "Tampilkan semua interface yang ada" },
                   { label: "IP Address aktif", prompt: "Tampilkan semua IP address yang terkonfigurasi" },
@@ -243,27 +238,25 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
             {messages.map((msg, i) => (
               msg.role === "user" ? (
                 <div key={i} className="flex justify-end mb-5">
-                  <div className="max-w-[80%] px-4 py-2.5 bg-gray-100 text-gray-900 rounded-2xl text-[15px] leading-relaxed whitespace-pre-wrap">
+                  <div className="max-w-[85%] sm:max-w-[80%] px-4 py-2.5 bg-gray-100 text-gray-900 rounded-2xl text-[15px] leading-relaxed whitespace-pre-wrap break-words">
                     {msg.content}
                   </div>
                 </div>
               ) : (
                 <div key={i} className="mb-7">
-                  <div className="md prose-sm text-[15px] text-gray-900 leading-relaxed"
+                  <div className="md prose-sm text-[15px] text-gray-900 leading-relaxed break-words"
                     dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }} />
                 </div>
               )
             ))}
 
-            {/* Streaming bubble — markdown live */}
             {showStreaming && (
               <div className="mb-7">
-                <div className="md prose-sm text-[15px] text-gray-900 leading-relaxed"
+                <div className="md prose-sm text-[15px] text-gray-900 leading-relaxed break-words"
                   dangerouslySetInnerHTML={{ __html: renderMarkdown(streamingText) }} />
               </div>
             )}
 
-            {/* Tool indicator */}
             {loading && toolLabel && (
               <div className="mb-5 flex items-center gap-2 text-sm text-gray-400">
                 <div className="flex gap-1">
@@ -276,7 +269,6 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
               </div>
             )}
 
-            {/* Thinking indicator — sebelum text pertama */}
             {showThinking && (
               <div className="mb-5 flex gap-1">
                 {[0, 1, 2].map((i) => (
@@ -297,13 +289,13 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
       </div>
 
       {/* Input */}
-      <div className="shrink-0 px-4 pb-4 pt-2 bg-white">
+      <div className="shrink-0 px-3 sm:px-4 pb-3 sm:pb-4 pt-2 bg-white">
         <form onSubmit={handleSubmit}
           className="max-w-3xl mx-auto flex gap-2 items-end bg-white border border-gray-200 rounded-3xl px-4 py-3 shadow-sm focus-within:border-gray-300 focus-within:shadow-md transition">
           <textarea ref={textareaRef} value={input}
             onChange={(e) => { setInput(e.target.value); autoResize(); }}
             onKeyDown={handleKeyDown}
-            placeholder={isConnected ? "Kirim pesan ke MikroTik AI..." : "Ketik 'halo' untuk mulai menghubungkan MikroTik..."}
+            placeholder={isConnected ? "Kirim pesan ke MikroTik AI..." : "Ketik 'halo' untuk mulai..."}
             rows={1}
             className="flex-1 resize-none border-none outline-none bg-transparent text-[15px] text-gray-900 placeholder-gray-400 leading-relaxed min-h-[24px] font-[inherit]"
           />
@@ -312,7 +304,7 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
             ↑
           </button>
         </form>
-        <p className="text-center text-xs text-gray-400 mt-2">MikroTik AI dapat membuat kesalahan. Verifikasi info penting.</p>
+        <p className="text-center text-xs text-gray-400 mt-2 px-2">MikroTik AI dapat membuat kesalahan. Verifikasi info penting.</p>
       </div>
 
       <style>{`
@@ -325,11 +317,12 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
         .md h3 { font-size: 1.1em; }
         .md ul, .md ol { margin: 0 0 0.75em 0; padding-left: 1.5em; }
         .md li { margin: 0.25em 0; }
-        .md code { background: #f3f4f6; padding: 2px 5px; border-radius: 4px; font-size: 0.9em; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+        .md code { background: #f3f4f6; padding: 2px 5px; border-radius: 4px; font-size: 0.9em; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; word-break: break-word; }
         .md pre { background: #f3f4f6; padding: 12px 14px; border-radius: 8px; overflow-x: auto; margin: 0.5em 0 0.75em; }
-        .md pre code { background: none; padding: 0; font-size: 0.875em; }
-        .md table { border-collapse: collapse; margin: 0.5em 0 0.75em; font-size: 0.9em; width: 100%; }
-        .md th, .md td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; }
+        .md pre code { background: none; padding: 0; font-size: 0.875em; word-break: normal; }
+        .md .table-wrap { overflow-x: auto; max-width: 100%; margin: 0.5em 0 0.75em; -webkit-overflow-scrolling: touch; }
+        .md table { border-collapse: collapse; font-size: 0.9em; }
+        .md th, .md td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; white-space: nowrap; }
         .md th { background: #f9fafb; font-weight: 600; }
         .md blockquote { border-left: 3px solid #e5e7eb; padding-left: 12px; color: #6b7280; margin: 0.5em 0 0.75em; }
         .md strong { font-weight: 600; }
@@ -357,14 +350,14 @@ function renderMarkdown(raw: string): string {
     if (allRows.length < 2) return rows;
     const header = allRows[0].replace(/<td>/g, "<th>").replace(/<\/td>/g, "</th>");
     const body = allRows.slice(2).join("");
-    return `<table><thead>${header}</thead><tbody>${body}</tbody></table>`;
+    return `<div class="table-wrap"><table><thead>${header}</thead><tbody>${body}</tbody></table></div>`;
   });
   html = html.replace(/^&gt; (.+)$/gm, "<blockquote>$1</blockquote>");
   html = html.replace(/^- (.+)$/gm, "<li>$1</li>");
   html = html.replace(/^\d+\. (.+)$/gm, "<li>$1</li>");
   html = html.replace(/(<li>[\s\S]*?<\/li>)(\n<li>[\s\S]*?<\/li>)*/g, "<ul>$&</ul>");
   html = html.split("\n\n").map((block) => {
-    if (/^<(h[1-3]|ul|ol|li|table|pre|blockquote)/.test(block.trim())) return block;
+    if (/^<(h[1-3]|ul|ol|li|table|pre|blockquote|div)/.test(block.trim())) return block;
     const trimmed = block.trim();
     if (!trimmed) return "";
     return `<p>${trimmed.replace(/\n/g, "<br>")}</p>`;

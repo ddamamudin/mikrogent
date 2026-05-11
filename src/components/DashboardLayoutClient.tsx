@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -39,123 +39,184 @@ const NAV = [
 
 type User = { name: string; brand: string | null; email: string };
 
+export type AgentSidebarState = {
+  isConnected: boolean;
+  hasMemory: boolean;
+  chatCount: number;
+  dailyChatLimit: number;
+  hasMessages: boolean;
+  onReset: () => void;
+};
+
+const AgentSidebarCtx = createContext<{
+  state: AgentSidebarState | null;
+  setState: (s: AgentSidebarState | null) => void;
+}>({ state: null, setState: () => {} });
+
+export function useAgentSidebar() {
+  return useContext(AgentSidebarCtx);
+}
+
 export default function DashboardLayoutClient({ user, showBrandField, children }: { user: User; showBrandField: boolean; children: React.ReactNode }) {
   const pathname = usePathname();
   const isAgentPage = pathname === "/dashboard/agent";
-  const [sidebarOpen, setSidebarOpen] = useState(!isAgentPage);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({ "AI Agent": true, Profil: true });
+  const [agentState, setAgentState] = useState<AgentSidebarState | null>(null);
+
+  // Close sidebar on route change for cleaner mobile UX
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     window.location.href = "/";
   };
 
+  const sidebarBase = "bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-white/10 flex flex-col w-56";
+  const sidebarPos = `fixed top-14 bottom-0 left-0 z-30 transition-transform duration-200 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`;
+
   return (
-    <div className={`h-screen flex flex-col ${isAgentPage ? "bg-white" : "bg-gray-100"} dark:bg-slate-950 text-gray-900 dark:text-white`}>
-      {/* Header */}
-      <header className="h-14 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-white/10 flex items-center justify-between px-4 shrink-0 z-10">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setSidebarOpen((o) => !o)}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition text-gray-500 dark:text-white/60 hover:text-gray-900 dark:hover:text-white"
-            aria-label="Toggle sidebar"
-          >
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <rect y="2" width="18" height="2" rx="1" fill="currentColor" />
-              <rect y="8" width="18" height="2" rx="1" fill="currentColor" />
-              <rect y="14" width="18" height="2" rx="1" fill="currentColor" />
-            </svg>
-          </button>
-          <span className="font-bold text-blue-600 dark:text-blue-400 text-lg">{APP_NAME}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <span className="text-sm text-gray-500 dark:text-white/60 hidden sm:block mr-2">{user.name}</span>
-          <ThemeToggle />
-          <button
-            onClick={handleLogout}
-            className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-400 dark:text-white/50 hover:text-red-600 dark:hover:text-red-400 transition"
-            title="Keluar"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-          </button>
-        </div>
-      </header>
-
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <aside className={`${sidebarOpen ? "w-56" : "w-0"} transition-all duration-200 overflow-hidden shrink-0 bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-white/10 flex flex-col`}>
-          <nav className="flex-1 py-4 px-2 space-y-1">
-            {NAV.map(({ group, icon, items }) => (
-              <div key={group}>
-                <button
-                  onClick={() => setGroupOpen((o) => ({ ...o, [group]: !o[group] }))}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-white/70 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition"
-                >
-                  <div className="flex items-center gap-2">{icon}<span>{group}</span></div>
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={`transition-transform ${groupOpen[group] ? "rotate-180" : ""}`}>
-                    <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-
-                {groupOpen[group] && (
-                  <div className="mt-1 ml-4 space-y-1">
-                    {items.map(({ href, label, danger }) => {
-                      const active = pathname === href;
-                      return (
-                        <a
-                          key={href}
-                          href={href}
-                          className={`block px-3 py-1.5 rounded-lg text-sm transition ${
-                            active && danger ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10"
-                            : active ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
-                            : danger ? "text-red-500 dark:text-red-400/70 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"
-                            : "text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
-                          }`}
-                        >
-                          {label}
-                        </a>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            ))}
-
-            {/* Buka Situs */}
-            {showBrandField && user.brand && (
-              <a
-                href={`//${user.brand}.${APP_DOMAIN}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-white/70 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" />
-                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                </svg>
-                <span>Buka Situs</span>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto opacity-40">
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                  <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
-                </svg>
-              </a>
-            )}
-          </nav>
-
-          <div className="px-3 py-3 border-t border-gray-200 dark:border-white/10">
-            {showBrandField && user.brand && <p className="text-xs text-gray-400 dark:text-white/30 truncate">{user.brand}.{APP_DOMAIN}</p>}
+    <AgentSidebarCtx.Provider value={{ state: agentState, setState: setAgentState }}>
+      <div className={`h-screen flex flex-col ${isAgentPage ? "bg-white" : "bg-gray-100"} dark:bg-slate-950 text-gray-900 dark:text-white`}>
+        {/* Header */}
+        <header className="h-14 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-white/10 flex items-center justify-between px-4 shrink-0 z-40">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen((o) => !o)}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition text-gray-500 dark:text-white/60 hover:text-gray-900 dark:hover:text-white"
+              aria-label="Toggle sidebar"
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <rect y="2" width="18" height="2" rx="1" fill="currentColor" />
+                <rect y="8" width="18" height="2" rx="1" fill="currentColor" />
+                <rect y="14" width="18" height="2" rx="1" fill="currentColor" />
+              </svg>
+            </button>
+            <span className="font-bold text-blue-600 dark:text-blue-400 text-lg">{APP_NAME}</span>
           </div>
-        </aside>
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-gray-500 dark:text-white/60 hidden sm:block mr-2">{user.name}</span>
+            <ThemeToggle />
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-400 dark:text-white/50 hover:text-red-600 dark:hover:text-red-400 transition"
+              title="Keluar"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
+          </div>
+        </header>
 
-        {/* Main Content */}
-        <main className={`flex-1 min-h-0 ${isAgentPage ? "" : "overflow-y-auto p-6"}`}>
-          {isAgentPage ? children : <div className="max-w-lg mx-auto">{children}</div>}
-        </main>
+        {/* Body */}
+        <div className="flex-1 min-h-0 relative">
+          {/* Backdrop saat sidebar terbuka */}
+          {sidebarOpen && (
+            <div
+              onClick={() => setSidebarOpen(false)}
+              className="fixed inset-0 top-14 z-20 bg-black/30"
+              aria-hidden="true"
+            />
+          )}
+
+          {/* Sidebar (overlay, ga menggeser konten) */}
+          <aside className={`${sidebarBase} ${sidebarPos}`}>
+            <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
+              {NAV.map(({ group, icon, items }) => (
+                <div key={group}>
+                  <button
+                    onClick={() => setGroupOpen((o) => ({ ...o, [group]: !o[group] }))}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-white/70 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition"
+                  >
+                    <div className="flex items-center gap-2">{icon}<span>{group}</span></div>
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={`transition-transform ${groupOpen[group] ? "rotate-180" : ""}`}>
+                      <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+
+                  {groupOpen[group] && (
+                    <div className="mt-1 ml-4 space-y-1">
+                      {items.map(({ href, label, danger }) => {
+                        const active = pathname === href;
+                        return (
+                          <a
+                            key={href}
+                            href={href}
+                            className={`block px-3 py-1.5 rounded-lg text-sm transition ${
+                              active && danger ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10"
+                              : active ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
+                              : danger ? "text-red-500 dark:text-red-400/70 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"
+                              : "text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+                            }`}
+                          >
+                            {label}
+                          </a>
+                        );
+                      })}
+
+                      {/* Info agent: status koneksi, kuota, tombol chat baru */}
+                      {group === "AI Agent" && agentState && (
+                        <div className="mt-2 mx-1 px-3 py-2.5 bg-gray-50 dark:bg-white/5 rounded-lg space-y-1.5">
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <span className={`w-1.5 h-1.5 rounded-full ${agentState.isConnected ? "bg-green-500" : "bg-yellow-500"}`} />
+                            <span className="text-gray-600 dark:text-white/60">
+                              {agentState.isConnected ? "Terhubung" : "Belum terhubung"}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-white/40">
+                            {agentState.chatCount}/{agentState.dailyChatLimit} chat hari ini
+                          </div>
+                          {agentState.hasMessages && (
+                            <button
+                              onClick={agentState.onReset}
+                              className="w-full mt-1 text-xs text-left text-gray-700 dark:text-white/70 hover:bg-gray-100 dark:hover:bg-white/5 px-2 py-1 rounded transition border border-gray-200 dark:border-white/10"
+                            >
+                              + Chat baru
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {showBrandField && user.brand && (
+                <a
+                  href={`//${user.brand}.${APP_DOMAIN}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-white/70 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" />
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                  </svg>
+                  <span>Buka Situs</span>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto opacity-40">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                    <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+                  </svg>
+                </a>
+              )}
+            </nav>
+
+            <div className="px-3 py-3 border-t border-gray-200 dark:border-white/10">
+              {showBrandField && user.brand && <p className="text-xs text-gray-400 dark:text-white/30 truncate">{user.brand}.{APP_DOMAIN}</p>}
+            </div>
+          </aside>
+
+          {/* Main Content — selalu full lebar */}
+          <main className={`h-full ${isAgentPage ? "" : "overflow-y-auto p-6"}`}>
+            {isAgentPage ? children : <div className="max-w-lg mx-auto">{children}</div>}
+          </main>
+        </div>
       </div>
-    </div>
+    </AgentSidebarCtx.Provider>
   );
 }
