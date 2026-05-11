@@ -20,6 +20,7 @@ export default function AgentClient({ isConnected, hasMemory, agentReady, dailyC
   const [apiMessages, setApiMessages] = useState<ApiMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [toolLabel, setToolLabel] = useState("");
   const [error, setError] = useState("");
   const [chatCount, setChatCount] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -27,7 +28,7 @@ export default function AgentClient({ isConnected, hasMemory, agentReady, dailyC
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+  }, [messages, loading, toolLabel]);
 
   function autoResize() {
     const el = textareaRef.current;
@@ -50,7 +51,11 @@ export default function AgentClient({ isConnected, hasMemory, agentReady, dailyC
     setInput("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
     setLoading(true);
+    setToolLabel("");
     setError("");
+
+    // Add empty assistant message we'll fill in as tokens arrive
+    setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
     try {
       const res = await fetch("/api/agent/chat", {
@@ -58,15 +63,64 @@ export default function AgentClient({ isConnected, hasMemory, agentReady, dailyC
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: newApiMessages }),
       });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error || "Terjadi kesalahan"); return; }
-      setMessages((prev) => [...prev, { role: "assistant", content: data.message }]);
-      setApiMessages(data.messages);
-      setChatCount((c) => c + 1);
+
+      if (!res.body) {
+        setError("Stream tidak tersedia");
+        setMessages((prev) => prev.slice(0, -1));
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      let assembled = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split("\n");
+        buf = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          let evt: { type: string; text?: string; label?: string; error?: string; messages?: ApiMessage[] };
+          try { evt = JSON.parse(line.slice(6)); } catch { continue; }
+
+          if (evt.type === "text" && evt.text) {
+            assembled += evt.text;
+            const snap = assembled;
+            setMessages((prev) => {
+              const updated = [...prev];
+              updated[updated.length - 1] = { role: "assistant", content: snap };
+              return updated;
+            });
+            setToolLabel("");
+          } else if (evt.type === "tool" && evt.label) {
+            setToolLabel(evt.label);
+          } else if (evt.type === "done" && evt.messages) {
+            setApiMessages(evt.messages);
+            setChatCount((c) => c + 1);
+            setToolLabel("");
+          } else if (evt.type === "error" && evt.error) {
+            setError(evt.error);
+            // Remove the empty assistant placeholder if nothing was written
+            if (!assembled) setMessages((prev) => prev.slice(0, -1));
+            setToolLabel("");
+          }
+        }
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Network error");
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant" && !last.content) return prev.slice(0, -1);
+        return prev;
+      });
     } finally {
       setLoading(false);
+      setToolLabel("");
     }
   }
 
@@ -110,7 +164,7 @@ export default function AgentClient({ isConnected, hasMemory, agentReady, dailyC
           <span className="text-xs text-gray-400 dark:text-white/30">{chatCount}/{dailyChatLimit} hari ini</span>
           {messages.length > 0 && (
             <button
-              onClick={() => { setMessages([]); setApiMessages([]); setError(""); }}
+              onClick={() => { setMessages([]); setApiMessages([]); setError(""); setToolLabel(""); }}
               className="text-xs text-gray-400 dark:text-white/30 border border-gray-200 dark:border-white/10 rounded-md px-2.5 py-1 hover:text-gray-600 dark:hover:text-white/60 transition"
             >
               Baru
@@ -170,7 +224,24 @@ export default function AgentClient({ isConnected, hasMemory, agentReady, dailyC
               </div>
             ))}
 
-            {loading && (
+            {/* Tool execution indicator */}
+            {loading && toolLabel && (
+              <div className="flex gap-3 py-3 items-center">
+                <div className="w-8 h-8 rounded-lg shrink-0 bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center text-sm">🌐</div>
+                <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-white/30">
+                  <div className="flex gap-1">
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} className="w-1.5 h-1.5 rounded-full bg-blue-400 dark:bg-blue-500/60"
+                        style={{ animation: "bounce 1.2s infinite", animationDelay: `${i * 0.2}s` }} />
+                    ))}
+                  </div>
+                  {toolLabel}
+                </div>
+              </div>
+            )}
+
+            {/* Generic loading dots (when waiting for first token, no tool label yet) */}
+            {loading && !toolLabel && messages[messages.length - 1]?.role === "user" && (
               <div className="flex gap-3 py-4 items-start">
                 <div className="w-8 h-8 rounded-lg shrink-0 bg-gradient-to-br from-blue-600 to-violet-600 flex items-center justify-center text-sm">🌐</div>
                 <div className="pt-2.5 flex gap-1">

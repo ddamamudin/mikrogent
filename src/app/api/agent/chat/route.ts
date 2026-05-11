@@ -1,5 +1,5 @@
 export const dynamic = "force-dynamic";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
@@ -8,6 +8,11 @@ import { executeMikrotikCommand, scanMikrotikConfig, MikrotikConfig } from "@/li
 import crypto from "crypto";
 
 const AGENT_SSH_USER = "replay-agent";
+const enc = new TextEncoder();
+
+function sse(data: object): Uint8Array {
+  return enc.encode(`data: ${JSON.stringify(data)}\n\n`);
+}
 
 function buildSystemPrompt(opts: {
   persona: string;
@@ -63,21 +68,30 @@ export async function POST(req: NextRequest) {
   const cookieStore = await cookies();
   const session = getSessionFromCookie(cookieStore.get("session")?.value);
   if (!session || session.role !== "USER") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return new Response(
+      `data: ${JSON.stringify({ type: "error", error: "Unauthorized" })}\n\n`,
+      { status: 401, headers: { "Content-Type": "text/event-stream" } }
+    );
   }
   const userId = session.userId;
 
   // Load config
   const config = await prisma.appConfig.findUnique({ where: { id: "singleton" } });
   if (!config?.claudeApiKey) {
-    return NextResponse.json({ error: "AI Agent belum dikonfigurasi oleh administrator" }, { status: 503 });
+    return new Response(
+      `data: ${JSON.stringify({ type: "error", error: "AI Agent belum dikonfigurasi oleh administrator" })}\n\n`,
+      { status: 503, headers: { "Content-Type": "text/event-stream" } }
+    );
   }
 
   // Daily chat limit
   const today = getTodayString();
   const dailyCount = await prisma.agentDailyCount.findUnique({ where: { userId } });
   if (dailyCount && dailyCount.date === today && dailyCount.count >= (config.dailyChatLimit ?? 50)) {
-    return NextResponse.json({ error: `Batas chat harian (${config.dailyChatLimit}) telah tercapai` }, { status: 429 });
+    return new Response(
+      `data: ${JSON.stringify({ type: "error", error: `Batas chat harian (${config.dailyChatLimit}) telah tercapai` })}\n\n`,
+      { status: 429, headers: { "Content-Type": "text/event-stream" } }
+    );
   }
 
   // Load user MikroTik data
@@ -87,7 +101,6 @@ export async function POST(req: NextRequest) {
   ]);
   const isConnected = cred?.connected ?? false;
 
-  // Build Anthropic client with admin's API key
   const anthropic = new Anthropic({ apiKey: config.claudeApiKey });
 
   const systemPrompt = buildSystemPrompt({
@@ -97,7 +110,6 @@ export async function POST(req: NextRequest) {
     memory: memory?.content ?? null,
   });
 
-  // Tools
   const tools: Anthropic.Tool[] = [
     {
       name: "generate_connection_script",
@@ -134,58 +146,75 @@ export async function POST(req: NextRequest) {
     },
   ];
 
-  // Agentic loop
   const { messages }: { messages: Anthropic.MessageParam[] } = await req.json();
   const claudeMessages: Anthropic.MessageParam[] = [...messages];
 
-  try {
-    while (true) {
-      const response = await anthropic.messages.create({
-        model: "claude-sonnet-4-6",
-        max_tokens: 4096,
-        system: systemPrompt,
-        tools,
-        messages: claudeMessages,
-      });
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        while (true) {
+          // Stream Claude response
+          const msgStream = anthropic.messages.stream({
+            model: "claude-sonnet-4-6",
+            max_tokens: 4096,
+            system: systemPrompt,
+            tools,
+            messages: claudeMessages,
+          });
 
-      claudeMessages.push({ role: "assistant", content: response.content });
+          for await (const event of msgStream) {
+            if (
+              event.type === "content_block_delta" &&
+              event.delta.type === "text_delta" &&
+              event.delta.text
+            ) {
+              controller.enqueue(sse({ type: "text", text: event.delta.text }));
+            }
+          }
 
-      if (response.stop_reason === "end_turn") {
-        // Update daily count
-        await prisma.agentDailyCount.upsert({
-          where: { userId },
-          update: { count: dailyCount?.date === today ? { increment: 1 } : 1, date: today },
-          create: { userId, count: 1, date: today },
-        });
+          const finalMsg = await msgStream.finalMessage();
+          claudeMessages.push({ role: "assistant", content: finalMsg.content });
 
-        const textBlock = response.content.find((b) => b.type === "text");
-        return NextResponse.json({
-          message: textBlock ? (textBlock as Anthropic.TextBlock).text : "",
-          messages: claudeMessages,
-        });
-      }
+          if (finalMsg.stop_reason === "end_turn") {
+            await prisma.agentDailyCount.upsert({
+              where: { userId },
+              update: { count: dailyCount?.date === today ? { increment: 1 } : 1, date: today },
+              create: { userId, count: 1, date: today },
+            });
+            controller.enqueue(sse({ type: "done", messages: claudeMessages }));
+            controller.close();
+            return;
+          }
 
-      if (response.stop_reason === "tool_use") {
-        const toolResults: Anthropic.ToolResultBlockParam[] = [];
+          if (finalMsg.stop_reason === "tool_use") {
+            const toolResults: Anthropic.ToolResultBlockParam[] = [];
 
-        for (const block of response.content) {
-          if (block.type !== "tool_use") continue;
-          let result: string;
+            for (const block of finalMsg.content) {
+              if (block.type !== "tool_use") continue;
 
-          try {
-            if (block.name === "generate_connection_script") {
-              const input = block.input as { host: string; port?: number };
-              const sshPass = crypto.randomBytes(10).toString("hex");
-              const port = input.port ?? 22;
+              // Notify client which tool is running
+              const toolLabel: Record<string, string> = {
+                generate_connection_script: "Membuat script koneksi...",
+                verify_and_connect: "Menghubungkan ke MikroTik...",
+                execute_mikrotik_command: `Menjalankan: ${(block.input as { command?: string }).command ?? "perintah"}`,
+                update_memory: "Memperbarui konfigurasi...",
+              };
+              controller.enqueue(sse({ type: "tool", label: toolLabel[block.name] ?? block.name }));
 
-              // Simpan pending credentials
-              await prisma.mikrotikCredential.upsert({
-                where: { userId },
-                update: { host: input.host, port, sshUser: AGENT_SSH_USER, sshPass, connected: false },
-                create: { userId, host: input.host, port, sshUser: AGENT_SSH_USER, sshPass, connected: false },
-              });
+              let result: string;
+              try {
+                if (block.name === "generate_connection_script") {
+                  const input = block.input as { host: string; port?: number };
+                  const sshPass = crypto.randomBytes(10).toString("hex");
+                  const port = input.port ?? 22;
 
-              result = `Script berhasil dibuat.
+                  await prisma.mikrotikCredential.upsert({
+                    where: { userId },
+                    update: { host: input.host, port, sshUser: AGENT_SSH_USER, sshPass, connected: false },
+                    create: { userId, host: input.host, port, sshUser: AGENT_SSH_USER, sshPass, connected: false },
+                  });
+
+                  result = `Script berhasil dibuat.
 
 PENJELASAN UNTUK USER (sampaikan ini sebelum menampilkan script):
 Script ini berisi 2 perintah:
@@ -204,82 +233,91 @@ INSTRUKSI MENJALANKAN:
 3. Paste di terminal dan tekan Enter
 4. Konfirmasi kepadaku setelah selesai`;
 
-            } else if (block.name === "verify_and_connect") {
-              const latestCred = await prisma.mikrotikCredential.findUnique({ where: { userId } });
-              if (!latestCred) {
-                result = "ERROR: Belum ada kredensial tersimpan. Minta user memberikan IP terlebih dahulu.";
-              } else {
-                const mikrotikConfig: MikrotikConfig = {
-                  host: latestCred.host,
-                  port: latestCred.port,
-                  username: latestCred.sshUser,
-                  password: latestCred.sshPass,
-                };
-                try {
-                  // Test koneksi
-                  await executeMikrotikCommand("/system identity print", mikrotikConfig);
-                  // Scan full config
-                  const snapshot = await scanMikrotikConfig(mikrotikConfig);
-                  // Simpan ke DB
-                  await Promise.all([
-                    prisma.mikrotikCredential.update({ where: { userId }, data: { connected: true } }),
-                    prisma.agentMemory.upsert({
+                } else if (block.name === "verify_and_connect") {
+                  const latestCred = await prisma.mikrotikCredential.findUnique({ where: { userId } });
+                  if (!latestCred) {
+                    result = "ERROR: Belum ada kredensial tersimpan. Minta user memberikan IP terlebih dahulu.";
+                  } else {
+                    const mikrotikConfig: MikrotikConfig = {
+                      host: latestCred.host,
+                      port: latestCred.port,
+                      username: latestCred.sshUser,
+                      password: latestCred.sshPass,
+                    };
+                    try {
+                      await executeMikrotikCommand("/system identity print", mikrotikConfig);
+                      const snapshot = await scanMikrotikConfig(mikrotikConfig);
+                      await Promise.all([
+                        prisma.mikrotikCredential.update({ where: { userId }, data: { connected: true } }),
+                        prisma.agentMemory.upsert({
+                          where: { userId },
+                          update: { content: snapshot },
+                          create: { userId, content: snapshot },
+                        }),
+                      ]);
+                      result = `SUKSES: Koneksi SSH ke ${latestCred.host}:${latestCred.port} berhasil. Konfigurasi MikroTik sudah dipelajari dan disimpan ke memory.`;
+                    } catch (e) {
+                      result = `GAGAL: Tidak bisa konek ke ${latestCred.host}:${latestCred.port}. Error: ${e instanceof Error ? e.message : String(e)}. Pastikan script sudah dijalankan dan IP/port benar.`;
+                    }
+                  }
+
+                } else if (block.name === "execute_mikrotik_command") {
+                  if (!isConnected || !cred) {
+                    result = "ERROR: MikroTik belum terhubung.";
+                  } else {
+                    const input = block.input as { command: string };
+                    const mikrotikConfig: MikrotikConfig = {
+                      host: cred.host, port: cred.port,
+                      username: cred.sshUser, password: cred.sshPass,
+                    };
+                    result = await executeMikrotikCommand(input.command, mikrotikConfig);
+                  }
+
+                } else if (block.name === "update_memory") {
+                  const latestCred = await prisma.mikrotikCredential.findUnique({ where: { userId } });
+                  if (!latestCred?.connected) {
+                    result = "ERROR: MikroTik belum terhubung.";
+                  } else {
+                    const mikrotikConfig: MikrotikConfig = {
+                      host: latestCred.host, port: latestCred.port,
+                      username: latestCred.sshUser, password: latestCred.sshPass,
+                    };
+                    const snapshot = await scanMikrotikConfig(mikrotikConfig);
+                    await prisma.agentMemory.upsert({
                       where: { userId },
                       update: { content: snapshot },
                       create: { userId, content: snapshot },
-                    }),
-                  ]);
-                  result = `SUKSES: Koneksi SSH ke ${latestCred.host}:${latestCred.port} berhasil. Konfigurasi MikroTik sudah dipelajari dan disimpan ke memory.`;
-                } catch (e) {
-                  result = `GAGAL: Tidak bisa konek ke ${latestCred.host}:${latestCred.port}. Error: ${e instanceof Error ? e.message : String(e)}. Pastikan script sudah dijalankan dan IP/port benar.`;
+                    });
+                    result = "Memory berhasil diperbarui dengan konfigurasi terkini.";
+                  }
+
+                } else {
+                  result = "Unknown tool";
                 }
+              } catch (e) {
+                result = `Error: ${e instanceof Error ? e.message : String(e)}`;
               }
 
-            } else if (block.name === "execute_mikrotik_command") {
-              if (!isConnected || !cred) {
-                result = "ERROR: MikroTik belum terhubung.";
-              } else {
-                const input = block.input as { command: string };
-                const mikrotikConfig: MikrotikConfig = {
-                  host: cred.host, port: cred.port,
-                  username: cred.sshUser, password: cred.sshPass,
-                };
-                result = await executeMikrotikCommand(input.command, mikrotikConfig);
-              }
-
-            } else if (block.name === "update_memory") {
-              const latestCred = await prisma.mikrotikCredential.findUnique({ where: { userId } });
-              if (!latestCred?.connected) {
-                result = "ERROR: MikroTik belum terhubung.";
-              } else {
-                const mikrotikConfig: MikrotikConfig = {
-                  host: latestCred.host, port: latestCred.port,
-                  username: latestCred.sshUser, password: latestCred.sshPass,
-                };
-                const snapshot = await scanMikrotikConfig(mikrotikConfig);
-                await prisma.agentMemory.upsert({
-                  where: { userId },
-                  update: { content: snapshot },
-                  create: { userId, content: snapshot },
-                });
-                result = "Memory berhasil diperbarui dengan konfigurasi terkini.";
-              }
-
-            } else {
-              result = "Unknown tool";
+              toolResults.push({ type: "tool_result", tool_use_id: block.id, content: result });
             }
-          } catch (e) {
-            result = `Error: ${e instanceof Error ? e.message : String(e)}`;
+
+            claudeMessages.push({ role: "user", content: toolResults });
           }
-
-          toolResults.push({ type: "tool_result", tool_use_id: block.id, content: result });
         }
-
-        claudeMessages.push({ role: "user", content: toolResults });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        controller.enqueue(sse({ type: "error", error: msg }));
+        controller.close();
       }
-    }
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return NextResponse.json({ error: msg }, { status: 500 });
-  }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+      "X-Accel-Buffering": "no",
+    },
+  });
 }
