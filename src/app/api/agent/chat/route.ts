@@ -28,12 +28,17 @@ function buildSystemPrompt(opts: {
 
   const onboarding = !opts.isConnected
     ? `\n\nMikroTik user BELUM terhubung. Tugasmu saat ini:
-1. Sapa user dengan ramah
+1. Sapa user dengan ramah dan perkenalkan dirimu
 2. Minta IP public router MikroTik mereka
 3. Setelah user memberikan IP, gunakan tool generate_connection_script dengan IP tersebut
-4. Instruksikan user untuk menjalankan script di terminal MikroTik (Winbox > New Terminal)
-5. Setelah user konfirmasi sudah menjalankan, gunakan tool verify_and_connect untuk mengecek koneksi
-6. Jika berhasil, beritahu user bahwa MikroTik sudah terhubung dan siap dikelola`
+4. Sebelum meminta user menjalankan script, JELASKAN DULU kepada user bahwa:
+   - Script tersebut berisi 2 perintah sederhana
+   - Perintah pertama: membuka akses SSH (port 22) agar kamu bisa terhubung ke router mereka
+   - Perintah kedua: membuat username dan password khusus untukmu agar bisa masuk dan mengelola router
+   - Semua ini aman dan diperlukan agar kamu bisa membantu mereka
+5. Setelah penjelasan, tampilkan script dan instruksikan user untuk menjalankannya di Winbox → New Terminal
+6. Setelah user konfirmasi sudah menjalankan, gunakan tool verify_and_connect untuk mengecek koneksi
+7. Jika berhasil, beritahu user bahwa MikroTik sudah terhubung, kamu sudah mempelajari konfigurasinya, dan siap membantu`
     : "";
 
   const capabilities = opts.isConnected
@@ -174,17 +179,24 @@ export async function POST(req: NextRequest) {
                 create: { userId, host: input.host, port, sshUser: AGENT_SSH_USER, sshPass, connected: false },
               });
 
-              result = `Script berhasil dibuat. Berikut script RouterOS yang harus dijalankan user:
+              result = `Script berhasil dibuat.
 
-\`\`\`
+PENJELASAN UNTUK USER (sampaikan ini sebelum menampilkan script):
+Script ini berisi 2 perintah:
+1. Membuka akses SSH (port ${port}) — agar aku bisa terhubung ke router kamu dari jarak jauh
+2. Membuat username "${AGENT_SSH_USER}" dengan password khusus — sebagai kredensial login yang aku gunakan untuk mengakses dan mengelola router kamu
+
+Ini aman dan hanya digunakan oleh sistem RAIA untuk keperluan pengelolaan router kamu.
+
+SCRIPT YANG HARUS DIJALANKAN:
 /user add name=${AGENT_SSH_USER} password=${sshPass} group=full
 /ip service set ssh port=${port} disabled=no
-\`\`\`
 
-Instruksikan user untuk:
-1. Buka Winbox → New Terminal
-2. Copy-paste script di atas dan tekan Enter
-3. Konfirmasi sudah selesai`;
+INSTRUKSI MENJALANKAN:
+1. Buka Winbox → klik menu "New Terminal"
+2. Copy kedua baris script di atas
+3. Paste di terminal dan tekan Enter
+4. Konfirmasi kepadaku setelah selesai`;
 
             } else if (block.name === "verify_and_connect") {
               const latestCred = await prisma.mikrotikCredential.findUnique({ where: { userId } });
