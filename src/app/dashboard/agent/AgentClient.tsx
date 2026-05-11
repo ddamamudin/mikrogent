@@ -190,7 +190,7 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-56px-48px)] -m-6 bg-white">
+    <div className="flex flex-col h-full bg-white">
 
       {/* Header — minimal */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 shrink-0">

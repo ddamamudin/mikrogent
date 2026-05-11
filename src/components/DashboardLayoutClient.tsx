@@ -41,7 +41,8 @@ type User = { name: string; brand: string | null; email: string };
 
 export default function DashboardLayoutClient({ user, showBrandField, children }: { user: User; showBrandField: boolean; children: React.ReactNode }) {
   const pathname = usePathname();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const isAgentPage = pathname === "/dashboard/agent";
+  const [sidebarOpen, setSidebarOpen] = useState(!isAgentPage);
   const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({ "AI Agent": true, Profil: true });
 
   const handleLogout = async () => {
@@ -50,7 +51,7 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-slate-950 text-gray-900 dark:text-white">
+    <div className={`h-screen flex flex-col ${isAgentPage ? "bg-white" : "bg-gray-100"} dark:bg-slate-950 text-gray-900 dark:text-white`}>
       {/* Header */}
       <header className="h-14 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-white/10 flex items-center justify-between px-4 shrink-0 z-10">
         <div className="flex items-center gap-3">
@@ -151,10 +152,8 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-lg mx-auto">
-            {children}
-          </div>
+        <main className={`flex-1 min-h-0 ${isAgentPage ? "" : "overflow-y-auto p-6"}`}>
+          {isAgentPage ? children : <div className="max-w-lg mx-auto">{children}</div>}
         </main>
       </div>
     </div>
