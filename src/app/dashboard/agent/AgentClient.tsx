@@ -16,6 +16,8 @@ interface Props {
   agentReady: boolean;
   dailyChatLimit: number;
   initialChatCount: number;
+  initialMessages: Message[];
+  initialApiMessages: ApiMessage[];
 }
 
 function greetingByTime(d: Date = new Date()): string {
@@ -26,10 +28,10 @@ function greetingByTime(d: Date = new Date()): string {
   return "Selamat Malam";
 }
 
-export default function AgentClient({ userId, firstName, isConnected, hasMemory, agentReady, dailyChatLimit, initialChatCount }: Props) {
+export default function AgentClient({ userId, firstName, isConnected, hasMemory, agentReady, dailyChatLimit, initialChatCount, initialMessages, initialApiMessages }: Props) {
   const SK = `agent_${userId}`;
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [apiMessages, setApiMessages] = useState<ApiMessage[]>([]);
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [apiMessages, setApiMessages] = useState<ApiMessage[]>(initialApiMessages);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [toolLabel, setToolLabel] = useState("");
@@ -45,22 +47,13 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
 
   const { setState: setAgentSidebar } = useAgentSidebar();
 
-  useEffect(() => {
-    try {
-      const saved = sessionStorage.getItem(`${SK}_msg`);
-      const savedApi = sessionStorage.getItem(`${SK}_api`);
-      if (saved) setMessages(JSON.parse(saved));
-      if (savedApi) setApiMessages(JSON.parse(savedApi));
-    } catch {}
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const saveSession = useCallback((msgs: Message[], apiMsgs: ApiMessage[]) => {
+    fetch("/api/agent/session", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: msgs, apiMessages: apiMsgs }),
+    }).catch(() => {});
   }, []);
-
-  useEffect(() => {
-    try { sessionStorage.setItem(`${SK}_msg`, JSON.stringify(messages)); } catch {}
-  }, [SK, messages]);
-  useEffect(() => {
-    try { sessionStorage.setItem(`${SK}_api`, JSON.stringify(apiMessages)); } catch {}
-  }, [SK, apiMessages]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -91,11 +84,8 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
 
   const resetChat = useCallback(() => {
     setMessages([]); setApiMessages([]); setError(""); setToolLabel(""); setStreamingText("");
-    try {
-      sessionStorage.removeItem(`${SK}_msg`);
-      sessionStorage.removeItem(`${SK}_api`);
-    } catch {}
-  }, [SK]);
+    fetch("/api/agent/session", { method: "DELETE" }).catch(() => {});
+  }, []);
 
   // Push agent state ke sidebar
   useEffect(() => {
@@ -126,8 +116,10 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
     }
 
     const newApiMessages: ApiMessage[] = [...apiMessages, { role: "user", content }];
-    setMessages((prev) => [...prev, { role: "user", content }]);
+    const newMessages: Message[] = [...messages, { role: "user", content }];
+    setMessages(newMessages);
     setApiMessages(newApiMessages);
+    saveSession(newMessages, newApiMessages);
     setInput("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
     setLoading(true);
@@ -193,7 +185,13 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
             setChatCount((c) => c + 1);
             setToolLabel("");
             if (assembled) {
-              setMessages((prev) => [...prev, { role: "assistant", content: assembled }]);
+              setMessages((prev) => {
+                const next = [...prev, { role: "assistant" as Role, content: assembled }];
+                saveSession(next, evt.messages);
+                return next;
+              });
+            } else {
+              saveSession(messages, evt.messages);
             }
           } else if (evt.type === "error" && evt.error) {
             setError(evt.error);
