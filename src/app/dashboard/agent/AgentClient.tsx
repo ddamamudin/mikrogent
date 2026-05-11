@@ -10,13 +10,22 @@ type ApiMessage = any;
 
 interface Props {
   userId: string;
+  firstName: string;
   isConnected: boolean;
   hasMemory: boolean;
   agentReady: boolean;
   dailyChatLimit: number;
 }
 
-export default function AgentClient({ userId, isConnected, hasMemory, agentReady, dailyChatLimit }: Props) {
+function greetingByTime(d: Date = new Date()): string {
+  const h = d.getHours();
+  if (h >= 4 && h < 11) return "Selamat Pagi";
+  if (h >= 11 && h < 15) return "Selamat Siang";
+  if (h >= 15 && h < 18) return "Selamat Sore";
+  return "Selamat Malam";
+}
+
+export default function AgentClient({ userId, firstName, isConnected, hasMemory, agentReady, dailyChatLimit }: Props) {
   const SK = `agent_${userId}`;
   const [messages, setMessages] = useState<Message[]>([]);
   const [apiMessages, setApiMessages] = useState<ApiMessage[]>([]);
@@ -26,6 +35,7 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
   const [streamingText, setStreamingText] = useState("");
   const [error, setError] = useState("");
   const [chatCount, setChatCount] = useState(0);
+  const [greeting, setGreeting] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const streamBufRef = useRef<string>("");
@@ -58,6 +68,13 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading, toolLabel, streamingText]);
+
+  // Hitung greeting di client agar pakai zona waktu user, dan refresh per menit
+  useEffect(() => {
+    setGreeting(greetingByTime());
+    const t = setInterval(() => setGreeting(greetingByTime()), 60_000);
+    return () => clearInterval(t);
+  }, []);
 
   const resetChat = useCallback(() => {
     setMessages([]); setApiMessages([]); setError(""); setToolLabel(""); setStreamingText("");
@@ -211,27 +228,12 @@ export default function AgentClient({ userId, isConnected, hasMemory, agentReady
       <div className="flex-1 overflow-y-auto">
         {isEmpty && !loading ? (
           <div className="flex flex-col items-center justify-center h-full px-6 py-12 text-center">
-            <h1 className="text-2xl font-semibold text-gray-900 mb-3">Apa yang bisa saya bantu?</h1>
-            <p className="text-sm text-gray-500 mb-8 max-w-sm">
-              {isConnected
-                ? "Tanyakan apa saja tentang router MikroTik kamu."
-                : "Hubungkan MikroTik kamu terlebih dahulu, lalu tanyakan apa saja."}
+            <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-3 leading-tight">
+              {greeting ? `${greeting},` : "Halo,"}<br />Kak {firstName}
+            </h1>
+            <p className="text-sm text-gray-500 max-w-sm">
+              silahkan tanya / perintahkan Aku untuk menjaga / mengelola Mikrotik Kakak ya.
             </p>
-            {isConnected && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-lg">
-                {[
-                  { label: "Lihat semua interface", prompt: "Tampilkan semua interface yang ada" },
-                  { label: "IP Address aktif", prompt: "Tampilkan semua IP address yang terkonfigurasi" },
-                  { label: "Resource sistem", prompt: "Tampilkan penggunaan CPU, RAM, dan uptime router" },
-                  { label: "Firewall rules", prompt: "Tampilkan firewall filter rules yang aktif" },
-                ].map((s) => (
-                  <button key={s.label} onClick={() => sendMessage(s.prompt)}
-                    className="p-3.5 rounded-xl border border-gray-200 bg-white text-left hover:bg-gray-50 transition text-sm text-gray-700">
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         ) : (
           <div className="max-w-3xl mx-auto px-4 py-6">

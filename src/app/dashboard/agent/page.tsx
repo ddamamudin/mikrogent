@@ -10,17 +10,20 @@ export default async function AgentPage() {
   const session = getSessionFromCookie(cookieStore.get("session")?.value);
   if (!session) redirect("/masuk");
 
-  const [cred, memory, config] = await Promise.all([
+  const [user, cred, memory, config] = await Promise.all([
+    prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } }),
     prisma.mikrotikCredential.findUnique({ where: { userId: session.userId } }),
     prisma.agentMemory.findUnique({ where: { userId: session.userId } }),
     prisma.appConfig.findUnique({ where: { id: "singleton" } }),
   ]);
 
   const agentReady = !!config?.claudeApiKey;
+  const firstName = (user?.name ?? "").trim().split(/\s+/)[0] || "Kak";
 
   return (
     <AgentClient
       userId={session.userId}
+      firstName={firstName}
       isConnected={cred?.connected ?? false}
       hasMemory={!!memory}
       agentReady={agentReady}
