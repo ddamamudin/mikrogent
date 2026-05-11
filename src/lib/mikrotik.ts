@@ -50,7 +50,7 @@ export function executeMikrotikCommand(command: string, config: MikrotikConfig):
   });
 }
 
-// Jalankan serangkaian perintah sekaligus, kembalikan semua output gabungan
+// Scan semua konfigurasi MikroTik secara parallel
 export async function scanMikrotikConfig(config: MikrotikConfig): Promise<string> {
   const commands = [
     '/system identity print',
@@ -76,14 +76,16 @@ export async function scanMikrotikConfig(config: MikrotikConfig): Promise<string
     '/ip service print',
   ];
 
-  const results: string[] = [];
-  for (const cmd of commands) {
-    try {
-      const out = await executeMikrotikCommand(cmd, config);
-      results.push(`=== ${cmd} ===\n${out}`);
-    } catch {
-      results.push(`=== ${cmd} ===\n(error atau tidak tersedia)`);
-    }
-  }
+  const results = await Promise.all(
+    commands.map(async (cmd) => {
+      try {
+        const out = await executeMikrotikCommand(cmd, config);
+        return `=== ${cmd} ===\n${out}`;
+      } catch {
+        return `=== ${cmd} ===\n(error atau tidak tersedia)`;
+      }
+    })
+  );
+
   return results.join('\n\n');
 }
