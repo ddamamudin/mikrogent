@@ -26,6 +26,7 @@ export default async function PengaturanPage() {
     anthropicModel: "claude-sonnet-4-6",
     openaiModel: "gpt-4o",
     openaiRealtimeModel: "gpt-realtime",
+    openaiVoice: "coral",
     agentPersona: null,
     agentKnowledge: null,
     dailyChatLimit: 50,

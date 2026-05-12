@@ -60,6 +60,7 @@ export async function POST() {
   });
 
   const model = config.openaiRealtimeModel || "gpt-realtime";
+  const voice = config.openaiVoice || "coral";
 
   let mintRes: Response;
   try {
@@ -74,7 +75,7 @@ export async function POST() {
           type: "realtime",
           model,
           instructions,
-          audio: { output: { voice: "marin" } },
+          audio: { output: { voice } },
         },
       }),
     });

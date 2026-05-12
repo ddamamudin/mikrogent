@@ -77,6 +77,9 @@ export default function AdminShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  // Mobile: default closed (state false). Desktop (lg+): selalu open via Tailwind `lg:*`
+  // class — state ini cuma ngontrol show/hide di mobile, jadi tetap aman buat SSR
+  // hydration (selalu mulai false).
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isPublicPage = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
@@ -97,13 +100,14 @@ export default function AdminShell({
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-slate-950 text-gray-900 dark:text-white">
-      {/* Header */}
-      <header className="h-14 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-white/10 flex items-center justify-between px-4 shrink-0 z-10">
+    <div className="h-dvh flex flex-col bg-gray-100 dark:bg-slate-950 text-gray-900 dark:text-white">
+      {/* Header — sticky di top, selalu visible */}
+      <header className="sticky top-0 h-14 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-white/10 flex items-center justify-between px-4 shrink-0 z-30">
         <div className="flex items-center gap-3">
+          {/* Toggle hanya untuk mobile — di desktop sidebar selalu open */}
           <button
             onClick={() => setSidebarOpen((o) => !o)}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition text-gray-500 dark:text-white/60 hover:text-gray-900 dark:hover:text-white"
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition text-gray-500 dark:text-white/60 hover:text-gray-900 dark:hover:text-white lg:hidden"
           >
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
               <rect y="2" width="18" height="2" rx="1" fill="currentColor" />
@@ -132,8 +136,8 @@ export default function AdminShell({
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <aside className={`${sidebarOpen ? "w-56" : "w-0"} transition-all duration-200 overflow-hidden shrink-0 bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-white/10 flex flex-col`}>
+        {/* Sidebar — mobile: state-controlled, desktop: selalu open via lg:w-56 */}
+        <aside className={`${sidebarOpen ? "w-56" : "w-0"} lg:w-56 transition-all duration-200 overflow-hidden shrink-0 bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-white/10 flex flex-col`}>
           <nav className="flex-1 py-4 px-2 space-y-1">
             {visibleNav.map(({ href, label, icon }) => {
               const active = pathname === href || (href !== "/admin/dashboard" && pathname.startsWith(href));
@@ -154,7 +158,7 @@ export default function AdminShell({
             })}
           </nav>
           <div className="px-3 py-3 border-t border-gray-200 dark:border-white/10">
-            <p className="text-xs text-gray-400 dark:text-white/30">Super Admin</p>
+            <p className="text-xs text-gray-400 dark:text-white/30">{isValidator ? "Validator" : "Super Admin"}</p>
           </div>
         </aside>
 

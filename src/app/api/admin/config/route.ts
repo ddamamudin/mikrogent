@@ -58,6 +58,7 @@ export async function PATCH(req: NextRequest) {
       anthropicModel,
       openaiModel,
       openaiRealtimeModel,
+      openaiVoice,
       agentPersona,
       agentKnowledge,
       dailyChatLimit,
@@ -97,6 +98,14 @@ export async function PATCH(req: NextRequest) {
     if (anthropicModel !== undefined && anthropicModel) { data.anthropicModel = anthropicModel; changed.push(`anthropicModel=${anthropicModel}`); }
     if (openaiModel !== undefined && openaiModel) { data.openaiModel = openaiModel; changed.push(`openaiModel=${openaiModel}`); }
     if (openaiRealtimeModel !== undefined && openaiRealtimeModel) { data.openaiRealtimeModel = openaiRealtimeModel; changed.push(`openaiRealtimeModel=${openaiRealtimeModel}`); }
+    if (openaiVoice !== undefined && openaiVoice) {
+      const allowed = ["alloy", "ash", "ballad", "coral", "echo", "marin", "sage", "shimmer", "verse", "cedar"];
+      if (!allowed.includes(openaiVoice)) {
+        return NextResponse.json({ error: "Voice tidak valid" }, { status: 400 });
+      }
+      data.openaiVoice = openaiVoice;
+      changed.push(`openaiVoice=${openaiVoice}`);
+    }
     if (agentPersona !== undefined) { data.agentPersona = agentPersona; changed.push("persona"); }
     if (agentKnowledge !== undefined) { data.agentKnowledge = agentKnowledge; changed.push("knowledge"); }
     if (dailyChatLimit !== undefined) { data.dailyChatLimit = dailyChatLimit; changed.push(`dailyChatLimit=${dailyChatLimit}`); }
