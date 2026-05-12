@@ -49,6 +49,26 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
 
   useEffect(() => { fetchTenants(); }, [fetchTenants]);
 
+  // Auto-refresh tiap 15 detik supaya admin lihat update verifikasi email
+  // tenant tanpa harus reload manual. Pause kalau tab di background.
+  useEffect(() => {
+    let timer: ReturnType<typeof setInterval> | null = null;
+    const start = () => {
+      if (timer) return;
+      timer = setInterval(() => {
+        if (document.visibilityState === "visible") fetchTenants();
+      }, 15000);
+    };
+    const stop = () => { if (timer) { clearInterval(timer); timer = null; } };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") { fetchTenants(); start(); }
+      else stop();
+    };
+    start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => { stop(); document.removeEventListener("visibilitychange", onVisibility); };
+  }, [fetchTenants]);
+
   const handleValidate = async (id: string, newValidated: boolean) => {
     if (newValidated) {
       const t = tenants.find((x) => x.id === id);
