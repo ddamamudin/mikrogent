@@ -3,15 +3,11 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 
 interface Props {
-  firstName: string;
   limitSeconds: number;
   initialUsedSeconds: number;
   onClose: () => void;
   onUsageUpdate: (usedSeconds: number) => void;
-  onTranscriptAppended: (items: TranscriptItem[]) => void;
 }
-
-export type TranscriptItem = { role: "user" | "assistant"; content: string };
 
 type Status =
   | "idle"
@@ -33,12 +29,10 @@ function fmt(secs: number): string {
 }
 
 export default function VoiceCallModal({
-  firstName,
   limitSeconds,
   initialUsedSeconds,
   onClose,
   onUsageUpdate,
-  onTranscriptAppended,
 }: Props) {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string>("");
@@ -57,10 +51,8 @@ export default function VoiceCallModal({
   // Tools: map callId → name (dipakai pas function_call_arguments.done biar tau nama tool)
   const toolNamesRef = useRef<Map<string, string>>(new Map());
 
-  // Transcript accumulator selama call. Kita push ke history sekali, pas call end.
-  const transcriptRef = useRef<TranscriptItem[]>([]);
-  // Buffer transcript user yang lagi diketik (in-progress)
-  const pendingUserRef = useRef<string>("");
+  // Penanda: agent mau hangup setelah farewell selesai
+  const pendingHangupRef = useRef(false);
 
   const remaining = Math.max(0, limitSeconds - initialUsedSeconds - elapsed);
 
@@ -80,21 +72,6 @@ export default function VoiceCallModal({
       }
     } catch {}
   }, [onUsageUpdate]);
-
-  const persistTranscript = useCallback(async () => {
-    const items = transcriptRef.current.filter((t) => t.content.trim().length > 0);
-    if (items.length === 0) return;
-    try {
-      const res = await fetch("/api/agent/voice/transcript", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items }),
-      });
-      if (res.ok) {
-        onTranscriptAppended(items);
-      }
-    } catch {}
-  }, [onTranscriptAppended]);
 
   const cleanup = useCallback(() => {
     if (timerRef.current) {
@@ -123,6 +100,17 @@ export default function VoiceCallModal({
   }, []);
 
   const handleToolCall = useCallback(async (callId: string, name: string, argsStr: string) => {
+    // Tool spesial: end_call → tutup panggilan setelah agent selesai pamit
+    if (name === "end_call") {
+      pendingHangupRef.current = true;
+      // Acknowledge ke server, tapi JANGAN trigger response.create — agent gak perlu ngomong lagi
+      sendEvent({
+        type: "conversation.item.create",
+        item: { type: "function_call_output", call_id: callId, output: "ok" },
+      });
+      return;
+    }
+
     setStatus("tool");
     setToolLabel(name === "execute_mikrotik_command" ? "Cek MikroTik..." : name === "verify_and_connect" ? "Konek MikroTik..." : "Eksekusi tool...");
     let output = "ERROR: gagal eksekusi tool";
@@ -137,16 +125,10 @@ export default function VoiceCallModal({
     } catch (e) {
       output = `ERROR: ${e instanceof Error ? e.message : String(e)}`;
     }
-    // Kirim hasil tool ke Realtime API
     sendEvent({
       type: "conversation.item.create",
-      item: {
-        type: "function_call_output",
-        call_id: callId,
-        output,
-      },
+      item: { type: "function_call_output", call_id: callId, output },
     });
-    // Trigger response baru biar agent lanjut ngomong
     sendEvent({ type: "response.create" });
     setToolLabel("");
   }, [sendEvent]);
@@ -157,13 +139,11 @@ export default function VoiceCallModal({
       ? Math.ceil((Date.now() - startedAtRef.current) / 1000)
       : elapsed;
     cleanup();
-    // Persist transcript dulu (penting buat history), lalu report durasi
-    await persistTranscript();
     if (elapsedSec > 0) {
       await reportUsage(elapsedSec);
     }
     onClose();
-  }, [cleanup, elapsed, reportUsage, persistTranscript, onClose]);
+  }, [cleanup, elapsed, reportUsage, onClose]);
 
   const start = useCallback(async () => {
     setError("");
@@ -215,52 +195,19 @@ export default function VoiceCallModal({
     const dc = pc.createDataChannel("oai-events");
     dataChannelRef.current = dc;
 
-    // Akumulator transcript live (untuk agent)
-    let assistantBuf = "";
-
     dc.addEventListener("message", (e) => {
       let evt: Record<string, unknown>;
       try { evt = JSON.parse(e.data); } catch { return; }
       const type = evt.type as string | undefined;
       if (!type) return;
 
-      // User: VAD deteksi mulai bicara → potong agent kalau lagi ngomong (server VAD harusnya auto)
       if (type === "input_audio_buffer.speech_started") {
         setStatus("user-speaking");
         return;
       }
-      if (type === "input_audio_buffer.speech_stopped") {
-        // Tunggu sampai transcription completed atau response.created
-        return;
-      }
 
-      // User transcript final
-      if (type === "conversation.item.input_audio_transcription.completed") {
-        const t = (evt.transcript as string) ?? "";
-        if (t.trim()) {
-          transcriptRef.current.push({ role: "user", content: t.trim() });
-        }
-        pendingUserRef.current = "";
-        return;
-      }
-
-      // Agent response lifecycle
       if (type === "response.created") {
-        assistantBuf = "";
         setStatus("responding");
-        return;
-      }
-      if (type === "response.audio_transcript.delta") {
-        const d = (evt.delta as string) ?? "";
-        assistantBuf += d;
-        return;
-      }
-      if (type === "response.audio_transcript.done") {
-        const t = ((evt.transcript as string) ?? assistantBuf).trim();
-        if (t) {
-          transcriptRef.current.push({ role: "assistant", content: t });
-        }
-        assistantBuf = "";
         return;
       }
 
@@ -275,7 +222,6 @@ export default function VoiceCallModal({
       if (type === "response.function_call_arguments.done") {
         const callId = evt.call_id as string | undefined;
         const argsStr = (evt.arguments as string) ?? "{}";
-        // Field `name` mungkin ada di event ini juga (versi terbaru), fallback ke map
         const name = (evt.name as string | undefined) ?? (callId ? toolNamesRef.current.get(callId) : undefined);
         if (callId && name) {
           handleToolCall(callId, name, argsStr);
@@ -284,7 +230,12 @@ export default function VoiceCallModal({
       }
 
       if (type === "response.done" || type === "response.cancelled") {
-        // Balik ke listening kalau gak lagi tool
+        if (pendingHangupRef.current) {
+          // Agent udah selesai pamit, hangup sekarang
+          pendingHangupRef.current = false;
+          endCall();
+          return;
+        }
         setStatus((cur) => (cur === "tool" ? cur : "listening"));
         return;
       }
@@ -360,11 +311,7 @@ export default function VoiceCallModal({
         ? Math.ceil((Date.now() - startedAtRef.current) / 1000)
         : 0;
       cleanup();
-      // Best-effort persist & report kalau component unmount kasar
-      if (elapsedSec > 0) {
-        persistTranscript();
-        reportUsage(elapsedSec);
-      }
+      if (elapsedSec > 0) reportUsage(elapsedSec);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -400,17 +347,20 @@ export default function VoiceCallModal({
       <div className="text-xs uppercase tracking-widest text-white/40">Voice Call</div>
 
       <div className="flex flex-col items-center gap-8 flex-1 justify-center">
-        {/* Avatar dengan pulse */}
-        <div className="relative flex items-center justify-center w-56 h-56">
+        {/* Avatar: agent-logo dengan pulse */}
+        <div className="relative flex items-center justify-center w-64 h-64">
           {(isAgentSpeaking || isUserSpeaking) && (
             <>
               <span className={`absolute inset-0 rounded-full ${isUserSpeaking ? "bg-emerald-400/20" : "bg-blue-400/20"} animate-ping`} />
               <span className={`absolute inset-6 rounded-full ${isUserSpeaking ? "bg-emerald-400/30" : "bg-blue-400/30"}`} />
             </>
           )}
-          <div className={`relative w-40 h-40 rounded-full bg-gradient-to-br ${isUserSpeaking ? "from-emerald-500 to-emerald-700" : "from-blue-500 to-blue-700"} flex items-center justify-center text-white text-6xl font-semibold shadow-2xl transition-colors`}>
-            {firstName.slice(0, 1).toUpperCase()}
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/agent-logo.png"
+            alt="Replay Agent"
+            className="relative w-48 h-48 object-contain drop-shadow-2xl"
+          />
         </div>
 
         <div className="text-center">

@@ -38,8 +38,8 @@ const OPENAI_REALTIME_MODELS = [
 ];
 
 const OPENAI_VOICES = [
-  { id: "coral", label: "Coral (cewek muda, ceria — direkomendasikan)" },
-  { id: "marin", label: "Marin (cewek warm, natural)" },
+  { id: "marin", label: "Marin (cewek warm, natural — direkomendasikan)" },
+  { id: "coral", label: "Coral (cewek muda, ceria)" },
   { id: "shimmer", label: "Shimmer (cewek bright, announcer)" },
   { id: "sage", label: "Sage (cewek tenang, senior)" },
   { id: "alloy", label: "Alloy (netral)" },

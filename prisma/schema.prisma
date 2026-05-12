@@ -53,7 +53,7 @@ model AppConfig {
   anthropicModel      String  @default("claude-sonnet-4-6")
   openaiModel         String  @default("gpt-4o")
   openaiRealtimeModel String  @default("gpt-realtime")
-  openaiVoice         String  @default("coral")
+  openaiVoice         String  @default("marin")
   agentPersona        String?
   agentKnowledge      String?
   dailyChatLimit      Int     @default(50)

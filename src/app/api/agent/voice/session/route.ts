@@ -52,7 +52,7 @@ export async function POST() {
   }
 
   const firstName = (user.name ?? "").trim().split(/\s+/)[0] || "Kak";
-  const instructions = buildSystemPrompt({
+  const baseInstructions = buildSystemPrompt({
     persona: config.agentPersona ?? "",
     knowledge: config.agentKnowledge ?? "",
     isConnected: cred?.connected ?? false,
@@ -60,20 +60,41 @@ export async function POST() {
     firstName,
   });
 
+  const instructions = baseInstructions + `
+
+# Mode Voice Call (PENTING)
+Kak ${firstName} lagi voice call sama kamu. Aturan khusus:
+- Respons HARUS SINGKAT & natural — maksimal 2-3 kalimat per giliran. Jangan baca panjang lebar.
+- Pakai bahasa percakapan yang flowy, bukan struktur list/bullet (karena lagi voice, gak ada visual).
+- Kalau hasil tool panjang, RINGKAS angka & info pentingnya aja. Tawarin detail lanjut kalau Kakak mau.
+- Begitu Kakak nunjukin tanda mau udahan (bilang "makasih", "udah cukup", "udahan dulu", "sampai jumpa", "oke deh", dll), pamit dengan ramah sebentar, terus PANGGIL TOOL "end_call" untuk nutup panggilan otomatis.
+- JANGAN panggil end_call kalau gak yakin Kakak emang udahan. Konfirmasi dulu kalau ragu.
+`;
+
   const model = config.openaiRealtimeModel || "gpt-realtime";
-  const voice = config.openaiVoice || "coral";
+  const voice = config.openaiVoice || "marin";
 
   // Format tool spec untuk Realtime API (sama dengan OpenAI Chat Completions function tools)
-  const tools = TOOL_SCHEMAS.map((t) => ({
-    type: "function" as const,
-    name: t.name,
-    description: t.description,
-    parameters: {
-      type: "object" as const,
-      properties: t.parameters.properties,
-      required: t.parameters.required,
+  const tools = [
+    ...TOOL_SCHEMAS.map((t) => ({
+      type: "function" as const,
+      name: t.name,
+      description: t.description,
+      parameters: {
+        type: "object" as const,
+        properties: t.parameters.properties,
+        required: t.parameters.required,
+      },
+    })),
+    // Tool khusus voice: nutup panggilan otomatis setelah agent pamit
+    {
+      type: "function" as const,
+      name: "end_call",
+      description:
+        "Tutup panggilan voice call ini. Panggil HANYA setelah pamit ramah dan yakin Kakak emang udahan.",
+      parameters: { type: "object" as const, properties: {}, required: [] },
     },
-  }));
+  ];
 
   let mintRes: Response;
   try {
