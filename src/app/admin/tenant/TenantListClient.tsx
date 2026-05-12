@@ -1,6 +1,39 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
+
+// Generate notification sound via Web Audio API (no asset file needed)
+function playDing() {
+  try {
+    type WindowWithWebkit = Window & typeof globalThis & { webkitAudioContext?: typeof AudioContext };
+    const Ctx = window.AudioContext || (window as WindowWithWebkit).webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const gain = ctx.createGain();
+    gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+    const o1 = ctx.createOscillator();
+    o1.frequency.value = 880;
+    o1.connect(gain);
+    o1.start();
+    o1.stop(ctx.currentTime + 0.15);
+    const o2 = ctx.createOscillator();
+    o2.frequency.value = 1320;
+    o2.connect(gain);
+    o2.start(ctx.currentTime + 0.15);
+    o2.stop(ctx.currentTime + 0.6);
+  } catch {}
+}
+
+function showNotif(title: string, body: string) {
+  if (typeof Notification === "undefined") return;
+  if (Notification.permission !== "granted") return;
+  try {
+    const n = new Notification(title, { body, icon: "/icon-192.png", tag: "mikroplay-tenant" });
+    n.onclick = () => { window.focus(); n.close(); };
+  } catch {}
+}
 
 type Tenant = {
   id: string;
@@ -29,6 +62,8 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [notifReady, setNotifReady] = useState(false);
+  const seenIdsRef = useRef<Set<string> | null>(null); // null = belum init
 
   const showMsg = (type: "ok" | "err", text: string) => {
     setMessage({ type, text });
@@ -40,7 +75,31 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
     const params = new URLSearchParams({ page: String(page), q, status });
     const res = await fetch(`/api/admin/tenants?${params}`);
     const data = await res.json();
-    setTenants(data.tenants ?? []);
+    const newTenants: Tenant[] = data.tenants ?? [];
+
+    // Deteksi tenant baru (hanya untuk halaman 1, tanpa filter — supaya
+    // gak misfire saat user pindah halaman / search)
+    if (page === 1 && !q && !status) {
+      const prevSeen = seenIdsRef.current;
+      if (prevSeen === null) {
+        // first load — populate seen tanpa trigger notif
+        seenIdsRef.current = new Set(newTenants.map((t) => t.id));
+      } else {
+        const fresh = newTenants.filter((t) => !prevSeen.has(t.id));
+        if (fresh.length > 0) {
+          playDing();
+          if (fresh.length === 1) {
+            const t = fresh[0];
+            showNotif("User baru daftar di Mikroplay", `${t.name} (${t.email})`);
+          } else {
+            showNotif("User baru daftar di Mikroplay", `${fresh.length} pendaftar baru perlu dicek`);
+          }
+          fresh.forEach((t) => prevSeen.add(t.id));
+        }
+      }
+    }
+
+    setTenants(newTenants);
     setTotal(data.total ?? 0);
     setTotalPages(data.totalPages ?? 1);
     setDailyChatLimit(data.dailyChatLimit ?? 50);
@@ -48,6 +107,24 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
   }, [page, q, status]);
 
   useEffect(() => { fetchTenants(); }, [fetchTenants]);
+
+  // Cek permission notifikasi
+  useEffect(() => {
+    if (typeof Notification !== "undefined") {
+      setNotifReady(Notification.permission === "granted");
+    }
+  }, []);
+
+  const enableNotif = async () => {
+    if (typeof Notification === "undefined") return;
+    const perm = await Notification.requestPermission();
+    setNotifReady(perm === "granted");
+    if (perm === "granted") {
+      // test ding biar user tau audio juga jalan
+      playDing();
+      showNotif("Notifikasi aktif", "Kamu akan dapat alert saat ada user baru daftar.");
+    }
+  };
 
   // Auto-refresh tiap 15 detik supaya admin lihat update verifikasi email
   // tenant tanpa harus reload manual. Pause kalau tab di background.
@@ -147,11 +224,24 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Tenant</h1>
           <p className="text-sm text-gray-500 dark:text-white/40 mt-0.5">{total} tenant terdaftar</p>
         </div>
+        {!notifReady && (
+          <button
+            onClick={enableNotif}
+            className="text-xs px-3 py-1.5 rounded-lg bg-blue-100 dark:bg-blue-500/10 hover:bg-blue-200 dark:hover:bg-blue-500/20 text-blue-700 dark:text-blue-400 font-medium transition flex items-center gap-1.5"
+            title="Aktifkan notifikasi browser supaya dapat alert saat ada user baru daftar"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            Aktifkan Notifikasi
+          </button>
+        )}
       </div>
 
       {message && (
