@@ -1,4 +1,4 @@
-// Simple in-memory rate limiter — fixed window per IP+key.
+// Simple in-memory rate limiter - fixed window per IP+key.
 // Works for single-process deployment (PM2 fork mode 1 instance).
 // Untuk multi-instance, ganti store ke Redis.
 

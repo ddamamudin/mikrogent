@@ -119,7 +119,7 @@ export default function LogClient() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-600 dark:text-white/60 text-xs">
-                      {l.details ?? "—"}
+                      {l.details ?? "-"}
                     </td>
                   </tr>
                 ))}

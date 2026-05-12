@@ -22,7 +22,7 @@ async function credLabel(credId: string): Promise<string> {
     where: { id: credId },
     select: { host: true, user: { select: { name: true, email: true } } },
   });
-  return c ? `${c.user.name} (${c.user.email}) — ${c.host}` : credId;
+  return c ? `${c.user.name} (${c.user.email}) - ${c.host}` : credId;
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

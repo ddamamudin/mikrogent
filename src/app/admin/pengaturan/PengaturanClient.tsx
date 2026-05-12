@@ -22,12 +22,12 @@ type Admin = { name: string; email: string };
 
 const ANTHROPIC_MODELS = [
   { id: "claude-opus-4-7", label: "Claude Opus 4.7 (paling pintar, paling mahal)" },
-  { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6 (balance — direkomendasikan)" },
+  { id: "claude-sonnet-4-6", label: "Claude Sonnet 4.6 (balance - direkomendasikan)" },
   { id: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5 (cepat & murah)" },
 ];
 
 const OPENAI_MODELS = [
-  { id: "gpt-4o", label: "GPT-4o (balance — direkomendasikan)" },
+  { id: "gpt-4o", label: "GPT-4o (balance - direkomendasikan)" },
   { id: "gpt-4.1", label: "GPT-4.1 (paling pintar)" },
   { id: "gpt-4.1-mini", label: "GPT-4.1 mini (cepat & murah)" },
 ];
@@ -38,7 +38,7 @@ const OPENAI_REALTIME_MODELS = [
 ];
 
 const OPENAI_VOICES = [
-  { id: "marin", label: "Marin (cewek warm, natural — direkomendasikan)" },
+  { id: "marin", label: "Marin (cewek warm, natural - direkomendasikan)" },
   { id: "coral", label: "Coral (cewek muda, ceria)" },
   { id: "shimmer", label: "Shimmer (cewek bright, announcer)" },
   { id: "sage", label: "Sage (cewek tenang, senior)" },
@@ -216,7 +216,7 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
     <div className="max-w-6xl">
       <div className="mb-6">
         <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Pengaturan</h1>
-        <p className="text-sm text-gray-500 dark:text-white/40 mt-0.5">{admin.name} — {admin.email}</p>
+        <p className="text-sm text-gray-500 dark:text-white/40 mt-0.5">{admin.name} - {admin.email}</p>
       </div>
 
       {message && (
@@ -227,7 +227,7 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
 
       <div className="columns-1 lg:columns-2 gap-6">
 
-        {/* Sistem — toggles autosave */}
+        {/* Sistem - toggles autosave */}
         <div className={cardClass}>
           <h2 className={sectionHead}>Sistem</h2>
 
@@ -393,7 +393,7 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
             <input type="number" min={30} max={3600} step={30}
               value={voiceDailySeconds} onChange={(e) => setVoiceDailySeconds(e.target.value)}
               className={inputClass} placeholder="180" />
-            <p className="text-xs text-gray-400 dark:text-white/30">Default 180 detik (3 menit). Voice mahal — set hati-hati.</p>
+            <p className="text-xs text-gray-400 dark:text-white/30">Default 180 detik (3 menit). Voice mahal - set hati-hati.</p>
           </div>
 
           <button type="submit" disabled={voiceLoading} className={btnPrimary}>
@@ -403,7 +403,7 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
 
         {/* Ganti Password */}
         <form onSubmit={handleUpdatePassword} className={cardClass}>
-          <h2 className={sectionHead}>Akun Admin — Ganti Password</h2>
+          <h2 className={sectionHead}>Akun Admin - Ganti Password</h2>
           <div className="space-y-1">
             <label className="text-sm text-gray-600 dark:text-white/60">Password Baru</label>
             <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}

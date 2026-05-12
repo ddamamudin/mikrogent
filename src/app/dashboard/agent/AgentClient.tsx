@@ -244,7 +244,7 @@ export default function AgentClient({ firstName, isConnected, hasMemory, agentRe
       }
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") {
-        // User stopped — commit whatever text we have so far
+        // User stopped - commit whatever text we have so far
         const partial = assembledRef.current;
         if (partial) {
           setMessages((prev) => [...prev, { role: "assistant" as Role, content: partial }]);
@@ -407,7 +407,7 @@ export default function AgentClient({ firstName, isConnected, hasMemory, agentRe
           )}
 
           <div className="flex gap-2 items-end">
-            {/* Attach button — langsung buka picker gambar */}
+            {/* Attach button - langsung buka picker gambar */}
             <button type="button"
               onClick={() => imageInputRef.current?.click()}
               disabled={attachments.length >= 5}

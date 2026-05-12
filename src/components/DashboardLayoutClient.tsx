@@ -241,7 +241,7 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
             </div>
           </aside>
 
-          {/* Main Content — selalu full lebar */}
+          {/* Main Content - selalu full lebar */}
           <main className={`h-full ${isAgentPage ? "" : "overflow-y-auto p-6"}`}>
             {isAgentPage ? children : <div className="max-w-lg mx-auto">{children}</div>}
           </main>

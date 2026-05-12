@@ -87,18 +87,18 @@ const TOTAL_MEMORY_CAP = 80000;
 type ScanCommand = { cmd: string; label?: string };
 
 const SCAN_COMMANDS: ScanCommand[] = [
-  // Identity & resource — kecil, penting
+  // Identity & resource - kecil, penting
   { cmd: '/system identity print' },
   { cmd: '/system resource print' },
   { cmd: '/system routerboard print' },
 
-  // Network basics — biasanya kecil
+  // Network basics - biasanya kecil
   { cmd: '/interface print detail' },
   { cmd: '/ip address print' },
   { cmd: '/ip dns print' },
   { cmd: '/ip route print terse' },
 
-  // Berpotensi besar — count saja, detail on-demand
+  // Berpotensi besar - count saja, detail on-demand
   { cmd: '/ip firewall filter print count-only', label: '/ip firewall filter count' },
   { cmd: '/ip firewall nat print count-only', label: '/ip firewall nat count' },
   { cmd: '/ip firewall mangle print count-only', label: '/ip firewall mangle count' },
@@ -106,7 +106,7 @@ const SCAN_COMMANDS: ScanCommand[] = [
   { cmd: '/queue tree print count-only', label: '/queue tree count' },
   { cmd: '/ppp secret print count-only', label: '/ppp secret count' },
 
-  // Hotspot/DHCP/PPP profile — biasanya kecil
+  // Hotspot/DHCP/PPP profile - biasanya kecil
   { cmd: '/ip hotspot print' },
   { cmd: '/ip hotspot profile print' },
   { cmd: '/ip pool print' },

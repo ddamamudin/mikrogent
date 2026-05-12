@@ -186,9 +186,9 @@ export default function TenantDetailClient({ tenant: initial, mikrotikCred, isVa
 
   const rows = [
     { label: "Email", value: tenant.email },
-    { label: "Brand", value: tenant.brand ? <a href={`//${tenant.brand}.${APP_DOMAIN}`} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">{tenant.brand}.{APP_DOMAIN}</a> : "—" },
-    { label: "Alamat", value: tenant.alamat || "—" },
-    { label: "No. WhatsApp", value: tenant.noWa || "—" },
+    { label: "Brand", value: tenant.brand ? <a href={`//${tenant.brand}.${APP_DOMAIN}`} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">{tenant.brand}.{APP_DOMAIN}</a> : "-" },
+    { label: "Alamat", value: tenant.alamat || "-" },
+    { label: "No. WhatsApp", value: tenant.noWa || "-" },
     { label: "Email Verified", value: tenant.emailVerified ? "Ya" : "Belum" },
     {
       label: "Validasi Admin",

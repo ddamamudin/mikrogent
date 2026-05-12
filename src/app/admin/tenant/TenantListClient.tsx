@@ -101,12 +101,12 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
     const data = await res.json();
     const newTenants: Tenant[] = data.tenants ?? [];
 
-    // Deteksi tenant baru (hanya untuk halaman 1, tanpa filter — supaya
+    // Deteksi tenant baru (hanya untuk halaman 1, tanpa filter - supaya
     // gak misfire saat user pindah halaman / search)
     if (page === 1 && !q && !status) {
       const prevSeen = seenIdsRef.current;
       if (prevSeen === null) {
-        // first load — populate seen tanpa trigger notif
+        // first load - populate seen tanpa trigger notif
         seenIdsRef.current = new Set(newTenants.map((t) => t.id));
       } else {
         const fresh = newTenants.filter((t) => !prevSeen.has(t.id));
@@ -345,7 +345,7 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
                           {t.brand}
                         </a>
                       ) : (
-                        <span className="text-gray-300 dark:text-white/20">—</span>
+                        <span className="text-gray-300 dark:text-white/20">-</span>
                       )}
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">

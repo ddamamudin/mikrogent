@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   if (!Number.isFinite(raw) || raw <= 0) {
     return NextResponse.json({ error: "seconds tidak valid" }, { status: 400 });
   }
-  // Clamp ke 1 jam — safety net biar gak ada client kirim angka konyol
+  // Clamp ke 1 jam - safety net biar gak ada client kirim angka konyol
   const seconds = Math.min(Math.ceil(raw), 3600);
 
   const today = getTodayString();

@@ -115,7 +115,7 @@ export async function runOpenAI(opts: {
     firstName: opts.firstName,
   });
 
-  // messages dalam wire format Anthropic — kita maintain di sini, convert ke OpenAI tiap iterasi
+  // messages dalam wire format Anthropic - kita maintain di sini, convert ke OpenAI tiap iterasi
   const messages: Anthropic.MessageParam[] = [...opts.inputMessages];
 
   let totalTextEmitted = 0;
@@ -202,7 +202,7 @@ export async function runOpenAI(opts: {
       return;
     }
 
-    // finishReason === "tool_calls" — eksekusi semua tool, push hasil sebagai user message
+    // finishReason === "tool_calls" - eksekusi semua tool, push hasil sebagai user message
     const toolResultBlocks: Anthropic.ContentBlockParam[] = [];
     for (const tc of toolCallAcc.values()) {
       let parsedInput: Record<string, unknown> = {};

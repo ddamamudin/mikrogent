@@ -74,7 +74,7 @@ export async function POST() {
 
 # Mode Voice Call (PENTING)
 Kak ${firstName} lagi voice call sama kamu. Aturan khusus:
-- Respons HARUS SINGKAT & natural — maksimal 2-3 kalimat per giliran. Jangan baca panjang lebar.
+- Respons HARUS SINGKAT & natural - maksimal 2-3 kalimat per giliran. Jangan baca panjang lebar.
 - Pakai bahasa percakapan yang flowy, bukan struktur list/bullet (karena lagi voice, gak ada visual).
 - Kalau hasil tool panjang, RINGKAS angka & info pentingnya aja. Tawarin detail lanjut kalau Kakak mau.
 
@@ -90,9 +90,9 @@ Tool "end_call" itu cuma dipanggil kalau Kakak JELAS-JELAS pamit / udahan benera
 - "Makasih banyak" (sebagai penutup pembicaraan)
 
 JANGAN langsung panggil end_call kalau Kakak cuma bilang:
-- "Cukup dulu / sementara cukup ya" — itu bisa berarti jeda sebentar, BUKAN udahan. Tanyakan dulu: "Oke Kak, ${firstName} mau jeda dulu atau emang udahan nih panggilannya?"
-- "Oke deh", "Sip", "Mantap" — itu cuma respons setuju, BUKAN ajakan udahan.
-- "Stop", "Berhenti" — itu mungkin minta agent stop ngomong, bukan tutup panggilan.
+- "Cukup dulu / sementara cukup ya" - itu bisa berarti jeda sebentar, BUKAN udahan. Tanyakan dulu: "Oke Kak, ${firstName} mau jeda dulu atau emang udahan nih panggilannya?"
+- "Oke deh", "Sip", "Mantap" - itu cuma respons setuju, BUKAN ajakan udahan.
+- "Stop", "Berhenti" - itu mungkin minta agent stop ngomong, bukan tutup panggilan.
 
 Kalau ragu, KONFIRMASI dulu ke Kakak. Baru panggil end_call setelah Kakak iyain.
 `;

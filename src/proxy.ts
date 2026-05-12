@@ -41,7 +41,7 @@ export function proxy(req: NextRequest) {
     return maybeRenewSession(req, NextResponse.rewrite(url));
   }
 
-  // Guard /admin/** — redirect ke /admin/masuk jika tidak ada session
+  // Guard /admin/** - redirect ke /admin/masuk jika tidak ada session
   if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/masuk") && !pathname.startsWith("/admin/setup")) {
     const session = req.cookies.get("session")?.value;
     if (!session) {

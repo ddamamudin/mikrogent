@@ -69,7 +69,7 @@ export default function RouterClient({ initial }: { initial: Initial }) {
     const data = await vRes.json();
     if (vRes.ok) {
       setConnected(true);
-      showMsg("ok", "Berhasil terhubung — konfigurasi sudah dipelajari Replay Agent");
+      showMsg("ok", "Berhasil terhubung - konfigurasi sudah dipelajari Replay Agent");
     } else {
       setConnected(false);
       showMsg("err", `Gagal konek: ${data.error || "unknown"}`);
@@ -105,14 +105,14 @@ export default function RouterClient({ initial }: { initial: Initial }) {
             : "bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-white/40 border-gray-200 dark:border-white/5"
       }`}>
         <span className={`w-1.5 h-1.5 rounded-full ${connected ? "bg-green-500" : initial ? "bg-amber-500" : "bg-gray-400"}`} />
-        {connected ? "Router terhubung — Replay Agent siap pakai" : initial ? "Kredensial tersimpan, tapi belum terverifikasi" : "Belum ada kredensial"}
+        {connected ? "Router terhubung - Replay Agent siap pakai" : initial ? "Kredensial tersimpan, tapi belum terverifikasi" : "Belum ada kredensial"}
       </div>
 
       {/* Persiapan */}
       <details className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 px-5 py-3 text-sm text-gray-700 dark:text-white/70 shadow-sm">
         <summary className="cursor-pointer font-medium text-gray-900 dark:text-white">📘 Persiapan sebelum isi form (klik untuk buka)</summary>
         <div className="mt-3 space-y-2 text-gray-600 dark:text-white/60">
-          <p><strong className="text-gray-900 dark:text-white">1. Aktifkan SSH di MikroTik.</strong> Default port 22 atau bebas — Winbox → New Terminal:</p>
+          <p><strong className="text-gray-900 dark:text-white">1. Aktifkan SSH di MikroTik.</strong> Default port 22 atau bebas - Winbox → New Terminal:</p>
           <pre className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-xs overflow-x-auto"><code>/ip service set ssh disabled=no</code></pre>
           <p><strong className="text-gray-900 dark:text-white">2. Pakai user yang udah ada</strong> dengan group <code className="bg-gray-100 dark:bg-slate-800 px-1 rounded">write</code> atau <code className="bg-gray-100 dark:bg-slate-800 px-1 rounded">full</code>, atau bikin baru:</p>
           <pre className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-xs overflow-x-auto"><code>{`/user add name=USERNAME password=PASSWORD group=write`}</code></pre>

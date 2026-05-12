@@ -151,7 +151,7 @@ export default function RouterListClient() {
     const res = await fetch(`/api/admin/routers/${r.cred.id}/verify`, { method: "POST" });
     setActionLoading(null);
     const data = await res.json();
-    if (res.ok) showMsg("ok", "Koneksi sukses — config sudah di-scan");
+    if (res.ok) showMsg("ok", "Koneksi sukses - config sudah di-scan");
     else showMsg("err", `Gagal konek: ${data.error ?? "unknown"}`);
     fetchRows();
   };
@@ -221,10 +221,10 @@ export default function RouterListClient() {
                       <div className="text-xs text-gray-400 dark:text-white/30">{r.userEmail}</div>
                     </td>
                     <td className="px-4 py-3 font-mono text-gray-700 dark:text-white/80">
-                      {r.cred ? `${r.cred.host}:${r.cred.port}` : <span className="text-gray-300 dark:text-white/20">—</span>}
+                      {r.cred ? `${r.cred.host}:${r.cred.port}` : <span className="text-gray-300 dark:text-white/20">-</span>}
                     </td>
                     <td className="px-4 py-3 font-mono text-gray-700 dark:text-white/80">
-                      {r.cred?.sshUser ?? <span className="text-gray-300 dark:text-white/20">—</span>}
+                      {r.cred?.sshUser ?? <span className="text-gray-300 dark:text-white/20">-</span>}
                     </td>
                     <td className="px-4 py-3 font-mono text-gray-700 dark:text-white/80">
                       {r.cred ? (
@@ -234,7 +234,7 @@ export default function RouterListClient() {
                             {showPassId === r.cred.id ? "Sembunyikan" : "Tampilkan"}
                           </button>
                         </div>
-                      ) : <span className="text-gray-300 dark:text-white/20">—</span>}
+                      ) : <span className="text-gray-300 dark:text-white/20">-</span>}
                     </td>
                     <td className="px-4 py-3">
                       {!r.cred ? (
@@ -285,7 +285,7 @@ export default function RouterListClient() {
                             </button>
                           </>
                         ) : (
-                          <span className="text-xs text-gray-300 dark:text-white/20">— belum ada router —</span>
+                          <span className="text-xs text-gray-300 dark:text-white/20">- belum ada router -</span>
                         )}
                       </div>
                     </td>
@@ -332,7 +332,7 @@ export default function RouterListClient() {
                     required
                     className={`${inputClass} w-full`}
                   >
-                    <option value="">— Pilih tenant —</option>
+                    <option value="">- Pilih tenant -</option>
                     {available.map((t) => (
                       <option key={t.id} value={t.id}>{t.name} ({t.email})</option>
                     ))}

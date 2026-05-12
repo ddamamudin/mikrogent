@@ -40,7 +40,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     await logAdmin({
       adminId: admin.id, adminName: admin.name,
       action: "router_verify",
-      details: `${cred.user.name} (${cred.user.email}) — ${cred.host}:${cred.port} → SUKSES`,
+      details: `${cred.user.name} (${cred.user.email}) - ${cred.host}:${cred.port} → SUKSES`,
     });
     return NextResponse.json({ ok: true, connected: true });
   } catch (e) {
@@ -49,7 +49,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     await logAdmin({
       adminId: admin.id, adminName: admin.name,
       action: "router_verify",
-      details: `${cred.user.name} (${cred.user.email}) — ${cred.host}:${cred.port} → GAGAL: ${msg}`,
+      details: `${cred.user.name} (${cred.user.email}) - ${cred.host}:${cred.port} → GAGAL: ${msg}`,
     });
     return NextResponse.json({ ok: false, connected: false, error: msg }, { status: 400 });
   }

@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { name, email, brand: rawBrand, alamat, noWa, password, showBrandField, website } = body;
 
-  // Honeypot — bot dumb auto-fill, manusia gak akan
+  // Honeypot - bot dumb auto-fill, manusia gak akan
   if (website) {
     return NextResponse.json({ ok: true });
   }
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
 
   await sendVerificationEmail(email, name, token);
 
-  // Fire-and-forget WA notif ke admin — gak blocking respons
+  // Fire-and-forget WA notif ke admin - gak blocking respons
   notifyNewUser({ name, email, brand, noWa }).catch(() => {});
 
   return NextResponse.json({ ok: true });

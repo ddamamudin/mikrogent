@@ -70,7 +70,7 @@ export default function RegisterClient({ showBrandField }: { showBrandField: boo
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 pb-10">
-        {/* honeypot — hidden untuk manusia, dilihat oleh bot */}
+        {/* honeypot - hidden untuk manusia, dilihat oleh bot */}
         <input type="text" name="website" value={website} onChange={(e) => setWebsite(e.target.value)}
           tabIndex={-1} autoComplete="off" aria-hidden="true"
           style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }} />

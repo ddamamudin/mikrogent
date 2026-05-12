@@ -105,7 +105,7 @@ export default function VoiceCallModal({
     // Tool spesial: end_call → tutup panggilan setelah agent selesai pamit
     if (name === "end_call") {
       pendingHangupRef.current = true;
-      // Acknowledge ke server, tapi JANGAN trigger response.create — agent gak perlu ngomong lagi
+      // Acknowledge ke server, tapi JANGAN trigger response.create - agent gak perlu ngomong lagi
       sendEvent({
         type: "conversation.item.create",
         item: { type: "function_call_output", call_id: callId, output: "ok" },
@@ -260,7 +260,7 @@ export default function VoiceCallModal({
       if (type === "error") {
         const errInfo = evt.error as { message?: string; code?: string } | undefined;
         const msg = errInfo?.message ?? "";
-        // Race condition yg gak fatal — agent udah / lagi ngomong, gak perlu kasih tau user
+        // Race condition yg gak fatal - agent udah / lagi ngomong, gak perlu kasih tau user
         if (
           msg.includes("active response in progress") ||
           msg.includes("already has an active response") ||
