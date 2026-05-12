@@ -25,9 +25,12 @@ export default async function PengaturanPage() {
     openaiApiKey: null,
     anthropicModel: "claude-sonnet-4-6",
     openaiModel: "gpt-4o",
+    openaiRealtimeModel: "gpt-realtime",
     agentPersona: null,
     agentKnowledge: null,
     dailyChatLimit: 50,
+    voiceCallEnabled: false,
+    voiceDailySeconds: 180,
   };
 
   return (

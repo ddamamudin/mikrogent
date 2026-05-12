@@ -10,9 +10,12 @@ type Config = {
   openaiApiKey: string | null;
   anthropicModel: string;
   openaiModel: string;
+  openaiRealtimeModel: string;
   agentPersona: string | null;
   agentKnowledge: string | null;
   dailyChatLimit: number;
+  voiceCallEnabled: boolean;
+  voiceDailySeconds: number;
 };
 type Admin = { name: string; email: string };
 
@@ -26,6 +29,11 @@ const OPENAI_MODELS = [
   { id: "gpt-4o", label: "GPT-4o (balance — direkomendasikan)" },
   { id: "gpt-4.1", label: "GPT-4.1 (paling pintar)" },
   { id: "gpt-4.1-mini", label: "GPT-4.1 mini (cepat & murah)" },
+];
+
+const OPENAI_REALTIME_MODELS = [
+  { id: "gpt-realtime", label: "gpt-realtime (production)" },
+  { id: "gpt-realtime-2", label: "gpt-realtime-2 (GPT-5-class, 128k ctx)" },
 ];
 
 export default function PengaturanClient({ config: initial, admin }: { config: Config; admin: Admin }) {
@@ -44,10 +52,15 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
   const [openaiApiKey, setOpenaiApiKey] = useState(initial.openaiApiKey ?? "");
   const [anthropicModel, setAnthropicModel] = useState(initial.anthropicModel || "claude-sonnet-4-6");
   const [openaiModel, setOpenaiModel] = useState(initial.openaiModel || "gpt-4o");
+  const [openaiRealtimeModel, setOpenaiRealtimeModel] = useState(initial.openaiRealtimeModel || "gpt-realtime");
   const [agentPersona, setAgentPersona] = useState(initial.agentPersona ?? "");
   const [agentKnowledge, setAgentKnowledge] = useState(initial.agentKnowledge ?? "");
   const [dailyChatLimit, setDailyChatLimit] = useState(String(initial.dailyChatLimit));
   const [agentLoading, setAgentLoading] = useState(false);
+
+  const [voiceCallEnabled, setVoiceCallEnabled] = useState(initial.voiceCallEnabled);
+  const [voiceDailySeconds, setVoiceDailySeconds] = useState(String(initial.voiceDailySeconds));
+  const [voiceLoading, setVoiceLoading] = useState(false);
 
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
@@ -116,6 +129,7 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
           openaiApiKey: openaiApiKey.trim(),
           anthropicModel,
           openaiModel,
+          openaiRealtimeModel,
           agentPersona: agentPersona.trim(),
           agentKnowledge: agentKnowledge.trim(),
           dailyChatLimit: limit,
@@ -125,6 +139,37 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
     setAgentLoading(false);
     if (res.ok) showMsg("ok", "Pengaturan AI Agent disimpan");
     else showMsg("err", "Gagal menyimpan pengaturan AI Agent");
+  };
+
+  const handleSaveVoice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const secs = parseInt(voiceDailySeconds);
+    if (isNaN(secs) || secs < 30 || secs > 3600) {
+      return showMsg("err", "Durasi voice harus 30 - 3600 detik");
+    }
+    if (voiceCallEnabled && llmProvider !== "openai") {
+      return showMsg("err", "Voice call hanya bisa diaktifkan saat provider = OpenAI");
+    }
+    if (voiceCallEnabled && !openaiApiKey.trim()) {
+      return showMsg("err", "Isi & simpan API Key OpenAI dulu sebelum mengaktifkan voice call");
+    }
+    setVoiceLoading(true);
+    const res = await fetch("/api/admin/config", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        agentConfig: {
+          voiceCallEnabled,
+          voiceDailySeconds: secs,
+        },
+      }),
+    });
+    setVoiceLoading(false);
+    if (res.ok) showMsg("ok", "Pengaturan Voice Call disimpan");
+    else {
+      const data = await res.json().catch(() => null);
+      showMsg("err", data?.error || "Gagal menyimpan pengaturan Voice Call");
+    }
   };
 
   const inputClass = "w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-blue-500";
@@ -234,12 +279,21 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
             />
           </div>
           <div className="space-y-1">
-            <label className="text-sm text-gray-600 dark:text-white/60">Model</label>
+            <label className="text-sm text-gray-600 dark:text-white/60">Model (chat)</label>
             <select value={openaiModel} onChange={(e) => setOpenaiModel(e.target.value)} className={inputClass}>
               {OPENAI_MODELS.map((m) => (
                 <option key={m.id} value={m.id}>{m.label}</option>
               ))}
             </select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm text-gray-600 dark:text-white/60">Model (voice / realtime)</label>
+            <select value={openaiRealtimeModel} onChange={(e) => setOpenaiRealtimeModel(e.target.value)} className={inputClass}>
+              {OPENAI_REALTIME_MODELS.map((m) => (
+                <option key={m.id} value={m.id}>{m.label}</option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-400 dark:text-white/30">Dipakai untuk fitur Voice Conversation (kalau diaktifkan di bawah)</p>
           </div>
         </div>
 
@@ -273,6 +327,45 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
 
         <button type="submit" disabled={agentLoading} className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition disabled:opacity-50">
           {agentLoading ? "Menyimpan..." : "Simpan Pengaturan Agent"}
+        </button>
+      </form>
+
+      {/* Voice Conversation */}
+      <form onSubmit={handleSaveVoice} className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 p-5 shadow-sm space-y-4">
+        <h2 className="text-sm font-semibold text-gray-400 dark:text-white/50 uppercase tracking-wider">Voice Conversation</h2>
+
+        <div className="flex items-center justify-between">
+          <div className="pr-4">
+            <p className="text-sm font-medium text-gray-900 dark:text-white">Aktifkan Voice Call Realtime</p>
+            <p className="text-xs text-gray-400 dark:text-white/30 mt-0.5">Tombol kirim di chat user berubah jadi tombol telepon saat input kosong. Hanya jalan dengan provider OpenAI + API key terisi.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setVoiceCallEnabled((v) => !v)}
+            className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${voiceCallEnabled ? "bg-blue-600" : "bg-gray-200 dark:bg-white/10"}`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${voiceCallEnabled ? "translate-x-6" : "translate-x-1"}`} />
+          </button>
+        </div>
+
+        {voiceCallEnabled && llmProvider !== "openai" && (
+          <div className="text-xs px-3 py-2 rounded-lg bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-500/20">
+            Provider aktif saat ini: <strong>{llmProvider}</strong>. Ganti ke <strong>OpenAI</strong> di section atas & simpan dulu, baru aktifkan voice.
+          </div>
+        )}
+
+        <div className="space-y-1">
+          <label className="text-sm text-gray-600 dark:text-white/60">Batas Durasi Voice per Hari (detik, per user)</label>
+          <input
+            type="number" min={30} max={3600} step={30}
+            value={voiceDailySeconds} onChange={(e) => setVoiceDailySeconds(e.target.value)}
+            className={inputClass} placeholder="180"
+          />
+          <p className="text-xs text-gray-400 dark:text-white/30">Default 180 detik (3 menit). Voice mahal — set hati-hati.</p>
+        </div>
+
+        <button type="submit" disabled={voiceLoading} className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition disabled:opacity-50">
+          {voiceLoading ? "Menyimpan..." : "Simpan Pengaturan Voice"}
         </button>
       </form>
 

@@ -57,13 +57,36 @@ export async function PATCH(req: NextRequest) {
       openaiApiKey,
       anthropicModel,
       openaiModel,
+      openaiRealtimeModel,
       agentPersona,
       agentKnowledge,
       dailyChatLimit,
+      voiceCallEnabled,
+      voiceDailySeconds,
     } = body.agentConfig;
 
     if (llmProvider !== undefined && llmProvider !== "anthropic" && llmProvider !== "openai") {
       return NextResponse.json({ error: "Provider tidak valid" }, { status: 400 });
+    }
+
+    // Voice call wajib OpenAI provider + API key terisi
+    if (voiceCallEnabled === true) {
+      const existing = await prisma.appConfig.findUnique({ where: { id: "singleton" } });
+      const effectiveProvider = llmProvider ?? existing?.llmProvider;
+      const effectiveOpenaiKey = openaiApiKey !== undefined ? openaiApiKey : existing?.openaiApiKey;
+      if (effectiveProvider !== "openai") {
+        return NextResponse.json({ error: "Voice call hanya bisa diaktifkan saat provider = OpenAI" }, { status: 400 });
+      }
+      if (!effectiveOpenaiKey || !String(effectiveOpenaiKey).trim()) {
+        return NextResponse.json({ error: "API Key OpenAI wajib diisi sebelum mengaktifkan voice call" }, { status: 400 });
+      }
+    }
+
+    if (voiceDailySeconds !== undefined) {
+      const n = Number(voiceDailySeconds);
+      if (!Number.isFinite(n) || n < 30 || n > 3600) {
+        return NextResponse.json({ error: "Batas durasi voice per hari harus 30 - 3600 detik" }, { status: 400 });
+      }
     }
 
     const data: Record<string, unknown> = {};
@@ -73,9 +96,12 @@ export async function PATCH(req: NextRequest) {
     if (openaiApiKey !== undefined) { data.openaiApiKey = openaiApiKey || null; changed.push("openaiApiKey"); }
     if (anthropicModel !== undefined && anthropicModel) { data.anthropicModel = anthropicModel; changed.push(`anthropicModel=${anthropicModel}`); }
     if (openaiModel !== undefined && openaiModel) { data.openaiModel = openaiModel; changed.push(`openaiModel=${openaiModel}`); }
+    if (openaiRealtimeModel !== undefined && openaiRealtimeModel) { data.openaiRealtimeModel = openaiRealtimeModel; changed.push(`openaiRealtimeModel=${openaiRealtimeModel}`); }
     if (agentPersona !== undefined) { data.agentPersona = agentPersona; changed.push("persona"); }
     if (agentKnowledge !== undefined) { data.agentKnowledge = agentKnowledge; changed.push("knowledge"); }
     if (dailyChatLimit !== undefined) { data.dailyChatLimit = dailyChatLimit; changed.push(`dailyChatLimit=${dailyChatLimit}`); }
+    if (typeof voiceCallEnabled === "boolean") { data.voiceCallEnabled = voiceCallEnabled; changed.push(`voiceCallEnabled=${voiceCallEnabled}`); }
+    if (voiceDailySeconds !== undefined) { data.voiceDailySeconds = Number(voiceDailySeconds); changed.push(`voiceDailySeconds=${voiceDailySeconds}`); }
 
     const config = await prisma.appConfig.upsert({
       where: { id: "singleton" },

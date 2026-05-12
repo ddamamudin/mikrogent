@@ -24,6 +24,12 @@ export default async function AgentPage() {
   const agentReady = !!activeKey;
   const firstName = (user?.name ?? "").trim().split(/\s+/)[0] || "Kak";
   const initialChatCount = dailyCount?.date === today ? (dailyCount.count ?? 0) : 0;
+  const initialVoiceSeconds = dailyCount?.date === today ? (dailyCount.voiceSeconds ?? 0) : 0;
+  const voiceCallEnabled =
+    (config?.voiceCallEnabled ?? false) &&
+    config?.llmProvider === "openai" &&
+    !!config?.openaiApiKey;
+  const voiceDailyLimitSeconds = config?.voiceDailySeconds ?? 180;
 
   return (
     <AgentClient
@@ -36,6 +42,9 @@ export default async function AgentPage() {
       initialChatCount={initialChatCount}
       initialMessages={(chatSession?.messages as { role: "user" | "assistant"; content: string }[]) ?? []}
       initialApiMessages={(chatSession?.apiMessages as unknown[]) ?? []}
+      voiceCallEnabled={voiceCallEnabled}
+      voiceDailyLimitSeconds={voiceDailyLimitSeconds}
+      initialVoiceSecondsUsed={initialVoiceSeconds}
     />
   );
 }

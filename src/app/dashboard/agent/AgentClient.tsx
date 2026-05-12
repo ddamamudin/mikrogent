@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, FormEvent } from "react";
 import { useAgentSidebar } from "@/components/DashboardLayoutClient";
+import VoiceCallModal from "./VoiceCallModal";
 
 type Role = "user" | "assistant";
 interface Message { role: Role; content: string; }
@@ -25,6 +26,9 @@ interface Props {
   initialChatCount: number;
   initialMessages: Message[];
   initialApiMessages: ApiMessage[];
+  voiceCallEnabled: boolean;
+  voiceDailyLimitSeconds: number;
+  initialVoiceSecondsUsed: number;
 }
 
 function greetingByTime(d: Date = new Date()): string {
@@ -35,8 +39,7 @@ function greetingByTime(d: Date = new Date()): string {
   return "Selamat Malam";
 }
 
-export default function AgentClient({ userId, firstName, isConnected, hasMemory, agentReady, dailyChatLimit, initialChatCount, initialMessages, initialApiMessages }: Props) {
-  const SK = `agent_${userId}`;
+export default function AgentClient({ firstName, isConnected, hasMemory, agentReady, dailyChatLimit, initialChatCount, initialMessages, initialApiMessages, voiceCallEnabled, voiceDailyLimitSeconds, initialVoiceSecondsUsed }: Props) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [apiMessages, setApiMessages] = useState<ApiMessage[]>(initialApiMessages);
   const [input, setInput] = useState("");
@@ -47,6 +50,8 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
   const [chatCount, setChatCount] = useState(initialChatCount);
   const [greeting, setGreeting] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [voiceModalOpen, setVoiceModalOpen] = useState(false);
+  const [voiceSecondsUsed, setVoiceSecondsUsed] = useState(initialVoiceSecondsUsed);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
@@ -426,6 +431,22 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
                   <rect x="1" y="1" width="10" height="10" rx="2"/>
                 </svg>
               </button>
+            ) : voiceCallEnabled && !input.trim() && attachments.length === 0 ? (
+              (() => {
+                const voiceRemaining = Math.max(0, voiceDailyLimitSeconds - voiceSecondsUsed);
+                const voiceExhausted = voiceRemaining <= 0;
+                return (
+                  <button type="button"
+                    onClick={() => { if (!voiceExhausted) setVoiceModalOpen(true); }}
+                    disabled={voiceExhausted}
+                    title={voiceExhausted ? "Batas voice harian sudah habis" : `Voice call (${voiceRemaining}s tersisa)`}
+                    className={`shrink-0 w-8 h-8 rounded-full border-none flex items-center justify-center transition ${voiceExhausted ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-gray-900 text-white cursor-pointer hover:bg-gray-700"}`}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                    </svg>
+                  </button>
+                );
+              })()
             ) : (
               <button type="submit" disabled={(!input.trim() && attachments.length === 0) || chatCount >= dailyChatLimit}
                 className={`shrink-0 w-8 h-8 rounded-full border-none flex items-center justify-center transition text-base ${(input.trim() || attachments.length > 0) && chatCount < dailyChatLimit ? "bg-gray-900 text-white cursor-pointer hover:bg-gray-700" : "bg-gray-200 text-gray-400 cursor-not-allowed"}`}>
@@ -435,6 +456,16 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
           </div>
         </form>
       </div>
+
+      {voiceModalOpen && (
+        <VoiceCallModal
+          firstName={firstName}
+          limitSeconds={voiceDailyLimitSeconds}
+          initialUsedSeconds={voiceSecondsUsed}
+          onClose={() => setVoiceModalOpen(false)}
+          onUsageUpdate={(used) => setVoiceSecondsUsed(used)}
+        />
+      )}
 
       <style>{`
         @keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-5px)} }
