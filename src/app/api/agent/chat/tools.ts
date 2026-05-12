@@ -78,6 +78,7 @@ export async function executeTool(
       const port = typeof input.port === "number" ? input.port : 22;
       if (!host) return "ERROR: host tidak diberikan.";
 
+      const serverIp = process.env.MIKROPLAY_SERVER_IP;
       const sshPass = crypto.randomBytes(10).toString("hex");
       await prisma.mikrotikCredential.upsert({
         where: { userId: ctx.userId },
@@ -86,16 +87,18 @@ export async function executeTool(
       });
       ctx.setConnected(false);
 
+      const addressClause = serverIp ? ` address=${serverIp}/32` : "";
+
       return `Script berhasil dibuat.
 
 PENJELASAN UNTUK USER (sampaikan ini sebelum menampilkan script):
 Script ini berisi 2 perintah:
-1. Membuka akses SSH (port ${port}) — agar aku bisa terhubung ke router kamu dari jarak jauh
-2. Membuat username "${AGENT_SSH_USER}" dengan password khusus — sebagai kredensial login
+1. Membuat username "${AGENT_SSH_USER}" dengan password khusus — kredensial login khusus aku
+2. Membuka akses SSH (port ${port})${serverIp ? ` HANYA dari IP server Mikroplay (${serverIp}) — bot scanner di internet langsung ditolak, lebih aman` : " — agar aku bisa terhubung ke router kamu dari jarak jauh"}
 
 SCRIPT YANG HARUS DIJALANKAN:
 /user add name=${AGENT_SSH_USER} password=${sshPass} group=write
-/ip service set ssh port=${port} disabled=no
+/ip service set ssh port=${port} disabled=no${addressClause}
 
 INSTRUKSI:
 1. Buka Winbox → klik menu "New Terminal"
