@@ -3,9 +3,24 @@ export const dynamic = "force-dynamic";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendPasswordResetEmail } from "@/lib/mailer";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
-  const { email } = await req.json();
+  const ip = getClientIp(req);
+  const rl = rateLimit({ key: "forgot", ip, limit: 3, windowMs: 60 * 60 * 1000 });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: `Terlalu banyak permintaan. Coba lagi dalam ${Math.ceil(rl.resetIn / 60000)} menit.` },
+      { status: 429 },
+    );
+  }
+
+  const body = await req.json();
+  const { email, website } = body;
+
+  // Honeypot
+  if (website) return NextResponse.json({ ok: true });
+
   if (!email) return NextResponse.json({ error: "Email wajib diisi" }, { status: 400 });
 
   const user = await prisma.user.findUnique({ where: { email } });

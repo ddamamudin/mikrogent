@@ -9,6 +9,7 @@ export default function RegisterClient({ showBrandField }: { showBrandField: boo
   const [form, setForm] = useState({
     name: "", email: "", brand: "", alamat: "", noWa: "", password: "",
   });
+  const [website, setWebsite] = useState(""); // honeypot
   const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,7 +31,7 @@ export default function RegisterClient({ showBrandField }: { showBrandField: boo
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, showBrandField }),
+      body: JSON.stringify({ ...form, showBrandField, website }),
     });
     const data = await res.json();
     setLoading(false);
@@ -69,6 +70,11 @@ export default function RegisterClient({ showBrandField }: { showBrandField: boo
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 pb-10">
+        {/* honeypot — hidden untuk manusia, dilihat oleh bot */}
+        <input type="text" name="website" value={website} onChange={(e) => setWebsite(e.target.value)}
+          tabIndex={-1} autoComplete="off" aria-hidden="true"
+          style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }} />
+
         {error && (
           <div className="bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3">
             {error}

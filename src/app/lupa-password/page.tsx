@@ -5,6 +5,7 @@ import Link from "next/link";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
+  const [website, setWebsite] = useState(""); // honeypot
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
@@ -16,7 +17,7 @@ export default function ForgotPasswordPage() {
     const res = await fetch("/api/auth/forgot-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, website }),
     });
     setLoading(false);
     if (!res.ok) {
@@ -56,6 +57,11 @@ export default function ForgotPasswordPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {/* honeypot — hidden untuk manusia, dilihat oleh bot */}
+        <input type="text" name="website" value={website} onChange={(e) => setWebsite(e.target.value)}
+          tabIndex={-1} autoComplete="off" aria-hidden="true"
+          style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }} />
+
         {error && (
           <div className="bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3">{error}</div>
         )}

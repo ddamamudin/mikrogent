@@ -5,6 +5,7 @@ import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendVerificationEmail } from "@/lib/mailer";
 import { notifyNewUser } from "@/lib/fonnte";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 function emailToBrand(email: string): string {
   return email.split("@")[0]
@@ -25,7 +26,22 @@ async function resolveUniqueBrand(base: string): Promise<string> {
 }
 
 export async function POST(req: NextRequest) {
-  const { name, email, brand: rawBrand, alamat, noWa, password, showBrandField } = await req.json();
+  const ip = getClientIp(req);
+  const rl = rateLimit({ key: "register", ip, limit: 5, windowMs: 60 * 60 * 1000 });
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: `Terlalu banyak permintaan. Coba lagi dalam ${Math.ceil(rl.resetIn / 60000)} menit.` },
+      { status: 429 },
+    );
+  }
+
+  const body = await req.json();
+  const { name, email, brand: rawBrand, alamat, noWa, password, showBrandField, website } = body;
+
+  // Honeypot — bot dumb auto-fill, manusia gak akan
+  if (website) {
+    return NextResponse.json({ ok: true });
+  }
 
   if (!name || !email || !password)
     return NextResponse.json({ error: "Semua field wajib diisi" }, { status: 400 });
