@@ -12,7 +12,7 @@ export default async function AgentPage() {
 
   const today = new Date().toISOString().slice(0, 10);
   const [user, cred, memory, config, dailyCount, chatSession] = await Promise.all([
-    prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } }),
+    prisma.user.findUnique({ where: { id: session.userId }, select: { name: true, dailyChatLimit: true } }),
     prisma.mikrotikCredential.findUnique({ where: { userId: session.userId } }),
     prisma.agentMemory.findUnique({ where: { userId: session.userId } }),
     prisma.appConfig.findUnique({ where: { id: "singleton" } }),
@@ -32,7 +32,7 @@ export default async function AgentPage() {
       isConnected={cred?.connected ?? false}
       hasMemory={!!memory}
       agentReady={agentReady}
-      dailyChatLimit={config?.dailyChatLimit ?? 50}
+      dailyChatLimit={user?.dailyChatLimit ?? config?.dailyChatLimit ?? 50}
       initialChatCount={initialChatCount}
       initialMessages={(chatSession?.messages as { role: "user" | "assistant"; content: string }[]) ?? []}
       initialApiMessages={(chatSession?.apiMessages as unknown[]) ?? []}

@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     prisma.user.findMany({
       where,
       select: {
-        id: true, name: true, email: true, brand: true, status: true, emailVerified: true, validated: true, createdAt: true,
+        id: true, name: true, email: true, brand: true, status: true, emailVerified: true, validated: true, dailyChatLimit: true, createdAt: true,
         agentDailyCount: { select: { count: true, date: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -47,11 +47,15 @@ export async function GET(req: NextRequest) {
   ]);
 
   const dailyChatLimit = config?.dailyChatLimit ?? 50;
-  const tenantsWithCount = tenants.map((t) => ({
-    ...t,
-    chatCount: t.agentDailyCount?.date === today ? (t.agentDailyCount.count ?? 0) : 0,
-    agentDailyCount: undefined,
-  }));
+  const tenantsWithCount = tenants.map((t) => {
+    const { dailyChatLimit: userOverride, agentDailyCount, ...rest } = t;
+    return {
+      ...rest,
+      chatCount: agentDailyCount?.date === today ? (agentDailyCount.count ?? 0) : 0,
+      userDailyChatLimit: userOverride,
+      effectiveLimit: userOverride ?? dailyChatLimit,
+    };
+  });
 
   return NextResponse.json({ tenants: tenantsWithCount, total, page, totalPages: Math.ceil(total / limit), dailyChatLimit });
 }

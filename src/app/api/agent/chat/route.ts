@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
   }
   const userId = session.userId;
 
-  const userRecord = await prisma.user.findUnique({ where: { id: userId }, select: { validated: true } });
+  const userRecord = await prisma.user.findUnique({ where: { id: userId }, select: { validated: true, dailyChatLimit: true } });
   if (!userRecord?.validated) {
     return new Response(sseRaw({ type: "error", error: "Akun belum tervalidasi oleh admin" }), {
       status: 403, headers: { "Content-Type": "text/event-stream" },
@@ -69,10 +69,11 @@ export async function POST(req: NextRequest) {
   }
 
   const today = getTodayString();
+  const effectiveLimit = userRecord.dailyChatLimit ?? config.dailyChatLimit ?? 50;
   const dailyCount = await prisma.agentDailyCount.findUnique({ where: { userId } });
-  if (dailyCount && dailyCount.date === today && dailyCount.count >= (config.dailyChatLimit ?? 50)) {
+  if (dailyCount && dailyCount.date === today && dailyCount.count >= effectiveLimit) {
     return new Response(
-      sseRaw({ type: "error", error: `Batas chat harian (${config.dailyChatLimit}) telah tercapai` }),
+      sseRaw({ type: "error", error: `Batas chat harian (${effectiveLimit}) telah tercapai` }),
       { status: 429, headers: { "Content-Type": "text/event-stream" } },
     );
   }

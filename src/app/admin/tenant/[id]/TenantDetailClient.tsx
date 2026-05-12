@@ -17,6 +17,8 @@ type Tenant = {
   updatedAt: string | Date;
   chatCount: number;
   dailyChatLimit: number;
+  userDailyChatLimit: number | null;
+  globalDailyChatLimit: number;
 };
 
 type MikrotikCred = {
@@ -91,6 +93,29 @@ export default function TenantDetailClient({ tenant: initial, mikrotikCred }: { 
     }
   };
 
+  const [limitInput, setLimitInput] = useState<string>(
+    initial.userDailyChatLimit !== null ? String(initial.userDailyChatLimit) : ""
+  );
+
+  const handleSaveLimit = async () => {
+    setLoading(true);
+    const payload = limitInput.trim() === "" ? null : parseInt(limitInput, 10);
+    const res = await fetch(`/api/admin/tenants/${tenant.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dailyChatLimit: payload }),
+    });
+    setLoading(false);
+    if (res.ok) {
+      const newOverride = payload as number | null;
+      const newEffective = newOverride ?? tenant.globalDailyChatLimit;
+      setTenant((t) => ({ ...t, userDailyChatLimit: newOverride, dailyChatLimit: newEffective }));
+      showMsg("ok", payload === null ? "Override dihapus, ikut limit global" : `Limit khusus diset ke ${payload} chat/hari`);
+    } else {
+      showMsg("err", "Gagal menyimpan limit");
+    }
+  };
+
   const handleDelete = async () => {
     if (!confirm(`Hapus tenant "${tenant.name}"? Tindakan ini tidak dapat dibatalkan.`)) return;
     setLoading(true);
@@ -160,6 +185,39 @@ export default function TenantDetailClient({ tenant: initial, mikrotikCred }: { 
             </div>
           ))}
         </dl>
+      </div>
+
+      {/* Limit Chat Harian */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 p-5 shadow-sm space-y-3">
+        <div>
+          <h2 className="text-sm font-semibold text-gray-400 dark:text-white/50 uppercase tracking-wider">Limit Chat Harian</h2>
+          <p className="text-xs text-gray-400 dark:text-white/30 mt-1">
+            Kosongkan untuk pakai limit global ({tenant.globalDailyChatLimit} chat/hari).
+            Isi angka untuk override khusus tenant ini.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 items-center">
+          <input
+            type="number"
+            min={0}
+            value={limitInput}
+            onChange={(e) => setLimitInput(e.target.value)}
+            placeholder={`Default: ${tenant.globalDailyChatLimit}`}
+            className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 w-40"
+          />
+          <span className="text-sm text-gray-400 dark:text-white/40">chat/hari</span>
+          <button
+            onClick={handleSaveLimit}
+            disabled={loading}
+            className="ml-auto px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition disabled:opacity-50"
+          >
+            Simpan
+          </button>
+        </div>
+        <p className="text-xs text-gray-500 dark:text-white/40">
+          Limit efektif saat ini: <strong className="text-gray-900 dark:text-white">{tenant.dailyChatLimit}</strong>
+          {tenant.userDailyChatLimit !== null && " (override)"}
+        </p>
       </div>
 
       {/* Kredensial MikroTik */}

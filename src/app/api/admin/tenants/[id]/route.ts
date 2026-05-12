@@ -20,18 +20,22 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       where: { id, role: "USER" },
       select: {
         id: true, name: true, email: true, brand: true, alamat: true, noWa: true,
-        status: true, emailVerified: true, validated: true, createdAt: true, updatedAt: true,
+        status: true, emailVerified: true, validated: true, dailyChatLimit: true,
+        createdAt: true, updatedAt: true,
         agentDailyCount: { select: { count: true, date: true } },
       },
     }),
     prisma.appConfig.findUnique({ where: { id: "singleton" }, select: { dailyChatLimit: true } }),
   ]);
   if (!tenant) return NextResponse.json({ error: "Tenant tidak ditemukan" }, { status: 404 });
-  const { agentDailyCount, ...rest } = tenant;
+  const { agentDailyCount, dailyChatLimit: userOverride, ...rest } = tenant;
+  const globalLimit = config?.dailyChatLimit ?? 50;
   return NextResponse.json({
     ...rest,
     chatCount: agentDailyCount?.date === today ? (agentDailyCount.count ?? 0) : 0,
-    dailyChatLimit: config?.dailyChatLimit ?? 50,
+    userDailyChatLimit: userOverride,
+    globalDailyChatLimit: globalLimit,
+    dailyChatLimit: userOverride ?? globalLimit,
   });
 }
 
@@ -49,6 +53,24 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const tenant = await prisma.user.updateMany({
       where: { id, role: "USER" },
       data: { validated: body.validated },
+    });
+    if (tenant.count === 0) return NextResponse.json({ error: "Tenant tidak ditemukan" }, { status: 404 });
+    return NextResponse.json({ ok: true });
+  }
+
+  if ("dailyChatLimit" in body) {
+    const v = body.dailyChatLimit;
+    let value: number | null;
+    if (v === null || v === "") {
+      value = null;
+    } else {
+      const n = typeof v === "number" ? v : parseInt(String(v), 10);
+      if (!Number.isFinite(n) || n < 0) return NextResponse.json({ error: "Limit chat tidak valid" }, { status: 400 });
+      value = n;
+    }
+    const tenant = await prisma.user.updateMany({
+      where: { id, role: "USER" },
+      data: { dailyChatLimit: value },
     });
     if (tenant.count === 0) return NextResponse.json({ error: "Tenant tidak ditemukan" }, { status: 404 });
     return NextResponse.json({ ok: true });

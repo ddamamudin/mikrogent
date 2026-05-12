@@ -18,6 +18,7 @@ model User {
   emailVerified Boolean     @default(false)
   validated     Boolean     @default(false)
   status        UserStatus  @default(ACTIVE)
+  dailyChatLimit Int?
   role          Role        @default(USER)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt

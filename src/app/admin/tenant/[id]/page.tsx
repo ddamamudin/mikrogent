@@ -15,7 +15,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
   const [tenant, dailyCount, config, cred] = await Promise.all([
     prisma.user.findUnique({
       where: { id, role: "USER" },
-      select: { id: true, name: true, email: true, brand: true, alamat: true, noWa: true, status: true, emailVerified: true, validated: true, createdAt: true, updatedAt: true },
+      select: { id: true, name: true, email: true, brand: true, alamat: true, noWa: true, status: true, emailVerified: true, validated: true, dailyChatLimit: true, createdAt: true, updatedAt: true },
     }),
     prisma.agentDailyCount.findUnique({ where: { userId: id } }),
     prisma.appConfig.findUnique({ where: { id: "singleton" }, select: { dailyChatLimit: true } }),
@@ -23,12 +23,16 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
   ]);
   if (!tenant) notFound();
 
+  const globalLimit = config?.dailyChatLimit ?? 50;
+  const { dailyChatLimit: userOverride, ...rest } = tenant;
   return (
     <TenantDetailClient
       tenant={{
-        ...tenant,
+        ...rest,
         chatCount: dailyCount?.date === today ? (dailyCount.count ?? 0) : 0,
-        dailyChatLimit: config?.dailyChatLimit ?? 50,
+        userDailyChatLimit: userOverride,
+        globalDailyChatLimit: globalLimit,
+        dailyChatLimit: userOverride ?? globalLimit,
       }}
       mikrotikCred={cred ? { host: cred.host, port: cred.port, sshUser: cred.sshUser, sshPass: cred.sshPass, connected: cred.connected } : null}
     />

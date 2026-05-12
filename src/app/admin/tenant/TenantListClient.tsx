@@ -12,6 +12,8 @@ type Tenant = {
   validated: boolean;
   createdAt: string;
   chatCount: number;
+  userDailyChatLimit: number | null;
+  effectiveLimit: number;
 };
 
 const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
@@ -191,8 +193,10 @@ export default function TenantListClient() {
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
                       <div className="flex items-center gap-2">
-                        <span className={`text-sm font-medium ${t.chatCount >= dailyChatLimit ? "text-red-500 dark:text-red-400" : t.chatCount > 0 ? "text-gray-700 dark:text-white/70" : "text-gray-300 dark:text-white/20"}`}>
-                          {t.chatCount}/{dailyChatLimit}
+                        <span className={`text-sm font-medium ${t.chatCount >= t.effectiveLimit ? "text-red-500 dark:text-red-400" : t.chatCount > 0 ? "text-gray-700 dark:text-white/70" : "text-gray-300 dark:text-white/20"}`}
+                          title={t.userDailyChatLimit !== null ? `Override khusus: ${t.userDailyChatLimit}` : `Limit global: ${dailyChatLimit}`}>
+                          {t.chatCount}/{t.effectiveLimit}
+                          {t.userDailyChatLimit !== null && <span className="ml-1 text-[10px] text-blue-500">★</span>}
                         </span>
                         {t.chatCount > 0 && (
                           <button
