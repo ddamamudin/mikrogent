@@ -140,7 +140,13 @@ INSTRUKSI:
       };
       const command = String(input.command ?? "");
       if (!command) return "ERROR: command kosong.";
-      return await executeMikrotikCommand(command, cfg);
+      const output = await executeMikrotikCommand(command, cfg);
+      const MAX = 8000;
+      if (output.length > MAX) {
+        return output.slice(0, MAX) +
+          `\n\n[Output dipotong: ${output.length} → ${MAX} karakter. Gunakan filter RouterOS untuk hasil lebih spesifik — contoh: 'where', '?status=...', 'count-only', atau 'print brief'.]`;
+      }
+      return output;
     }
 
     if (name === "update_memory") {
