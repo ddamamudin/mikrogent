@@ -23,6 +23,10 @@ const ACTION_LABELS: Record<string, string> = {
   update_agent_config: "Update Konfigurasi Agent",
   set_admin_setup_enabled: "Toggle Admin Setup",
   set_show_brand_field: "Toggle Field Brand",
+  router_create: "Tambah Router",
+  router_update: "Edit Router",
+  router_delete: "Hapus Router",
+  router_verify: "Tes Koneksi Router",
 };
 
 const ACTION_COLORS: Record<string, string> = {
