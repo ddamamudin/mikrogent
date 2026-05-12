@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendVerificationEmail } from "@/lib/mailer";
+import { notifyNewUser } from "@/lib/fonnte";
 
 function emailToBrand(email: string): string {
   return email.split("@")[0]
@@ -72,6 +73,9 @@ export async function POST(req: NextRequest) {
   });
 
   await sendVerificationEmail(email, name, token);
+
+  // Fire-and-forget WA notif ke admin — gak blocking respons
+  notifyNewUser({ name, email, brand, noWa }).catch(() => {});
 
   return NextResponse.json({ ok: true });
 }
