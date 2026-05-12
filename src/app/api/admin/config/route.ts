@@ -3,12 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { logAdmin } from "@/lib/admin-log";
 
 async function requireAdmin() {
   const cookieStore = await cookies();
   const session = getSessionFromCookie(cookieStore.get("session")?.value);
   if (!session || session.role !== "ADMIN") return null;
-  return session;
+  const admin = await prisma.user.findUnique({ where: { id: session.userId }, select: { id: true, name: true } });
+  return admin;
 }
 
 export async function GET() {
@@ -18,8 +20,8 @@ export async function GET() {
 }
 
 export async function PATCH(req: NextRequest) {
-  const session = await requireAdmin();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const admin = await requireAdmin();
+  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
 
@@ -29,6 +31,7 @@ export async function PATCH(req: NextRequest) {
       update: { adminSetupEnabled: body.adminSetupEnabled },
       create: { id: "singleton", adminSetupEnabled: body.adminSetupEnabled },
     });
+    await logAdmin({ adminId: admin.id, adminName: admin.name, action: "set_admin_setup_enabled", details: String(body.adminSetupEnabled) });
     return NextResponse.json(config);
   }
 
@@ -38,6 +41,7 @@ export async function PATCH(req: NextRequest) {
       update: { showBrandField: body.showBrandField },
       create: { id: "singleton", showBrandField: body.showBrandField },
     });
+    await logAdmin({ adminId: admin.id, adminName: admin.name, action: "set_show_brand_field", details: String(body.showBrandField) });
     return NextResponse.json(config);
   }
 
@@ -58,27 +62,30 @@ export async function PATCH(req: NextRequest) {
     }
 
     const data: Record<string, unknown> = {};
-    if (llmProvider !== undefined) data.llmProvider = llmProvider;
-    if (claudeApiKey !== undefined) data.claudeApiKey = claudeApiKey || null;
-    if (openaiApiKey !== undefined) data.openaiApiKey = openaiApiKey || null;
-    if (anthropicModel !== undefined && anthropicModel) data.anthropicModel = anthropicModel;
-    if (openaiModel !== undefined && openaiModel) data.openaiModel = openaiModel;
-    if (agentPersona !== undefined) data.agentPersona = agentPersona;
-    if (agentKnowledge !== undefined) data.agentKnowledge = agentKnowledge;
-    if (dailyChatLimit !== undefined) data.dailyChatLimit = dailyChatLimit;
+    const changed: string[] = [];
+    if (llmProvider !== undefined) { data.llmProvider = llmProvider; changed.push(`provider=${llmProvider}`); }
+    if (claudeApiKey !== undefined) { data.claudeApiKey = claudeApiKey || null; changed.push("claudeApiKey"); }
+    if (openaiApiKey !== undefined) { data.openaiApiKey = openaiApiKey || null; changed.push("openaiApiKey"); }
+    if (anthropicModel !== undefined && anthropicModel) { data.anthropicModel = anthropicModel; changed.push(`anthropicModel=${anthropicModel}`); }
+    if (openaiModel !== undefined && openaiModel) { data.openaiModel = openaiModel; changed.push(`openaiModel=${openaiModel}`); }
+    if (agentPersona !== undefined) { data.agentPersona = agentPersona; changed.push("persona"); }
+    if (agentKnowledge !== undefined) { data.agentKnowledge = agentKnowledge; changed.push("knowledge"); }
+    if (dailyChatLimit !== undefined) { data.dailyChatLimit = dailyChatLimit; changed.push(`dailyChatLimit=${dailyChatLimit}`); }
 
     const config = await prisma.appConfig.upsert({
       where: { id: "singleton" },
       update: data,
       create: { id: "singleton", ...data },
     });
+    await logAdmin({ adminId: admin.id, adminName: admin.name, action: "update_agent_config", details: changed.join(", ") });
     return NextResponse.json(config);
   }
 
   if (body.newPassword) {
     const bcrypt = await import("bcryptjs");
     const hashed = await bcrypt.hash(body.newPassword, 12);
-    await prisma.user.update({ where: { id: session.userId }, data: { password: hashed } });
+    await prisma.user.update({ where: { id: admin.id }, data: { password: hashed } });
+    await logAdmin({ adminId: admin.id, adminName: admin.name, action: "change_password" });
     return NextResponse.json({ ok: true });
   }
 

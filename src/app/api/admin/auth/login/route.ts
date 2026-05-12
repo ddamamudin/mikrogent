@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { createSession, sessionCookieOptions } from "@/lib/session";
+import { logAdmin } from "@/lib/admin-log";
 
 export async function POST(req: NextRequest) {
   const { email, password } = await req.json();
@@ -20,6 +21,8 @@ export async function POST(req: NextRequest) {
 
   const cookieStore = await cookies();
   cookieStore.set("session", createSession(user.id, null, "ADMIN"), sessionCookieOptions());
+
+  await logAdmin({ adminId: user.id, adminName: user.name, action: "login" });
 
   return NextResponse.json({ ok: true });
 }
