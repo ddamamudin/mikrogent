@@ -1,7 +1,26 @@
 "use client";
 
+import { useEffect } from "react";
+
 export default function PendingValidation({ name, email }: { name: string; email: string }) {
   const firstName = name.trim().split(/\s+/)[0] || "Kak";
+
+  useEffect(() => {
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const res = await fetch("/api/account", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled && data?.validated) {
+          window.location.href = "/dashboard/agent";
+        }
+      } catch {}
+    };
+    const interval = setInterval(tick, 5000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, []);
+
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
     window.location.href = "/masuk";
