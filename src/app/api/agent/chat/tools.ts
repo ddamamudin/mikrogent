@@ -94,7 +94,7 @@ Script ini berisi 2 perintah:
 2. Membuat username "${AGENT_SSH_USER}" dengan password khusus — sebagai kredensial login
 
 SCRIPT YANG HARUS DIJALANKAN:
-/user add name=${AGENT_SSH_USER} password=${sshPass} group=full
+/user add name=${AGENT_SSH_USER} password=${sshPass} group=write
 /ip service set ssh port=${port} disabled=no
 
 INSTRUKSI:
