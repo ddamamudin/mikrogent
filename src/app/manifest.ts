@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Mikroplay",
     short_name: "Mikroplay",
-    description: "Replay Agent — AI asisten MikroTik untuk reseller ISP",
+    description: "Replay Agent yang Kelola Mikrotik Kamu",
     start_url: "/dashboard/agent",
     scope: "/",
     display: "standalone",
