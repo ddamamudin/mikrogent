@@ -13,9 +13,15 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const SITE_URL = "https://mikroplay.com";
+const OG_TITLE = "Mikroplay";
+const OG_DESC = "Replay Agent yang Kelola Mikrotik Kamu";
+const OG_IMAGE = "/mikroplay-logo-and-text.png";
+
 export const metadata: Metadata = {
-  title: "Mikroplay",
-  description: "Replay Agent yang Kelola Mikrotik Kamu",
+  metadataBase: new URL(SITE_URL),
+  title: OG_TITLE,
+  description: OG_DESC,
   applicationName: "Mikroplay",
   appleWebApp: {
     capable: true,
@@ -28,6 +34,21 @@ export const metadata: Metadata = {
       { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
     ],
     apple: [{ url: "/apple-touch-icon-180.png", sizes: "180x180", type: "image/png" }],
+  },
+  openGraph: {
+    title: OG_TITLE,
+    description: OG_DESC,
+    url: SITE_URL,
+    siteName: OG_TITLE,
+    images: [{ url: OG_IMAGE, width: 640, height: 640, alt: OG_TITLE }],
+    type: "website",
+    locale: "id_ID",
+  },
+  twitter: {
+    card: "summary",
+    title: OG_TITLE,
+    description: OG_DESC,
+    images: [OG_IMAGE],
   },
 };
 
