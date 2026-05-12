@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { buildSystemPrompt } from "../../chat/persona";
+import { TOOL_SCHEMAS } from "../../chat/tools";
 
 function getTodayString(): string {
   return new Date().toISOString().slice(0, 10);
@@ -62,6 +63,18 @@ export async function POST() {
   const model = config.openaiRealtimeModel || "gpt-realtime";
   const voice = config.openaiVoice || "coral";
 
+  // Format tool spec untuk Realtime API (sama dengan OpenAI Chat Completions function tools)
+  const tools = TOOL_SCHEMAS.map((t) => ({
+    type: "function" as const,
+    name: t.name,
+    description: t.description,
+    parameters: {
+      type: "object" as const,
+      properties: t.parameters.properties,
+      required: t.parameters.required,
+    },
+  }));
+
   let mintRes: Response;
   try {
     mintRes = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
@@ -75,7 +88,22 @@ export async function POST() {
           type: "realtime",
           model,
           instructions,
-          audio: { output: { voice } },
+          tools,
+          tool_choice: "auto",
+          audio: {
+            input: {
+              transcription: { model: "whisper-1" },
+              turn_detection: {
+                type: "server_vad",
+                threshold: 0.5,
+                prefix_padding_ms: 300,
+                silence_duration_ms: 600,
+                create_response: true,
+                interrupt_response: true,
+              },
+            },
+            output: { voice },
+          },
         },
       }),
     });

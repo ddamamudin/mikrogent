@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, FormEvent } from "react";
 import { useAgentSidebar } from "@/components/DashboardLayoutClient";
-import VoiceCallModal from "./VoiceCallModal";
+import VoiceCallModal, { type TranscriptItem } from "./VoiceCallModal";
 
 type Role = "user" | "assistant";
 interface Message { role: Role; content: string; }
@@ -467,6 +467,16 @@ export default function AgentClient({ firstName, isConnected, hasMemory, agentRe
           initialUsedSeconds={voiceSecondsUsed}
           onClose={() => setVoiceModalOpen(false)}
           onUsageUpdate={(used) => setVoiceSecondsUsed(used)}
+          onTranscriptAppended={(items: TranscriptItem[]) => {
+            // Tampilkan di chat history dengan label voice
+            const uiItems = items.map((it) => ({
+              role: it.role as Role,
+              content: it.role === "user" ? `🎙️ ${it.content}` : it.content,
+            }));
+            const apiItems = items.map((it) => ({ role: it.role, content: it.content }));
+            setMessages((prev) => [...prev, ...uiItems]);
+            setApiMessages((prev) => [...prev, ...apiItems]);
+          }}
         />
       )}
 

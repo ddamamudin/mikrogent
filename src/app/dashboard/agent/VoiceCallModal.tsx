@@ -8,16 +8,21 @@ interface Props {
   initialUsedSeconds: number;
   onClose: () => void;
   onUsageUpdate: (usedSeconds: number) => void;
+  onTranscriptAppended: (items: TranscriptItem[]) => void;
 }
+
+export type TranscriptItem = { role: "user" | "assistant"; content: string };
 
 type Status =
   | "idle"
   | "requesting-mic"
   | "minting"
   | "connecting"
-  | "active"
+  | "listening"        // siap menerima suara user
+  | "user-speaking"    // VAD deteksi suara user
+  | "responding"       // agent lagi ngomong
+  | "tool"             // lagi eksekusi tool
   | "ending"
-  | "ended"
   | "error";
 
 function fmt(secs: number): string {
@@ -27,13 +32,19 @@ function fmt(secs: number): string {
   return `${m}:${r.toString().padStart(2, "0")}`;
 }
 
-export default function VoiceCallModal({ firstName, limitSeconds, initialUsedSeconds, onClose, onUsageUpdate }: Props) {
+export default function VoiceCallModal({
+  firstName,
+  limitSeconds,
+  initialUsedSeconds,
+  onClose,
+  onUsageUpdate,
+  onTranscriptAppended,
+}: Props) {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string>("");
   const [muted, setMuted] = useState(false);
-  const [transcript, setTranscript] = useState<string>("");
   const [elapsed, setElapsed] = useState(0);
-  const [agentSpeaking, setAgentSpeaking] = useState(false);
+  const [toolLabel, setToolLabel] = useState("");
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -42,6 +53,14 @@ export default function VoiceCallModal({ firstName, limitSeconds, initialUsedSec
   const startedAtRef = useRef<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const reportedRef = useRef(false);
+
+  // Tools: map callId → name (dipakai pas function_call_arguments.done biar tau nama tool)
+  const toolNamesRef = useRef<Map<string, string>>(new Map());
+
+  // Transcript accumulator selama call. Kita push ke history sekali, pas call end.
+  const transcriptRef = useRef<TranscriptItem[]>([]);
+  // Buffer transcript user yang lagi diketik (in-progress)
+  const pendingUserRef = useRef<string>("");
 
   const remaining = Math.max(0, limitSeconds - initialUsedSeconds - elapsed);
 
@@ -59,10 +78,23 @@ export default function VoiceCallModal({ firstName, limitSeconds, initialUsedSec
         const data = await res.json().catch(() => null);
         if (data?.usedSeconds != null) onUsageUpdate(data.usedSeconds);
       }
-    } catch {
-      // best-effort
-    }
+    } catch {}
   }, [onUsageUpdate]);
+
+  const persistTranscript = useCallback(async () => {
+    const items = transcriptRef.current.filter((t) => t.content.trim().length > 0);
+    if (items.length === 0) return;
+    try {
+      const res = await fetch("/api/agent/voice/transcript", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items }),
+      });
+      if (res.ok) {
+        onTranscriptAppended(items);
+      }
+    } catch {}
+  }, [onTranscriptAppended]);
 
   const cleanup = useCallback(() => {
     if (timerRef.current) {
@@ -84,17 +116,54 @@ export default function VoiceCallModal({ firstName, limitSeconds, initialUsedSec
     }
   }, []);
 
+  const sendEvent = useCallback((evt: Record<string, unknown>) => {
+    const dc = dataChannelRef.current;
+    if (!dc || dc.readyState !== "open") return;
+    try { dc.send(JSON.stringify(evt)); } catch {}
+  }, []);
+
+  const handleToolCall = useCallback(async (callId: string, name: string, argsStr: string) => {
+    setStatus("tool");
+    setToolLabel(name === "execute_mikrotik_command" ? "Cek MikroTik..." : name === "verify_and_connect" ? "Konek MikroTik..." : "Eksekusi tool...");
+    let output = "ERROR: gagal eksekusi tool";
+    try {
+      const res = await fetch("/api/agent/voice/tool", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, arguments: argsStr }),
+      });
+      const data = await res.json().catch(() => null);
+      output = data?.output ?? output;
+    } catch (e) {
+      output = `ERROR: ${e instanceof Error ? e.message : String(e)}`;
+    }
+    // Kirim hasil tool ke Realtime API
+    sendEvent({
+      type: "conversation.item.create",
+      item: {
+        type: "function_call_output",
+        call_id: callId,
+        output,
+      },
+    });
+    // Trigger response baru biar agent lanjut ngomong
+    sendEvent({ type: "response.create" });
+    setToolLabel("");
+  }, [sendEvent]);
+
   const endCall = useCallback(async () => {
     setStatus("ending");
     const elapsedSec = startedAtRef.current
       ? Math.ceil((Date.now() - startedAtRef.current) / 1000)
       : elapsed;
     cleanup();
+    // Persist transcript dulu (penting buat history), lalu report durasi
+    await persistTranscript();
     if (elapsedSec > 0) {
       await reportUsage(elapsedSec);
     }
-    setStatus("ended");
-  }, [cleanup, elapsed, reportUsage]);
+    onClose();
+  }, [cleanup, elapsed, reportUsage, persistTranscript, onClose]);
 
   const start = useCallback(async () => {
     setError("");
@@ -128,50 +197,101 @@ export default function VoiceCallModal({ firstName, limitSeconds, initialUsedSec
       return;
     }
 
-    const remainingFromServer = sessionData.remainingSeconds;
-    const hardCapSeconds = Math.min(remainingFromServer, sessionData.dailyLimitSeconds);
+    const hardCapSeconds = Math.min(sessionData.remainingSeconds, sessionData.dailyLimitSeconds);
 
     setStatus("connecting");
 
     const pc = new RTCPeerConnection();
     pcRef.current = pc;
 
-    // Output audio
     const audioEl = document.createElement("audio");
     audioEl.autoplay = true;
     audioElRef.current = audioEl;
-    pc.ontrack = (e) => {
-      audioEl.srcObject = e.streams[0];
-    };
+    pc.ontrack = (e) => { audioEl.srcObject = e.streams[0]; };
 
-    // Mic track
     const micTrack = stream.getAudioTracks()[0];
     if (micTrack) pc.addTrack(micTrack, stream);
 
-    // Data channel for events
     const dc = pc.createDataChannel("oai-events");
     dataChannelRef.current = dc;
 
+    // Akumulator transcript live (untuk agent)
     let assistantBuf = "";
-    dc.addEventListener("message", (e) => {
-      let evt: { type?: string; transcript?: string; delta?: string };
-      try { evt = JSON.parse(e.data); } catch { return; }
 
-      // Streaming text from assistant
-      if (evt.type === "response.output_audio_transcript.delta" && typeof evt.delta === "string") {
-        assistantBuf += evt.delta;
-        setTranscript(assistantBuf);
-        setAgentSpeaking(true);
-      } else if (evt.type === "response.output_audio_transcript.done" && typeof evt.transcript === "string") {
-        assistantBuf = evt.transcript;
-        setTranscript(assistantBuf);
-      } else if (evt.type === "response.done" || evt.type === "response.completed") {
-        setAgentSpeaking(false);
-      } else if (evt.type === "input_audio_buffer.speech_started") {
-        setAgentSpeaking(false);
-      } else if (evt.type === "response.created") {
+    dc.addEventListener("message", (e) => {
+      let evt: Record<string, unknown>;
+      try { evt = JSON.parse(e.data); } catch { return; }
+      const type = evt.type as string | undefined;
+      if (!type) return;
+
+      // User: VAD deteksi mulai bicara → potong agent kalau lagi ngomong (server VAD harusnya auto)
+      if (type === "input_audio_buffer.speech_started") {
+        setStatus("user-speaking");
+        return;
+      }
+      if (type === "input_audio_buffer.speech_stopped") {
+        // Tunggu sampai transcription completed atau response.created
+        return;
+      }
+
+      // User transcript final
+      if (type === "conversation.item.input_audio_transcription.completed") {
+        const t = (evt.transcript as string) ?? "";
+        if (t.trim()) {
+          transcriptRef.current.push({ role: "user", content: t.trim() });
+        }
+        pendingUserRef.current = "";
+        return;
+      }
+
+      // Agent response lifecycle
+      if (type === "response.created") {
         assistantBuf = "";
-        setTranscript("");
+        setStatus("responding");
+        return;
+      }
+      if (type === "response.audio_transcript.delta") {
+        const d = (evt.delta as string) ?? "";
+        assistantBuf += d;
+        return;
+      }
+      if (type === "response.audio_transcript.done") {
+        const t = ((evt.transcript as string) ?? assistantBuf).trim();
+        if (t) {
+          transcriptRef.current.push({ role: "assistant", content: t });
+        }
+        assistantBuf = "";
+        return;
+      }
+
+      // Function call lifecycle
+      if (type === "response.output_item.added") {
+        const item = evt.item as { type?: string; call_id?: string; name?: string } | undefined;
+        if (item?.type === "function_call" && item.call_id && item.name) {
+          toolNamesRef.current.set(item.call_id, item.name);
+        }
+        return;
+      }
+      if (type === "response.function_call_arguments.done") {
+        const callId = evt.call_id as string | undefined;
+        const argsStr = (evt.arguments as string) ?? "{}";
+        // Field `name` mungkin ada di event ini juga (versi terbaru), fallback ke map
+        const name = (evt.name as string | undefined) ?? (callId ? toolNamesRef.current.get(callId) : undefined);
+        if (callId && name) {
+          handleToolCall(callId, name, argsStr);
+        }
+        return;
+      }
+
+      if (type === "response.done" || type === "response.cancelled") {
+        // Balik ke listening kalau gak lagi tool
+        setStatus((cur) => (cur === "tool" ? cur : "listening"));
+        return;
+      }
+
+      if (type === "error") {
+        const errInfo = evt.error as { message?: string } | undefined;
+        setError(`OpenAI: ${errInfo?.message ?? "unknown"}`);
       }
     });
 
@@ -180,8 +300,7 @@ export default function VoiceCallModal({ firstName, limitSeconds, initialUsedSec
       offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Gagal membuat offer WebRTC";
-      setError(msg);
+      setError(e instanceof Error ? e.message : "Gagal membuat offer");
       setStatus("error");
       cleanup();
       return;
@@ -198,8 +317,7 @@ export default function VoiceCallModal({ firstName, limitSeconds, initialUsedSec
         },
       });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Gagal koneksi ke OpenAI";
-      setError(msg);
+      setError(e instanceof Error ? e.message : "Gagal koneksi");
       setStatus("error");
       cleanup();
       return;
@@ -207,7 +325,7 @@ export default function VoiceCallModal({ firstName, limitSeconds, initialUsedSec
 
     if (!sdpRes.ok) {
       const txt = await sdpRes.text().catch(() => "");
-      setError(`OpenAI menolak SDP (HTTP ${sdpRes.status}): ${txt.slice(0, 120)}`);
+      setError(`SDP HTTP ${sdpRes.status}: ${txt.slice(0, 120)}`);
       setStatus("error");
       cleanup();
       return;
@@ -217,14 +335,13 @@ export default function VoiceCallModal({ firstName, limitSeconds, initialUsedSec
     try {
       await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Gagal apply jawaban SDP";
-      setError(msg);
+      setError(e instanceof Error ? e.message : "Gagal apply SDP");
       setStatus("error");
       cleanup();
       return;
     }
 
-    setStatus("active");
+    setStatus("listening");
     startedAtRef.current = Date.now();
     timerRef.current = setInterval(() => {
       if (!startedAtRef.current) return;
@@ -234,9 +351,8 @@ export default function VoiceCallModal({ firstName, limitSeconds, initialUsedSec
         endCall();
       }
     }, 500);
-  }, [cleanup, endCall]);
+  }, [cleanup, endCall, handleToolCall]);
 
-  // Start otomatis saat modal dibuka
   useEffect(() => {
     start();
     return () => {
@@ -244,7 +360,11 @@ export default function VoiceCallModal({ firstName, limitSeconds, initialUsedSec
         ? Math.ceil((Date.now() - startedAtRef.current) / 1000)
         : 0;
       cleanup();
-      if (elapsedSec > 0) reportUsage(elapsedSec);
+      // Best-effort persist & report kalau component unmount kasar
+      if (elapsedSec > 0) {
+        persistTranscript();
+        reportUsage(elapsedSec);
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -257,116 +377,97 @@ export default function VoiceCallModal({ firstName, limitSeconds, initialUsedSec
     setMuted(next);
   };
 
-  const closeModal = async () => {
-    if (status === "active" || status === "connecting") {
-      await endCall();
-    }
-    onClose();
-  };
-
   const statusLabel = (() => {
     switch (status) {
-      case "requesting-mic": return "Minta izin mikrofon...";
+      case "requesting-mic": return "Mengakses mikrofon...";
       case "minting": return "Menyiapkan sesi...";
       case "connecting": return "Menyambungkan...";
-      case "active": return agentSpeaking ? "Replay Agent sedang bicara..." : "Mendengarkan...";
+      case "listening": return "Mendengarkan...";
+      case "user-speaking": return "Aku dengerin nih...";
+      case "responding": return "Aku lagi jawab...";
+      case "tool": return toolLabel || "Cek mikrotik...";
       case "ending": return "Mengakhiri panggilan...";
-      case "ended": return "Panggilan berakhir";
       case "error": return "Terjadi kesalahan";
-      default: return "";
+      default: return "Menyiapkan...";
     }
   })();
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 flex flex-col items-center gap-5">
-        <div className="text-xs text-gray-500 uppercase tracking-wider">Voice Call</div>
+  const isUserSpeaking = status === "user-speaking";
+  const isAgentSpeaking = status === "responding" || status === "tool";
 
-        <div className="relative flex items-center justify-center w-32 h-32">
-          {status === "active" && (
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-between bg-gradient-to-b from-slate-900 via-slate-950 to-black text-white p-8 pt-16">
+      <div className="text-xs uppercase tracking-widest text-white/40">Voice Call</div>
+
+      <div className="flex flex-col items-center gap-8 flex-1 justify-center">
+        {/* Avatar dengan pulse */}
+        <div className="relative flex items-center justify-center w-56 h-56">
+          {(isAgentSpeaking || isUserSpeaking) && (
             <>
-              <span className={`absolute inset-0 rounded-full ${agentSpeaking ? "bg-blue-400/30 animate-ping" : "bg-gray-200/40"}`} />
-              <span className={`absolute inset-2 rounded-full ${agentSpeaking ? "bg-blue-400/40" : "bg-gray-200/60"}`} />
+              <span className={`absolute inset-0 rounded-full ${isUserSpeaking ? "bg-emerald-400/20" : "bg-blue-400/20"} animate-ping`} />
+              <span className={`absolute inset-6 rounded-full ${isUserSpeaking ? "bg-emerald-400/30" : "bg-blue-400/30"}`} />
             </>
           )}
-          <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white text-3xl font-semibold">
+          <div className={`relative w-40 h-40 rounded-full bg-gradient-to-br ${isUserSpeaking ? "from-emerald-500 to-emerald-700" : "from-blue-500 to-blue-700"} flex items-center justify-center text-white text-6xl font-semibold shadow-2xl transition-colors`}>
             {firstName.slice(0, 1).toUpperCase()}
           </div>
         </div>
 
         <div className="text-center">
-          <div className="text-lg font-semibold text-gray-900">Replay Agent</div>
-          <div className="text-sm text-gray-500 mt-0.5">{statusLabel}</div>
+          <div className="text-2xl font-semibold">Replay Agent</div>
+          <div className="text-sm text-white/60 mt-2">{statusLabel}</div>
         </div>
 
-        {status === "active" && (
-          <div className="flex items-center gap-2 text-sm font-mono">
-            <span className="text-gray-900">{fmt(elapsed)}</span>
-            <span className="text-gray-400">/</span>
-            <span className="text-gray-500">sisa {fmt(remaining)}</span>
+        {status === "listening" || status === "user-speaking" || status === "responding" || status === "tool" ? (
+          <div className="text-sm font-mono text-white/50">
+            {fmt(elapsed)} <span className="text-white/30">/ sisa {fmt(remaining)}</span>
           </div>
-        )}
-
-        {transcript && status === "active" && (
-          <div className="w-full max-h-24 overflow-y-auto text-sm text-gray-700 bg-gray-50 rounded-xl px-3 py-2 leading-relaxed text-center">
-            {transcript}
-          </div>
-        )}
+        ) : null}
 
         {error && (
-          <div className="w-full text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-3 py-2 text-center">
+          <div className="max-w-md text-sm text-red-300 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-center">
             {error}
           </div>
         )}
+      </div>
 
-        <div className="flex items-center gap-4 pt-1">
-          {status === "active" && (
-            <button
-              type="button"
-              onClick={toggleMute}
-              title={muted ? "Unmute" : "Mute"}
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition border-none cursor-pointer ${muted ? "bg-yellow-100 text-yellow-700" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                {muted ? (
-                  <>
-                    <line x1="1" y1="1" x2="23" y2="23" />
-                    <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
-                    <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23" />
-                    <line x1="12" y1="19" x2="12" y2="23" />
-                  </>
-                ) : (
-                  <>
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                    <line x1="12" y1="19" x2="12" y2="23" />
-                  </>
-                )}
-              </svg>
-            </button>
-          )}
+      {/* Action buttons */}
+      <div className="flex items-center gap-6 pb-4">
+        <button
+          type="button"
+          onClick={toggleMute}
+          disabled={status !== "listening" && status !== "user-speaking" && status !== "responding" && status !== "tool"}
+          title={muted ? "Unmute" : "Mute"}
+          className={`w-16 h-16 rounded-full flex items-center justify-center transition border-none cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${muted ? "bg-yellow-400 text-yellow-900" : "bg-white/10 text-white hover:bg-white/20"}`}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {muted ? (
+              <>
+                <line x1="1" y1="1" x2="23" y2="23" />
+                <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6" />
+                <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23" />
+                <line x1="12" y1="19" x2="12" y2="23" />
+              </>
+            ) : (
+              <>
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <line x1="12" y1="19" x2="12" y2="23" />
+              </>
+            )}
+          </svg>
+        </button>
 
-          <button
-            type="button"
-            onClick={closeModal}
-            title={status === "active" ? "Akhiri panggilan" : "Tutup"}
-            className="w-14 h-14 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition border-none cursor-pointer"
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: "rotate(135deg)" }}>
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-            </svg>
-          </button>
-        </div>
-
-        {status === "ended" && (
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-sm text-gray-500 hover:text-gray-700 cursor-pointer bg-transparent border-none"
-          >
-            Tutup
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={endCall}
+          title="Akhiri panggilan"
+          className="w-20 h-20 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition border-none cursor-pointer shadow-xl"
+        >
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: "rotate(135deg)" }}>
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+          </svg>
+        </button>
       </div>
     </div>
   );
