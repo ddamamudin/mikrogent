@@ -53,6 +53,8 @@ export default function VoiceCallModal({
 
   // Penanda: agent mau hangup setelah farewell selesai
   const pendingHangupRef = useRef(false);
+  // Penanda: sapaan awal udah di-trigger (cegah double-send)
+  const greetingTriggeredRef = useRef(false);
 
   const remaining = Math.max(0, limitSeconds - initialUsedSeconds - elapsed);
 
@@ -195,12 +197,11 @@ export default function VoiceCallModal({
     const dc = pc.createDataChannel("oai-events");
     dataChannelRef.current = dc;
 
-    // Begitu channel siap, agent yang nyapa duluan (sesuai instruksi di session prompt)
-    dc.addEventListener("open", () => {
-      try {
-        dc.send(JSON.stringify({ type: "response.create" }));
-      } catch {}
-    });
+    const triggerGreeting = () => {
+      if (greetingTriggeredRef.current) return;
+      greetingTriggeredRef.current = true;
+      try { dc.send(JSON.stringify({ type: "response.create" })); } catch {}
+    };
 
     dc.addEventListener("message", (e) => {
       let evt: Record<string, unknown>;
@@ -208,12 +209,21 @@ export default function VoiceCallModal({
       const type = evt.type as string | undefined;
       if (!type) return;
 
+      // Session ready → agent nyapa duluan
+      if (type === "session.created" || type === "session.updated") {
+        triggerGreeting();
+        return;
+      }
+
       if (type === "input_audio_buffer.speech_started") {
+        // Kalau user ngomong sebelum sapaan trigger, tandai aja udah jalan biar gak double
+        greetingTriggeredRef.current = true;
         setStatus("user-speaking");
         return;
       }
 
       if (type === "response.created") {
+        greetingTriggeredRef.current = true;
         setStatus("responding");
         return;
       }
@@ -248,8 +258,17 @@ export default function VoiceCallModal({
       }
 
       if (type === "error") {
-        const errInfo = evt.error as { message?: string } | undefined;
-        setError(`OpenAI: ${errInfo?.message ?? "unknown"}`);
+        const errInfo = evt.error as { message?: string; code?: string } | undefined;
+        const msg = errInfo?.message ?? "";
+        // Race condition yg gak fatal — agent udah / lagi ngomong, gak perlu kasih tau user
+        if (
+          msg.includes("active response in progress") ||
+          msg.includes("already has an active response") ||
+          errInfo?.code === "conversation_already_has_active_response"
+        ) {
+          return;
+        }
+        setError(`OpenAI: ${msg || "unknown"}`);
       }
     });
 
