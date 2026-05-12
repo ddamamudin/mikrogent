@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 export default function AdminMasukPage() {
   const [email, setEmail] = useState("");
@@ -23,48 +24,57 @@ export default function AdminMasukPage() {
       return setError(data.error || "Login gagal");
     }
     // Full page navigation supaya cookie session terbawa + RSC fresh render
-    window.location.href = "/admin/dashboard";
+    window.location.href = "/admin/tenant";
   };
 
-  const inputClass = "w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-blue-500";
+  const inputClass = "w-full bg-gray-100 rounded-xl px-4 py-3.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-gray-200 transition text-[15px]";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-slate-950 px-4">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
+    <div className="min-h-screen bg-white flex flex-col px-6">
+      <div className="pt-20 pb-10 text-center">
+        <Link href="/">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/mikroplay-logo-text.png" alt="Mikroplay" className="h-10 w-auto mx-auto" />
-          <p className="text-sm text-gray-500 dark:text-white/50 mt-2">Admin Panel</p>
+          <img src="/mikroplay-logo-and-text.png" alt="Mikroplay" className="h-16 w-auto mx-auto" />
+        </Link>
+        <h1 className="text-2xl font-bold mt-5 text-gray-900">Admin Panel</h1>
+        <p className="text-gray-400 text-sm mt-1">Masuk sebagai admin</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {error && (
+          <div className="bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3">
+            {error}
+          </div>
+        )}
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-gray-500 px-1">Email</label>
+          <input
+            type="email" value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required className={inputClass} placeholder="admin@mail.com"
+          />
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 p-6 space-y-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-gray-400 dark:text-white/50 uppercase tracking-wider">Masuk sebagai Admin</h2>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-gray-500 px-1">Password</label>
+          <input
+            type="password" value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required className={inputClass} placeholder="Password admin"
+          />
+        </div>
 
-          {error && (
-            <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 text-sm rounded-lg px-4 py-3">
-              {error}
-            </div>
-          )}
+        <button type="submit" disabled={loading}
+          className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-semibold transition text-[15px] mt-2">
+          {loading ? "Masuk..." : "Masuk"}
+        </button>
 
-          <div className="space-y-1">
-            <label className="text-sm text-gray-600 dark:text-white/60">Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputClass} />
-          </div>
-          <div className="space-y-1">
-            <label className="text-sm text-gray-600 dark:text-white/60">Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className={inputClass} />
-          </div>
-
-          <button type="submit" disabled={loading} className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition disabled:opacity-50">
-            {loading ? "Masuk..." : "Masuk"}
-          </button>
-
-          <p className="text-xs text-center text-gray-400 dark:text-white/30">
-            Belum ada admin?{" "}
-            <a href="/admin/setup" className="text-blue-500 hover:underline">Setup Admin</a>
-          </p>
-        </form>
-      </div>
+        <p className="text-center text-sm text-gray-400 mt-2">
+          Belum ada admin?{" "}
+          <Link href="/admin/setup" className="text-blue-600 font-medium">Setup Admin</Link>
+        </p>
+      </form>
     </div>
   );
 }

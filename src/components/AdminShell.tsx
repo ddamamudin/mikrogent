@@ -65,7 +65,7 @@ export default function AdminShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isPublicPage = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
   const isValidator = adminLevel === "VALIDATOR";
