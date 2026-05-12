@@ -38,8 +38,8 @@ export async function GET(req: NextRequest) {
     prisma.user.findMany({
       where,
       select: {
-        id: true, name: true, email: true, brand: true, status: true, emailVerified: true, validated: true, dailyChatLimit: true, createdAt: true,
-        agentDailyCount: { select: { count: true, date: true } },
+        id: true, name: true, email: true, brand: true, status: true, emailVerified: true, validated: true, dailyChatLimit: true, dailyVoiceSeconds: true, createdAt: true,
+        agentDailyCount: { select: { count: true, voiceSeconds: true, date: true } },
         mikrotikCredential: { select: { connected: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -47,22 +47,28 @@ export async function GET(req: NextRequest) {
       take: limit,
     }),
     prisma.user.count({ where }),
-    prisma.appConfig.findUnique({ where: { id: "singleton" }, select: { dailyChatLimit: true } }),
+    prisma.appConfig.findUnique({ where: { id: "singleton" }, select: { dailyChatLimit: true, voiceDailySeconds: true, voiceCallEnabled: true } }),
   ]);
 
   const dailyChatLimit = config?.dailyChatLimit ?? 50;
+  const voiceDailySeconds = config?.voiceDailySeconds ?? 180;
+  const voiceCallEnabled = config?.voiceCallEnabled ?? false;
   const tenantsWithCount = tenants.map((t) => {
-    const { dailyChatLimit: userOverride, agentDailyCount, mikrotikCredential, ...rest } = t;
+    const { dailyChatLimit: userOverride, dailyVoiceSeconds: userVoiceOverride, agentDailyCount, mikrotikCredential, ...rest } = t;
     const mikrotikStatus: "connected" | "disconnected" | "none" =
       !mikrotikCredential ? "none" : mikrotikCredential.connected ? "connected" : "disconnected";
+    const sameDay = agentDailyCount?.date === today;
     return {
       ...rest,
-      chatCount: agentDailyCount?.date === today ? (agentDailyCount.count ?? 0) : 0,
+      chatCount: sameDay ? (agentDailyCount.count ?? 0) : 0,
       userDailyChatLimit: userOverride,
       effectiveLimit: userOverride ?? dailyChatLimit,
+      voiceSecondsUsed: sameDay ? (agentDailyCount.voiceSeconds ?? 0) : 0,
+      userDailyVoiceSeconds: userVoiceOverride,
+      effectiveVoiceLimit: userVoiceOverride ?? voiceDailySeconds,
       mikrotikStatus,
     };
   });
 
-  return NextResponse.json({ tenants: tenantsWithCount, total, page, totalPages: Math.ceil(total / limit), dailyChatLimit });
+  return NextResponse.json({ tenants: tenantsWithCount, total, page, totalPages: Math.ceil(total / limit), dailyChatLimit, voiceDailySeconds, voiceCallEnabled });
 }

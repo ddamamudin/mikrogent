@@ -47,6 +47,9 @@ type Tenant = {
   chatCount: number;
   userDailyChatLimit: number | null;
   effectiveLimit: number;
+  voiceSecondsUsed: number;
+  userDailyVoiceSeconds: number | null;
+  effectiveVoiceLimit: number;
   mikrotikStatus: "connected" | "disconnected" | "none";
 };
 
@@ -74,6 +77,8 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [total, setTotal] = useState(0);
   const [dailyChatLimit, setDailyChatLimit] = useState(50);
+  const [voiceDailySeconds, setVoiceDailySeconds] = useState(180);
+  const [voiceCallEnabled, setVoiceCallEnabled] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [q, setQ] = useState("");
@@ -122,6 +127,8 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
     setTotal(data.total ?? 0);
     setTotalPages(data.totalPages ?? 1);
     setDailyChatLimit(data.dailyChatLimit ?? 50);
+    setVoiceDailySeconds(data.voiceDailySeconds ?? 180);
+    setVoiceCallEnabled(!!data.voiceCallEnabled);
     setLoading(false);
   }, [page, q, status]);
 
@@ -223,6 +230,23 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
       fetchTenants();
     } else {
       showMsg("err", "Gagal mereset kuota");
+    }
+  };
+
+  const handleResetVoiceQuota = async (id: string, name: string) => {
+    if (!confirm(`Reset kuota voice "${name}" ke 0 detik?`)) return;
+    setActionLoading(id);
+    const res = await fetch(`/api/admin/tenants/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "resetVoiceQuota" }),
+    });
+    setActionLoading(null);
+    if (res.ok) {
+      showMsg("ok", `Kuota voice ${name} berhasil direset`);
+      fetchTenants();
+    } else {
+      showMsg("err", "Gagal mereset kuota voice");
     }
   };
 
@@ -353,21 +377,44 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
                       })()}
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-sm font-medium ${t.chatCount >= t.effectiveLimit ? "text-red-500 dark:text-red-400" : t.chatCount > 0 ? "text-gray-700 dark:text-white/70" : "text-gray-300 dark:text-white/20"}`}
-                          title={t.userDailyChatLimit !== null ? `Override khusus: ${t.userDailyChatLimit}` : `Limit global: ${dailyChatLimit}`}>
-                          {t.chatCount}/{t.effectiveLimit}
-                          {t.userDailyChatLimit !== null && <span className="ml-1 text-[10px] text-blue-500">★</span>}
-                        </span>
-                        {!isValidator && t.chatCount > 0 && (
-                          <button
-                            onClick={() => handleResetQuota(t.id, t.name)}
-                            disabled={actionLoading === t.id}
-                            title="Reset kuota"
-                            className="text-xs px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-500 dark:text-blue-400 transition disabled:opacity-50"
-                          >
-                            Reset
-                          </button>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-sm font-medium ${t.chatCount >= t.effectiveLimit ? "text-red-500 dark:text-red-400" : t.chatCount > 0 ? "text-gray-700 dark:text-white/70" : "text-gray-300 dark:text-white/20"}`}
+                            title={t.userDailyChatLimit !== null ? `Override khusus: ${t.userDailyChatLimit}` : `Limit global: ${dailyChatLimit}`}>
+                            {t.chatCount}/{t.effectiveLimit}
+                            {t.userDailyChatLimit !== null && <span className="ml-1 text-[10px] text-blue-500">★</span>}
+                            <span className="ml-1 text-[10px] text-gray-400 dark:text-white/30">chat</span>
+                          </span>
+                          {!isValidator && t.chatCount > 0 && (
+                            <button
+                              onClick={() => handleResetQuota(t.id, t.name)}
+                              disabled={actionLoading === t.id}
+                              title="Reset kuota chat"
+                              className="text-xs px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-500 dark:text-blue-400 transition disabled:opacity-50"
+                            >
+                              Reset
+                            </button>
+                          )}
+                        </div>
+                        {voiceCallEnabled && (
+                          <div className="flex items-center gap-2">
+                            <span className={`text-sm font-medium ${t.voiceSecondsUsed >= t.effectiveVoiceLimit ? "text-red-500 dark:text-red-400" : t.voiceSecondsUsed > 0 ? "text-gray-700 dark:text-white/70" : "text-gray-300 dark:text-white/20"}`}
+                              title={t.userDailyVoiceSeconds !== null ? `Override khusus: ${t.userDailyVoiceSeconds} detik` : `Limit global: ${voiceDailySeconds} detik`}>
+                              {t.voiceSecondsUsed}/{t.effectiveVoiceLimit}
+                              {t.userDailyVoiceSeconds !== null && <span className="ml-1 text-[10px] text-blue-500">★</span>}
+                              <span className="ml-1 text-[10px] text-gray-400 dark:text-white/30">voice (s)</span>
+                            </span>
+                            {!isValidator && t.voiceSecondsUsed > 0 && (
+                              <button
+                                onClick={() => handleResetVoiceQuota(t.id, t.name)}
+                                disabled={actionLoading === t.id}
+                                title="Reset kuota voice"
+                                className="text-xs px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-500 dark:text-blue-400 transition disabled:opacity-50"
+                              >
+                                Reset
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                     </td>
