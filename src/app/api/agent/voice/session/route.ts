@@ -20,7 +20,7 @@ export async function POST() {
 
   const [config, user, cred, memory, dailyCount] = await Promise.all([
     prisma.appConfig.findUnique({ where: { id: "singleton" } }),
-    prisma.user.findUnique({ where: { id: userId }, select: { name: true, validated: true } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { name: true, validated: true, dailyVoiceSeconds: true } }),
     prisma.mikrotikCredential.findUnique({ where: { userId } }),
     prisma.agentMemory.findUnique({ where: { userId } }),
     prisma.agentDailyCount.findUnique({ where: { userId } }),
@@ -40,7 +40,7 @@ export async function POST() {
   }
 
   const today = getTodayString();
-  const limitSeconds = config.voiceDailySeconds ?? 180;
+  const limitSeconds = user.dailyVoiceSeconds ?? config.voiceDailySeconds ?? 180;
   const usedToday = dailyCount?.date === today ? (dailyCount.voiceSeconds ?? 0) : 0;
   const remaining = Math.max(0, limitSeconds - usedToday);
   if (remaining <= 0) {

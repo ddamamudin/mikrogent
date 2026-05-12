@@ -19,6 +19,7 @@ model User {
   validated     Boolean     @default(false)
   status        UserStatus  @default(ACTIVE)
   dailyChatLimit Int?
+  dailyVoiceSeconds Int?
   role          Role        @default(USER)
   adminLevel    AdminLevel?
   createdAt     DateTime    @default(now())

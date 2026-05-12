@@ -111,11 +111,14 @@ export default function AgentClient({ firstName, isConnected, hasMemory, agentRe
       hasMemory,
       chatCount,
       dailyChatLimit,
+      voiceCallEnabled,
+      voiceSecondsUsed,
+      voiceDailyLimitSeconds,
       hasMessages: messages.length > 0,
       onReset: resetChat,
     });
     return () => setAgentSidebar(null);
-  }, [setAgentSidebar, isConnected, hasMemory, chatCount, dailyChatLimit, messages.length, resetChat]);
+  }, [setAgentSidebar, isConnected, hasMemory, chatCount, dailyChatLimit, voiceCallEnabled, voiceSecondsUsed, voiceDailyLimitSeconds, messages.length, resetChat]);
 
   function autoResize() {
     const el = textareaRef.current;

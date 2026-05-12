@@ -12,7 +12,7 @@ export default async function AgentPage() {
 
   const today = new Date().toISOString().slice(0, 10);
   const [user, cred, memory, config, dailyCount, chatSession] = await Promise.all([
-    prisma.user.findUnique({ where: { id: session.userId }, select: { name: true, dailyChatLimit: true } }),
+    prisma.user.findUnique({ where: { id: session.userId }, select: { name: true, dailyChatLimit: true, dailyVoiceSeconds: true } }),
     prisma.mikrotikCredential.findUnique({ where: { userId: session.userId } }),
     prisma.agentMemory.findUnique({ where: { userId: session.userId } }),
     prisma.appConfig.findUnique({ where: { id: "singleton" } }),
@@ -29,7 +29,7 @@ export default async function AgentPage() {
     (config?.voiceCallEnabled ?? false) &&
     config?.llmProvider === "openai" &&
     !!config?.openaiApiKey;
-  const voiceDailyLimitSeconds = config?.voiceDailySeconds ?? 180;
+  const voiceDailyLimitSeconds = user?.dailyVoiceSeconds ?? config?.voiceDailySeconds ?? 180;
 
   return (
     <AgentClient

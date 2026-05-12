@@ -57,6 +57,9 @@ export type AgentSidebarState = {
   hasMemory: boolean;
   chatCount: number;
   dailyChatLimit: number;
+  voiceCallEnabled: boolean;
+  voiceSecondsUsed: number;
+  voiceDailyLimitSeconds: number;
   hasMessages: boolean;
   onReset: () => void;
 };
@@ -190,6 +193,11 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
                           <div className="text-xs text-gray-500 dark:text-white/40">
                             {agentState.chatCount}/{agentState.dailyChatLimit} chat hari ini
                           </div>
+                          {agentState.voiceCallEnabled && (
+                            <div className="text-xs text-gray-500 dark:text-white/40">
+                              {agentState.voiceSecondsUsed}/{agentState.voiceDailyLimitSeconds} detik voice hari ini
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

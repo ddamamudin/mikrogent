@@ -29,22 +29,28 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       where: { id, role: "USER" },
       select: {
         id: true, name: true, email: true, brand: true, alamat: true, noWa: true,
-        status: true, emailVerified: true, validated: true, dailyChatLimit: true,
+        status: true, emailVerified: true, validated: true, dailyChatLimit: true, dailyVoiceSeconds: true,
         createdAt: true, updatedAt: true,
-        agentDailyCount: { select: { count: true, date: true } },
+        agentDailyCount: { select: { count: true, voiceSeconds: true, date: true } },
       },
     }),
-    prisma.appConfig.findUnique({ where: { id: "singleton" }, select: { dailyChatLimit: true } }),
+    prisma.appConfig.findUnique({ where: { id: "singleton" }, select: { dailyChatLimit: true, voiceDailySeconds: true } }),
   ]);
   if (!tenant) return NextResponse.json({ error: "Tenant tidak ditemukan" }, { status: 404 });
-  const { agentDailyCount, dailyChatLimit: userOverride, ...rest } = tenant;
+  const { agentDailyCount, dailyChatLimit: userOverride, dailyVoiceSeconds: userVoiceOverride, ...rest } = tenant;
   const globalLimit = config?.dailyChatLimit ?? 50;
+  const globalVoiceLimit = config?.voiceDailySeconds ?? 180;
+  const sameDay = agentDailyCount?.date === today;
   return NextResponse.json({
     ...rest,
-    chatCount: agentDailyCount?.date === today ? (agentDailyCount.count ?? 0) : 0,
+    chatCount: sameDay ? (agentDailyCount.count ?? 0) : 0,
     userDailyChatLimit: userOverride,
     globalDailyChatLimit: globalLimit,
     dailyChatLimit: userOverride ?? globalLimit,
+    voiceSecondsUsed: sameDay ? (agentDailyCount.voiceSeconds ?? 0) : 0,
+    userDailyVoiceSeconds: userVoiceOverride,
+    globalDailyVoiceSeconds: globalVoiceLimit,
+    dailyVoiceSeconds: userVoiceOverride ?? globalVoiceLimit,
   });
 }
 
@@ -64,6 +70,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.action === "resetChatQuota") {
     await prisma.agentDailyCount.deleteMany({ where: { userId: id } });
     await logAdmin({ adminId: admin.id, adminName: admin.name, action: "reset_chat_quota", details: label });
+    return NextResponse.json({ ok: true });
+  }
+
+  if (body.action === "resetVoiceQuota") {
+    await prisma.agentDailyCount.updateMany({ where: { userId: id }, data: { voiceSeconds: 0 } });
+    await logAdmin({ adminId: admin.id, adminName: admin.name, action: "reset_voice_quota", details: label });
     return NextResponse.json({ ok: true });
   }
 
@@ -100,6 +112,31 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       adminId: admin.id, adminName: admin.name,
       action: "set_chat_limit",
       details: `${label} → ${value === null ? "default global" : `${value}/hari`}`,
+    });
+    return NextResponse.json({ ok: true });
+  }
+
+  if ("dailyVoiceSeconds" in body) {
+    const v = body.dailyVoiceSeconds;
+    let value: number | null;
+    if (v === null || v === "") {
+      value = null;
+    } else {
+      const n = typeof v === "number" ? v : parseInt(String(v), 10);
+      if (!Number.isFinite(n) || n < 0 || n > 3600) {
+        return NextResponse.json({ error: "Limit voice harus 0 - 3600 detik" }, { status: 400 });
+      }
+      value = n;
+    }
+    const tenant = await prisma.user.updateMany({
+      where: { id, role: "USER" },
+      data: { dailyVoiceSeconds: value },
+    });
+    if (tenant.count === 0) return NextResponse.json({ error: "Tenant tidak ditemukan" }, { status: 404 });
+    await logAdmin({
+      adminId: admin.id, adminName: admin.name,
+      action: "set_voice_limit",
+      details: `${label} → ${value === null ? "default global" : `${value}s/hari`}`,
     });
     return NextResponse.json({ ok: true });
   }

@@ -38,8 +38,11 @@ export async function POST(req: NextRequest) {
     create: { userId, voiceSeconds: seconds, count: 0, date: today },
   });
 
-  const config = await prisma.appConfig.findUnique({ where: { id: "singleton" } });
-  const limit = config?.voiceDailySeconds ?? 180;
+  const [config, user] = await Promise.all([
+    prisma.appConfig.findUnique({ where: { id: "singleton" } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { dailyVoiceSeconds: true } }),
+  ]);
+  const limit = user?.dailyVoiceSeconds ?? config?.voiceDailySeconds ?? 180;
   const updated = await prisma.agentDailyCount.findUnique({ where: { userId } });
   const used = updated?.voiceSeconds ?? 0;
   const remaining = Math.max(0, limit - used);

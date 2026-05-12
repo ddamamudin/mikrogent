@@ -15,26 +15,33 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
   const [tenant, dailyCount, config, cred, admin] = await Promise.all([
     prisma.user.findUnique({
       where: { id, role: "USER" },
-      select: { id: true, name: true, email: true, brand: true, alamat: true, noWa: true, status: true, emailVerified: true, validated: true, dailyChatLimit: true, createdAt: true, updatedAt: true },
+      select: { id: true, name: true, email: true, brand: true, alamat: true, noWa: true, status: true, emailVerified: true, validated: true, dailyChatLimit: true, dailyVoiceSeconds: true, createdAt: true, updatedAt: true },
     }),
     prisma.agentDailyCount.findUnique({ where: { userId: id } }),
-    prisma.appConfig.findUnique({ where: { id: "singleton" }, select: { dailyChatLimit: true } }),
+    prisma.appConfig.findUnique({ where: { id: "singleton" }, select: { dailyChatLimit: true, voiceDailySeconds: true, voiceCallEnabled: true } }),
     prisma.mikrotikCredential.findUnique({ where: { userId: id } }),
     prisma.user.findUnique({ where: { id: session.userId }, select: { adminLevel: true } }),
   ]);
   if (!tenant) notFound();
 
   const globalLimit = config?.dailyChatLimit ?? 50;
-  const { dailyChatLimit: userOverride, ...rest } = tenant;
+  const globalVoiceLimit = config?.voiceDailySeconds ?? 180;
+  const { dailyChatLimit: userOverride, dailyVoiceSeconds: userVoiceOverride, ...rest } = tenant;
   const isValidator = admin?.adminLevel === "VALIDATOR";
+  const sameDay = dailyCount?.date === today;
   return (
     <TenantDetailClient
       tenant={{
         ...rest,
-        chatCount: dailyCount?.date === today ? (dailyCount.count ?? 0) : 0,
+        chatCount: sameDay ? (dailyCount.count ?? 0) : 0,
         userDailyChatLimit: userOverride,
         globalDailyChatLimit: globalLimit,
         dailyChatLimit: userOverride ?? globalLimit,
+        voiceSecondsUsed: sameDay ? (dailyCount.voiceSeconds ?? 0) : 0,
+        userDailyVoiceSeconds: userVoiceOverride,
+        globalDailyVoiceSeconds: globalVoiceLimit,
+        dailyVoiceSeconds: userVoiceOverride ?? globalVoiceLimit,
+        voiceCallEnabled: config?.voiceCallEnabled ?? false,
       }}
       mikrotikCred={cred ? { host: cred.host, port: cred.port, sshUser: cred.sshUser, sshPass: cred.sshPass, connected: cred.connected } : null}
       isValidator={isValidator}
