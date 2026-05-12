@@ -2,10 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -20,9 +18,12 @@ export default function LoginPage() {
       body: JSON.stringify(form),
     });
     const data = await res.json();
-    setLoading(false);
-    if (!res.ok) return setError(data.error || "Email atau password salah");
-    router.push("/dashboard");
+    if (!res.ok) {
+      setLoading(false);
+      return setError(data.error || "Email atau password salah");
+    }
+    // Full page navigation supaya cookie session terbawa + RSC fresh render
+    window.location.href = "/dashboard";
   };
 
   const inputClass = "w-full bg-gray-100 rounded-xl px-4 py-3.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-gray-200 transition text-[15px]";

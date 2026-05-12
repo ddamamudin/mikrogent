@@ -1,11 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-
 
 export default function AdminMasukPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,9 +18,12 @@ export default function AdminMasukPage() {
       body: JSON.stringify({ email, password }),
     });
     const data = await res.json();
-    setLoading(false);
-    if (!res.ok) return setError(data.error || "Login gagal");
-    router.push("/admin/dashboard");
+    if (!res.ok) {
+      setLoading(false);
+      return setError(data.error || "Login gagal");
+    }
+    // Full page navigation supaya cookie session terbawa + RSC fresh render
+    window.location.href = "/admin/dashboard";
   };
 
   const inputClass = "w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-blue-500";
