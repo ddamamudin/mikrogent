@@ -70,12 +70,12 @@ export default function LoginPage() {
           className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-semibold transition text-[15px] mt-2">
           {loading ? "Masuk..." : "Masuk"}
         </button>
-      </form>
 
-      <p className="text-center text-sm text-gray-400 mt-auto pt-10 pb-10">
-        Belum punya akun?{" "}
-        <Link href="/daftar" className="text-blue-600 font-medium">Daftar</Link>
-      </p>
+        <p className="text-center text-sm text-gray-400 mt-2">
+          Belum punya akun?{" "}
+          <Link href="/daftar" className="text-blue-600 font-medium">Daftar</Link>
+        </p>
+      </form>
     </div>
   );
 }
