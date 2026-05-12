@@ -21,6 +21,9 @@ export async function GET(req: NextRequest) {
     ...(status === "ACTIVE" || status === "SUSPENDED" ? { status: status as "ACTIVE" | "SUSPENDED" } : {}),
     ...(status === "PENDING" ? { validated: false } : {}),
     ...(status === "VALIDATED" ? { validated: true } : {}),
+    ...(status === "ROUTER_CONNECTED" ? { mikrotikCredential: { is: { connected: true } } } : {}),
+    ...(status === "ROUTER_DISCONNECTED" ? { mikrotikCredential: { is: { connected: false } } } : {}),
+    ...(status === "ROUTER_NONE" ? { mikrotikCredential: { is: null } } : {}),
     ...(q ? {
       OR: [
         { name: { contains: q, mode: "insensitive" as const } },

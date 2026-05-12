@@ -283,6 +283,9 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
           <option value="VALIDATED">Sudah Validasi</option>
           <option value="ACTIVE">Aktif</option>
           <option value="SUSPENDED">Suspended</option>
+          <option value="ROUTER_CONNECTED">Router Terhubung</option>
+          <option value="ROUTER_DISCONNECTED">Router Putus</option>
+          <option value="ROUTER_NONE">Router Belum Onboarding</option>
         </select>
       </div>
 
