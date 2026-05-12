@@ -21,6 +21,20 @@ const NAV = [
     ],
   },
   {
+    group: "Router",
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="14" width="20" height="8" rx="2" />
+        <line x1="6" y1="18" x2="6.01" y2="18" />
+        <line x1="10" y1="18" x2="10.01" y2="18" />
+        <path d="M6 10V6a6 6 0 0 1 12 0v4" />
+      </svg>
+    ),
+    items: [
+      { href: "/dashboard/router", label: "Setting Router" },
+    ],
+  },
+  {
     group: "Profil",
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

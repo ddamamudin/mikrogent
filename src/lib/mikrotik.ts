@@ -1,4 +1,26 @@
 import { Client } from 'ssh2';
+import { createConnection } from 'net';
+
+// Quick TCP port check (mirip mikhmon fsockopen).
+// Cuma cek apakah port terbuka & host reachable, gak verify auth.
+// Cepat: 1-3 detik biasanya.
+export function pingMikrotikPort(host: string, port = 22, timeoutMs = 5000): Promise<{ ok: boolean; latencyMs?: number; error?: string }> {
+  return new Promise((resolve) => {
+    const start = Date.now();
+    let done = false;
+    const sock = createConnection({ host, port });
+    const finish = (result: { ok: boolean; latencyMs?: number; error?: string }) => {
+      if (done) return;
+      done = true;
+      try { sock.destroy(); } catch {}
+      resolve(result);
+    };
+    sock.setTimeout(timeoutMs);
+    sock.on('connect', () => finish({ ok: true, latencyMs: Date.now() - start }));
+    sock.on('timeout', () => finish({ ok: false, error: `Timeout setelah ${timeoutMs}ms (port mungkin tertutup atau host gak reachable)` }));
+    sock.on('error', (e) => finish({ ok: false, error: e.message }));
+  });
+}
 
 export interface MikrotikConfig {
   host: string;
