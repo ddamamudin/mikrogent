@@ -128,6 +128,23 @@ export default function RouterListClient() {
     else showMsg("err", "Gagal menghapus");
   };
 
+  const handleImpersonate = async (r: Row) => {
+    if (!confirm(`Login sebagai ${r.userName} (${r.userEmail})?\n\nKamu akan diarahkan ke dashboard mereka. Klik 'Keluar Impersonate' di banner untuk kembali ke admin.`)) return;
+    setActionLoading(r.userId);
+    const res = await fetch("/api/admin/impersonate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: r.userId }),
+    });
+    if (res.ok) {
+      window.location.href = "/dashboard/agent";
+    } else {
+      setActionLoading(null);
+      const d = await res.json().catch(() => ({}));
+      showMsg("err", d.error || "Gagal impersonate");
+    }
+  };
+
   const handleVerify = async (r: Row) => {
     if (!r.cred) return;
     setActionLoading(r.cred.id);
@@ -236,6 +253,14 @@ export default function RouterListClient() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 justify-end flex-wrap">
+                        <button
+                          onClick={() => handleImpersonate(r)}
+                          disabled={actionLoading === r.userId}
+                          title="Login sebagai user ini untuk cek tampilan & dashboard mereka"
+                          className="text-xs px-3 py-1.5 rounded-lg bg-purple-100 dark:bg-purple-500/10 hover:bg-purple-200 dark:hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 transition disabled:opacity-50 font-medium"
+                        >
+                          Impersonate
+                        </button>
                         {r.cred ? (
                           <>
                             <button
@@ -260,7 +285,7 @@ export default function RouterListClient() {
                             </button>
                           </>
                         ) : (
-                          <span className="text-xs text-gray-300 dark:text-white/20">Pakai tombol "Tambah Router"</span>
+                          <span className="text-xs text-gray-300 dark:text-white/20">— belum ada router —</span>
                         )}
                       </div>
                     </td>

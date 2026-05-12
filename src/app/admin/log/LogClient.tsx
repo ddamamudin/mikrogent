@@ -27,6 +27,8 @@ const ACTION_LABELS: Record<string, string> = {
   router_update: "Edit Router",
   router_delete: "Hapus Router",
   router_verify: "Tes Koneksi Router",
+  impersonate_start: "Mulai Impersonate",
+  impersonate_end: "Selesai Impersonate",
 };
 
 const ACTION_COLORS: Record<string, string> = {

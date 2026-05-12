@@ -68,3 +68,47 @@ export function sessionCookieOptions(): SessionCookieOptions {
     domain: production && domain ? `.${domain}` : undefined,
   };
 }
+
+// === Impersonator (token untuk simpan kredensial admin asli saat impersonate) ===
+
+const IMPERSONATOR_DURATION_MS = 2 * 60 * 60 * 1000; // 2 jam
+export const IMPERSONATOR_COOKIE_MAX_AGE = 2 * 60 * 60;
+
+export type ImpersonatorPayload = {
+  adminId: string;
+  adminName: string;
+  targetUserId: string;
+  targetUserName: string;
+  exp: number;
+};
+
+export function createImpersonatorToken(opts: { adminId: string; adminName: string; targetUserId: string; targetUserName: string }): string {
+  const payload = Buffer.from(
+    JSON.stringify({
+      adminId: opts.adminId,
+      adminName: opts.adminName,
+      targetUserId: opts.targetUserId,
+      targetUserName: opts.targetUserName,
+      exp: Date.now() + IMPERSONATOR_DURATION_MS,
+    }),
+  ).toString("base64url");
+  const sig = crypto.createHmac("sha256", SECRET).update(payload).digest("base64url");
+  return `${payload}.${sig}`;
+}
+
+export function verifyImpersonatorToken(token: string | undefined): ImpersonatorPayload | null {
+  if (!token) return null;
+  try {
+    const dot = token.lastIndexOf(".");
+    if (dot === -1) return null;
+    const payload = token.slice(0, dot);
+    const sig = token.slice(dot + 1);
+    const expected = crypto.createHmac("sha256", SECRET).update(payload).digest("base64url");
+    if (sig !== expected) return null;
+    const data = JSON.parse(Buffer.from(payload, "base64url").toString());
+    if (!data.exp || data.exp < Date.now()) return null;
+    return data as ImpersonatorPayload;
+  } catch {
+    return null;
+  }
+}
