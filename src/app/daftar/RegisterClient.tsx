@@ -120,7 +120,7 @@ export default function RegisterClient({ showBrandField }: { showBrandField: boo
           <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 accent-blue-600 w-4 h-4 shrink-0" />
           <span className="text-sm text-gray-500">
             Saya menyetujui{" "}
-            <Link href="/syarat-ketentuan" className="text-blue-600">Syarat dan Ketentuan</Link>
+            <a href="#" className="text-blue-600">Syarat dan Ketentuan</a>
           </span>
         </label>
 
