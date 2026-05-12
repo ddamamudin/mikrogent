@@ -47,6 +47,25 @@ type Tenant = {
   chatCount: number;
   userDailyChatLimit: number | null;
   effectiveLimit: number;
+  mikrotikStatus: "connected" | "disconnected" | "none";
+};
+
+const MIKROTIK_BADGE: Record<Tenant["mikrotikStatus"], { label: string; cls: string; title: string }> = {
+  connected: {
+    label: "Terhubung",
+    cls: "bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400",
+    title: "MikroTik tenant terhubung ke agent",
+  },
+  disconnected: {
+    label: "Putus",
+    cls: "bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400",
+    title: "Kredensial sudah disetup tapi koneksi SSH ke router belum aktif",
+  },
+  none: {
+    label: "Belum Onboarding",
+    cls: "bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-white/40",
+    title: "Tenant belum memulai onboarding MikroTik",
+  },
 };
 
 const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
@@ -280,6 +299,7 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide">Nama</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide hidden md:table-cell">Brand</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide hidden sm:table-cell">Status</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide hidden md:table-cell">Router</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide hidden sm:table-cell">Kuota Hari Ini</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide hidden lg:table-cell">Bergabung</th>
                   <th className="px-4 py-3"></th>
@@ -317,6 +337,17 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
                           </span>
                         )}
                       </div>
+                    </td>
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      {(() => {
+                        const b = MIKROTIK_BADGE[t.mikrotikStatus];
+                        return (
+                          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${b.cls}`} title={b.title}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${t.mikrotikStatus === "connected" ? "bg-green-500" : t.mikrotikStatus === "disconnected" ? "bg-amber-500" : "bg-gray-400"}`} />
+                            {b.label}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
                       <div className="flex items-center gap-2">

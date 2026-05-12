@@ -37,6 +37,7 @@ export async function GET(req: NextRequest) {
       select: {
         id: true, name: true, email: true, brand: true, status: true, emailVerified: true, validated: true, dailyChatLimit: true, createdAt: true,
         agentDailyCount: { select: { count: true, date: true } },
+        mikrotikCredential: { select: { connected: true } },
       },
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * limit,
@@ -48,12 +49,15 @@ export async function GET(req: NextRequest) {
 
   const dailyChatLimit = config?.dailyChatLimit ?? 50;
   const tenantsWithCount = tenants.map((t) => {
-    const { dailyChatLimit: userOverride, agentDailyCount, ...rest } = t;
+    const { dailyChatLimit: userOverride, agentDailyCount, mikrotikCredential, ...rest } = t;
+    const mikrotikStatus: "connected" | "disconnected" | "none" =
+      !mikrotikCredential ? "none" : mikrotikCredential.connected ? "connected" : "disconnected";
     return {
       ...rest,
       chatCount: agentDailyCount?.date === today ? (agentDailyCount.count ?? 0) : 0,
       userDailyChatLimit: userOverride,
       effectiveLimit: userOverride ?? dailyChatLimit,
+      mikrotikStatus,
     };
   });
 
