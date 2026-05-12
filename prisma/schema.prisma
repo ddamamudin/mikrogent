@@ -20,6 +20,7 @@ model User {
   status        UserStatus  @default(ACTIVE)
   dailyChatLimit Int?
   role          Role        @default(USER)
+  adminLevel    AdminLevel?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
@@ -101,6 +102,11 @@ enum UserStatus {
 enum Role {
   USER
   ADMIN
+}
+
+enum AdminLevel {
+  SUPER
+  VALIDATOR
 }
 
 enum TokenType {

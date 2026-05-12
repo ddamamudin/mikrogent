@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getSessionFromCookie } from "@/lib/session";
+import { prisma } from "@/lib/prisma";
 import TenantListClient from "./TenantListClient";
 
 export default async function TenantPage() {
@@ -9,5 +10,8 @@ export default async function TenantPage() {
   const session = getSessionFromCookie(cookieStore.get("session")?.value);
   if (!session || session.role !== "ADMIN") redirect("/admin/masuk");
 
-  return <TenantListClient />;
+  const admin = await prisma.user.findUnique({ where: { id: session.userId }, select: { adminLevel: true } });
+  const isValidator = admin?.adminLevel === "VALIDATOR";
+
+  return <TenantListClient isValidator={isValidator} />;
 }

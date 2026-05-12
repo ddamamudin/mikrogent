@@ -55,11 +55,25 @@ const NAV = [
 
 const PUBLIC_PATHS = ["/admin/masuk", "/admin/setup"];
 
-export default function AdminShell({ session, children }: { session: SessionPayload | null; children: React.ReactNode }) {
+export default function AdminShell({
+  session,
+  adminLevel,
+  children,
+}: {
+  session: SessionPayload | null;
+  adminLevel?: "SUPER" | "VALIDATOR" | null;
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const isPublicPage = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+  const isValidator = adminLevel === "VALIDATOR";
+
+  // VALIDATOR: cuma boleh akses dashboard & tenant
+  const visibleNav = isValidator
+    ? NAV.filter((n) => n.href === "/admin/dashboard" || n.href === "/admin/tenant")
+    : NAV;
 
   const handleLogout = async () => {
     await fetch("/api/admin/auth/logout", { method: "POST" });
@@ -109,7 +123,7 @@ export default function AdminShell({ session, children }: { session: SessionPayl
         {/* Sidebar */}
         <aside className={`${sidebarOpen ? "w-56" : "w-0"} transition-all duration-200 overflow-hidden shrink-0 bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-white/10 flex flex-col`}>
           <nav className="flex-1 py-4 px-2 space-y-1">
-            {NAV.map(({ href, label, icon }) => {
+            {visibleNav.map(({ href, label, icon }) => {
               const active = pathname === href || (href !== "/admin/dashboard" && pathname.startsWith(href));
               return (
                 <a

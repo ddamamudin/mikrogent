@@ -9,7 +9,7 @@ async function requireAdmin() {
   const cookieStore = await cookies();
   const session = getSessionFromCookie(cookieStore.get("session")?.value);
   if (!session || session.role !== "ADMIN") return null;
-  const admin = await prisma.user.findUnique({ where: { id: session.userId }, select: { id: true, name: true } });
+  const admin = await prisma.user.findUnique({ where: { id: session.userId }, select: { id: true, name: true, adminLevel: true } });
   return admin;
 }
 
@@ -24,6 +24,11 @@ export async function PATCH(req: NextRequest) {
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
+
+  // VALIDATOR cuma boleh ganti password sendiri, gak bisa otak-atik config
+  if (admin.adminLevel === "VALIDATOR" && !body.newPassword) {
+    return NextResponse.json({ error: "Akses ditolak" }, { status: 403 });
+  }
 
   if (typeof body.adminSetupEnabled === "boolean") {
     const config = await prisma.appConfig.upsert({

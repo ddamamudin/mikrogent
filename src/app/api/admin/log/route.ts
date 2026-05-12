@@ -10,6 +10,10 @@ export async function GET(req: NextRequest) {
   if (!session || session.role !== "ADMIN")
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const admin = await prisma.user.findUnique({ where: { id: session.userId }, select: { adminLevel: true } });
+  if (admin?.adminLevel === "VALIDATOR")
+    return NextResponse.json({ error: "Akses ditolak" }, { status: 403 });
+
   const { searchParams } = req.nextUrl;
   const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
   const action = searchParams.get("action") || "";

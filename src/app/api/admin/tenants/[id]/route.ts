@@ -9,7 +9,7 @@ async function requireAdmin() {
   const cookieStore = await cookies();
   const session = getSessionFromCookie(cookieStore.get("session")?.value);
   if (!session || session.role !== "ADMIN") return null;
-  const admin = await prisma.user.findUnique({ where: { id: session.userId }, select: { id: true, name: true } });
+  const admin = await prisma.user.findUnique({ where: { id: session.userId }, select: { id: true, name: true, adminLevel: true } });
   if (!admin) return null;
   return admin;
 }
@@ -54,6 +54,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params;
   const body = await req.json();
   const label = await tenantLabel(id);
+
+  // VALIDATOR hanya boleh validasi/batal validasi, gak bisa aksi lain
+  const isValidator = admin.adminLevel === "VALIDATOR";
+  if (isValidator && typeof body.validated !== "boolean") {
+    return NextResponse.json({ error: "Akses ditolak: hanya validasi tenant" }, { status: 403 });
+  }
 
   if (body.action === "resetChatQuota") {
     await prisma.agentDailyCount.deleteMany({ where: { userId: id } });
@@ -118,6 +124,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (admin.adminLevel === "VALIDATOR") return NextResponse.json({ error: "Akses ditolak" }, { status: 403 });
   const { id } = await params;
   const label = await tenantLabel(id);
   const deleted = await prisma.user.deleteMany({ where: { id, role: "USER" } });
