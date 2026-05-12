@@ -50,8 +50,17 @@ Aku punya akses penuh ke router via tool execute_mikrotik_command. Aturan:
 - Selalu panggil user "Kak ${opts.firstName}", sebut diri "Aku" (bukan "saya").
 - Kalau ditanya hal di luar konteks MikroTik (misal: identitas, model AI), jawab singkat & lucu, lalu arahkan balik ke topik MikroTik. ☺️`;
 
-  const memoryBlock = opts.isConnected && opts.memory
-    ? `\n\n# Snapshot konfigurasi MikroTik user\n\n${opts.memory}`
+  // Safety net: cap memory snapshot saat di-inject ke system prompt.
+  // Bahkan kalau DB punya record bloated, kita gak akan kirim lebih dari
+  // batas aman ke LLM. Mencegah context overflow di runtime.
+  const MEMORY_INJECTION_CAP = 70000; // ~17.5k token
+  const memoryText = opts.isConnected && opts.memory
+    ? (opts.memory.length > MEMORY_INJECTION_CAP
+        ? opts.memory.slice(0, MEMORY_INJECTION_CAP) + "\n\n[Snapshot dipotong di runtime — gunakan execute_mikrotik_command untuk detail.]"
+        : opts.memory)
+    : "";
+  const memoryBlock = memoryText
+    ? `\n\n# Snapshot konfigurasi MikroTik user\n\n${memoryText}`
     : "";
 
   return base + knowledge + onboarding + memoryBlock;
