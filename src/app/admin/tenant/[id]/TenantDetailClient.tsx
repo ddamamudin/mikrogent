@@ -45,6 +45,15 @@ export default function TenantDetailClient({ tenant: initial, mikrotikCred, isVa
   };
 
   const handleValidate = async (validated: boolean) => {
+    if (validated && !tenant.emailVerified) {
+      const ok = confirm(
+        `⚠️ Peringatan\n\nTenant "${tenant.name}" BELUM verifikasi email.\n\n` +
+          "Sebaiknya minta tenant verifikasi email dulu (cek inbox/spam) sebelum divalidasi, " +
+          "supaya akun dipastikan milik orang yang benar.\n\n" +
+          "Tetap lanjutkan validasi?",
+      );
+      if (!ok) return;
+    }
     setLoading(true);
     const res = await fetch(`/api/admin/tenants/${tenant.id}`, {
       method: "PATCH",

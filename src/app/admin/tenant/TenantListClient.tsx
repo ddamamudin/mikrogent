@@ -50,6 +50,18 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
   useEffect(() => { fetchTenants(); }, [fetchTenants]);
 
   const handleValidate = async (id: string, newValidated: boolean) => {
+    if (newValidated) {
+      const t = tenants.find((x) => x.id === id);
+      if (t && !t.emailVerified) {
+        const ok = confirm(
+          `⚠️ Peringatan\n\nTenant "${t.name}" BELUM verifikasi email.\n\n` +
+            "Sebaiknya minta tenant verifikasi email dulu (cek inbox/spam) sebelum divalidasi, " +
+            "supaya akun dipastikan milik orang yang benar.\n\n" +
+            "Tetap lanjutkan validasi?",
+        );
+        if (!ok) return;
+      }
+    }
     setActionLoading(id);
     const res = await fetch(`/api/admin/tenants/${id}`, {
       method: "PATCH",
@@ -184,6 +196,11 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${t.status === "ACTIVE" ? "bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400" : "bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400"}`}>
                           {t.status === "ACTIVE" ? "Aktif" : "Suspended"}
                         </span>
+                        {!t.emailVerified && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400" title="User belum klik link verifikasi email">
+                            ⚠ Email Belum Verifikasi
+                          </span>
+                        )}
                         {!t.validated && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400">
                             Belum Validasi
