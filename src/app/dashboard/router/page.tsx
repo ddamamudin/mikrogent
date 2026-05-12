@@ -12,10 +12,10 @@ export default async function DashboardRouterPage() {
 
   const cred = await prisma.mikrotikCredential.findUnique({
     where: { userId: session.userId },
-    select: { host: true, sshUser: true, sshPass: true, connected: true, updatedAt: true },
+    select: { host: true, port: true, sshUser: true, sshPass: true, connected: true, updatedAt: true },
   });
 
   return <RouterClient initial={cred ? {
-    host: cred.host, sshUser: cred.sshUser, sshPass: cred.sshPass, connected: cred.connected,
+    host: cred.host, port: cred.port, sshUser: cred.sshUser, sshPass: cred.sshPass, connected: cred.connected,
   } : null} />;
 }

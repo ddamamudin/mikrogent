@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 
-type Initial = { host: string; sshUser: string; sshPass: string; connected: boolean } | null;
+type Initial = { host: string; port: number; sshUser: string; sshPass: string; connected: boolean } | null;
 
 export default function RouterClient({ initial }: { initial: Initial }) {
   const [host, setHost] = useState(initial?.host ?? "");
+  const [port, setPort] = useState(String(initial?.port ?? 22));
   const [sshUser, setSshUser] = useState(initial?.sshUser ?? "");
   const [sshPass, setSshPass] = useState(initial?.sshPass ?? "");
   const [connected, setConnected] = useState<boolean>(initial?.connected ?? false);
@@ -22,26 +23,36 @@ export default function RouterClient({ initial }: { initial: Initial }) {
     setTimeout(() => setMessage(null), 4000);
   };
 
+  const portNum = (): number | null => {
+    const n = parseInt(port, 10);
+    if (!Number.isFinite(n) || n < 1 || n > 65535) return null;
+    return n;
+  };
+
   const handlePing = async () => {
     if (!host) return showMsg("err", "Host wajib diisi");
+    const p = portNum();
+    if (p === null) return showMsg("err", "Port harus angka 1-65535");
     setPingState({ status: "loading" });
     const res = await fetch("/api/account/router/ping", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ host }),
+      body: JSON.stringify({ host, port: p }),
     });
     const data = await res.json();
-    if (data.ok) setPingState({ status: "ok", msg: `Port 22 terbuka (${data.latencyMs}ms)` });
-    else setPingState({ status: "fail", msg: data.error || "Gagal connect ke port 22" });
+    if (data.ok) setPingState({ status: "ok", msg: `Port ${p} terbuka (${data.latencyMs}ms)` });
+    else setPingState({ status: "fail", msg: data.error || `Gagal connect ke port ${p}` });
   };
 
   const handleSaveAndVerify = async () => {
     if (!host || !sshUser || !sshPass) return showMsg("err", "Semua field wajib diisi");
+    const p = portNum();
+    if (p === null) return showMsg("err", "Port harus angka 1-65535");
     setSaving(true);
     const saveRes = await fetch("/api/account/router", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ host, sshUser, sshPass }),
+      body: JSON.stringify({ host, port: p, sshUser, sshPass }),
     });
     setSaving(false);
     if (!saveRes.ok) {
@@ -128,9 +139,10 @@ export default function RouterClient({ initial }: { initial: Initial }) {
 
         <div className="flex flex-col gap-1.5">
           <label className={labelClass}>Port SSH</label>
-          <input type="text" value="22" disabled
-            className="w-full bg-gray-50 border border-dashed border-gray-200 rounded-xl px-4 py-3 text-gray-400 text-[15px] font-mono cursor-not-allowed" />
-          <p className="text-xs text-gray-400 px-1">Port SSH dikunci ke 22 — pastikan setting MikroTik kamu sama.</p>
+          <input type="number" min={1} max={65535} value={port}
+            onChange={(e) => { setPort(e.target.value); setPingState({ status: "idle" }); }}
+            placeholder="22" className={`${inputClass} font-mono`} />
+          <p className="text-xs text-gray-400 px-1">Default 22. Kalau Kakak set SSH di port lain (mis. 2222), isi sesuai port di MikroTik.</p>
         </div>
 
         <div className="flex flex-col gap-1.5">
@@ -166,7 +178,7 @@ export default function RouterClient({ initial }: { initial: Initial }) {
         <div className="flex flex-wrap gap-2 pt-2">
           <button onClick={handlePing} disabled={pingState.status === "loading" || !host}
             className="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 text-sm font-medium transition">
-            {pingState.status === "loading" ? "Cek..." : "Cek Port 22"}
+            {pingState.status === "loading" ? "Cek..." : `Cek Port ${port || "22"}`}
           </button>
           <button onClick={handleSaveAndVerify} disabled={saving || verifying || !host || !sshUser || !sshPass}
             className="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold transition">

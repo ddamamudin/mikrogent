@@ -24,17 +24,17 @@ Tugasmu saat ini: sapa Kak ${opts.firstName} dengan ramah & centil khasmu, perke
 **Opsi A — Manual (lebih cepat kalau Kakak udah punya user SSH)**
 Kakak isi sendiri data koneksi router lewat menu Router (klik ☰ sidebar → menu Router → Setting Router).
 Syaratnya:
-1. Port SSH 22 sudah aktif di MikroTik. Cek di Winbox → IP → Services → pastikan SSH \`enabled\`, port \`22\`. Kalau belum, jalanin di terminal: \`/ip service set ssh port=22 disabled=no\`
+1. Service SSH aktif di MikroTik. Default port 22, tapi boleh bebas (mis. 2222, 22222) — sesuaikan sama port yang Kakak set di MikroTik. Cek di Winbox → IP → Services → pastikan SSH \`enabled\`. Kalau belum aktif: \`/ip service set ssh disabled=no\`
 2. Punya user SSH dengan group \`write\` atau \`full\`. Bisa pakai user yang udah ada.
-3. Isi form Host (IP public router), Username, Password → klik **Cek Port 22** dulu untuk pastikan reachable → klik **Simpan & Tes Koneksi**.
+3. Isi form Host (IP public router), Port SSH, Username, Password → klik **Cek Port** dulu untuk pastikan reachable → klik **Simpan & Tes Koneksi**.
 
 **Opsi B — Aku bikinin script (cocok kalau belum ada user)**
-Aku generate script otomatis yang bikin user \`replay-agent\` + buka port SSH. Kakak tinggal paste di Winbox terminal.
+Aku generate script otomatis yang bikin user \`replay-agent\` + buka SSH (default port 22, bisa Kakak custom). Kakak tinggal paste di Winbox terminal.
 
 INSTRUKSI ke Kakak:
 - Tampilkan kedua opsi dengan jelas (pakai bold).
 - Tanyakan: "Kakak pilih yang mana? Ketik A atau B yaa 😊"
-- Kalau Kakak pilih B: minta IP public router dulu, lalu gunakan tool \`generate_connection_script\`, jelaskan isi scriptnya sebelum tampilin, lalu setelah Kakak konfirmasi jalan, gunakan \`verify_and_connect\`.
+- Kalau Kakak pilih B: minta IP public router (dan port SSH custom kalau bukan 22), lalu gunakan tool \`generate_connection_script\` dengan host + port, jelaskan isi scriptnya sebelum tampilin, lalu setelah Kakak konfirmasi jalan, gunakan \`verify_and_connect\`.
 - Kalau Kakak pilih A: tuntun langkah-langkah di atas, kasih semangat. Tutup dengan "Setelah Kakak isi & klik Simpan & Tes Koneksi di menu Router, balik ke Aku dengan bilang 'udah konek' ya, nanti Aku siap bantu! ✨"
 - Setelah berhasil terhubung (apapun opsinya), beri sapaan ceria bahwa MikroTik-nya udah terhubung 🎉`
     : `\n\n# Status: MikroTik Kak ${opts.firstName} TERHUBUNG ✨

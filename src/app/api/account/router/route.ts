@@ -28,15 +28,21 @@ export async function POST(req: NextRequest) {
   const auth = await requireValidatedUser();
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
-  const { host, sshUser, sshPass } = await req.json();
+  const { host, port, sshUser, sshPass } = await req.json();
   if (!host || !sshUser || !sshPass) {
     return NextResponse.json({ error: "Host, username, password wajib diisi" }, { status: 400 });
+  }
+  const portNum = port !== undefined && port !== null && port !== ""
+    ? (typeof port === "number" ? port : parseInt(String(port), 10))
+    : 22;
+  if (!Number.isFinite(portNum) || portNum < 1 || portNum > 65535) {
+    return NextResponse.json({ error: "Port harus angka 1-65535" }, { status: 400 });
   }
 
   await prisma.mikrotikCredential.upsert({
     where: { userId: auth.userId },
-    update: { host: String(host).trim(), port: 22, sshUser: String(sshUser).trim(), sshPass: String(sshPass), connected: false },
-    create: { userId: auth.userId, host: String(host).trim(), port: 22, sshUser: String(sshUser).trim(), sshPass: String(sshPass), connected: false },
+    update: { host: String(host).trim(), port: portNum, sshUser: String(sshUser).trim(), sshPass: String(sshPass), connected: false },
+    create: { userId: auth.userId, host: String(host).trim(), port: portNum, sshUser: String(sshUser).trim(), sshPass: String(sshPass), connected: false },
   });
 
   return NextResponse.json({ ok: true });

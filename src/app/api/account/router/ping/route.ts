@@ -14,9 +14,15 @@ export async function POST(req: NextRequest) {
   if (!user?.validated)
     return NextResponse.json({ error: "Akun belum tervalidasi" }, { status: 403 });
 
-  const { host } = await req.json();
+  const { host, port } = await req.json();
   if (!host) return NextResponse.json({ error: "Host wajib diisi" }, { status: 400 });
+  const portNum = port !== undefined && port !== null && port !== ""
+    ? (typeof port === "number" ? port : parseInt(String(port), 10))
+    : 22;
+  if (!Number.isFinite(portNum) || portNum < 1 || portNum > 65535) {
+    return NextResponse.json({ error: "Port harus angka 1-65535" }, { status: 400 });
+  }
 
-  const result = await pingMikrotikPort(String(host).trim(), 22, 5000);
+  const result = await pingMikrotikPort(String(host).trim(), portNum, 5000);
   return NextResponse.json(result);
 }
