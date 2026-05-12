@@ -195,6 +195,13 @@ export default function VoiceCallModal({
     const dc = pc.createDataChannel("oai-events");
     dataChannelRef.current = dc;
 
+    // Begitu channel siap, agent yang nyapa duluan (sesuai instruksi di session prompt)
+    dc.addEventListener("open", () => {
+      try {
+        dc.send(JSON.stringify({ type: "response.create" }));
+      } catch {}
+    });
+
     dc.addEventListener("message", (e) => {
       let evt: Record<string, unknown>;
       try { evt = JSON.parse(e.data); } catch { return; }
@@ -327,15 +334,15 @@ export default function VoiceCallModal({
   const statusLabel = (() => {
     switch (status) {
       case "requesting-mic": return "Mengakses mikrofon...";
-      case "minting": return "Menyiapkan sesi...";
-      case "connecting": return "Menyambungkan...";
+      case "minting": return "Memanggil...";
+      case "connecting": return "Memanggil...";
       case "listening": return "Mendengarkan...";
       case "user-speaking": return "Aku dengerin nih...";
-      case "responding": return "Aku lagi jawab...";
+      case "responding": return "Aku lagi ngomong...";
       case "tool": return toolLabel || "Cek mikrotik...";
       case "ending": return "Mengakhiri panggilan...";
       case "error": return "Terjadi kesalahan";
-      default: return "Menyiapkan...";
+      default: return "Memanggil...";
     }
   })();
 

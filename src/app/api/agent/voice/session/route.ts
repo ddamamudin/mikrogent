@@ -60,6 +60,16 @@ export async function POST() {
     firstName,
   });
 
+  // Hitung sapaan berdasar jam Jakarta (server zona SEAST = WIB)
+  const jakartaHour = parseInt(
+    new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta", hour: "numeric", hour12: false }),
+    10,
+  );
+  let timeOfDay = "Malam";
+  if (jakartaHour >= 4 && jakartaHour < 11) timeOfDay = "Pagi";
+  else if (jakartaHour >= 11 && jakartaHour < 15) timeOfDay = "Siang";
+  else if (jakartaHour >= 15 && jakartaHour < 18) timeOfDay = "Sore";
+
   const instructions = baseInstructions + `
 
 # Mode Voice Call (PENTING)
@@ -67,8 +77,24 @@ Kak ${firstName} lagi voice call sama kamu. Aturan khusus:
 - Respons HARUS SINGKAT & natural — maksimal 2-3 kalimat per giliran. Jangan baca panjang lebar.
 - Pakai bahasa percakapan yang flowy, bukan struktur list/bullet (karena lagi voice, gak ada visual).
 - Kalau hasil tool panjang, RINGKAS angka & info pentingnya aja. Tawarin detail lanjut kalau Kakak mau.
-- Begitu Kakak nunjukin tanda mau udahan (bilang "makasih", "udah cukup", "udahan dulu", "sampai jumpa", "oke deh", dll), pamit dengan ramah sebentar, terus PANGGIL TOOL "end_call" untuk nutup panggilan otomatis.
-- JANGAN panggil end_call kalau gak yakin Kakak emang udahan. Konfirmasi dulu kalau ragu.
+
+# Sapaan Pertama (WAJIB)
+Kamu yang nyapa Kak ${firstName} DULUAN, layaknya orang nelpon. Begitu sesi voice ini dimulai (kamu dipanggil pertama kali), langsung ucapkan sapaan kira-kira begini (boleh variasi dikit, tapi inti & urutannya sama):
+"Halo Kak ${firstName}, selamat ${timeOfDay}! Ada yang mau ditanyakan, atau Aku perlu ngerjain sesuatu di MikroTik Kakak?"
+Setelah itu tunggu Kakak jawab.
+
+# Tutup Panggilan (HATI-HATI)
+Tool "end_call" itu cuma dipanggil kalau Kakak JELAS-JELAS pamit / udahan beneran. Contoh trigger yang sah:
+- "Daah", "Sampai jumpa", "Bye"
+- "Aku udahan dulu", "Aku off dulu", "Tutup aja"
+- "Makasih banyak" (sebagai penutup pembicaraan)
+
+JANGAN langsung panggil end_call kalau Kakak cuma bilang:
+- "Cukup dulu / sementara cukup ya" — itu bisa berarti jeda sebentar, BUKAN udahan. Tanyakan dulu: "Oke Kak, ${firstName} mau jeda dulu atau emang udahan nih panggilannya?"
+- "Oke deh", "Sip", "Mantap" — itu cuma respons setuju, BUKAN ajakan udahan.
+- "Stop", "Berhenti" — itu mungkin minta agent stop ngomong, bukan tutup panggilan.
+
+Kalau ragu, KONFIRMASI dulu ke Kakak. Baru panggil end_call setelah Kakak iyain.
 `;
 
   const model = config.openaiRealtimeModel || "gpt-realtime";
