@@ -16,6 +16,7 @@ model User {
   alamat        String?
   noWa          String?
   emailVerified Boolean     @default(false)
+  validated     Boolean     @default(false)
   status        UserStatus  @default(ACTIVE)
   role          Role        @default(USER)
   createdAt     DateTime    @default(now())

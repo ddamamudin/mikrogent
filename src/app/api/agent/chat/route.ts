@@ -44,6 +44,13 @@ export async function POST(req: NextRequest) {
   }
   const userId = session.userId;
 
+  const userRecord = await prisma.user.findUnique({ where: { id: userId }, select: { validated: true } });
+  if (!userRecord?.validated) {
+    return new Response(sseRaw({ type: "error", error: "Akun belum tervalidasi oleh admin" }), {
+      status: 403, headers: { "Content-Type": "text/event-stream" },
+    });
+  }
+
   const config = await prisma.appConfig.findUnique({ where: { id: "singleton" } });
   if (!config) {
     return new Response(sseRaw({ type: "error", error: "AI Agent belum dikonfigurasi oleh administrator" }), {

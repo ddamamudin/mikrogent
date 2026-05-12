@@ -19,6 +19,8 @@ export async function GET(req: NextRequest) {
   const where = {
     role: "USER" as const,
     ...(status === "ACTIVE" || status === "SUSPENDED" ? { status: status as "ACTIVE" | "SUSPENDED" } : {}),
+    ...(status === "PENDING" ? { validated: false } : {}),
+    ...(status === "VALIDATED" ? { validated: true } : {}),
     ...(q ? {
       OR: [
         { name: { contains: q, mode: "insensitive" as const } },
@@ -33,7 +35,7 @@ export async function GET(req: NextRequest) {
     prisma.user.findMany({
       where,
       select: {
-        id: true, name: true, email: true, brand: true, status: true, emailVerified: true, createdAt: true,
+        id: true, name: true, email: true, brand: true, status: true, emailVerified: true, validated: true, createdAt: true,
         agentDailyCount: { select: { count: true, date: true } },
       },
       orderBy: { createdAt: "desc" },

@@ -20,7 +20,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       where: { id, role: "USER" },
       select: {
         id: true, name: true, email: true, brand: true, alamat: true, noWa: true,
-        status: true, emailVerified: true, createdAt: true, updatedAt: true,
+        status: true, emailVerified: true, validated: true, createdAt: true, updatedAt: true,
         agentDailyCount: { select: { count: true, date: true } },
       },
     }),
@@ -42,6 +42,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   if (body.action === "resetChatQuota") {
     await prisma.agentDailyCount.deleteMany({ where: { userId: id } });
+    return NextResponse.json({ ok: true });
+  }
+
+  if (typeof body.validated === "boolean") {
+    const tenant = await prisma.user.updateMany({
+      where: { id, role: "USER" },
+      data: { validated: body.validated },
+    });
+    if (tenant.count === 0) return NextResponse.json({ error: "Tenant tidak ditemukan" }, { status: 404 });
     return NextResponse.json({ ok: true });
   }
 

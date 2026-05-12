@@ -12,6 +12,7 @@ type Tenant = {
   noWa: string | null;
   status: "ACTIVE" | "SUSPENDED";
   emailVerified: boolean;
+  validated: boolean;
   createdAt: string | Date;
   updatedAt: string | Date;
   chatCount: number;
@@ -39,6 +40,22 @@ export default function TenantDetailClient({ tenant: initial, mikrotikCred }: { 
   const showMsg = (type: "ok" | "err", text: string) => {
     setMessage({ type, text });
     setTimeout(() => setMessage(null), 3000);
+  };
+
+  const handleValidate = async (validated: boolean) => {
+    setLoading(true);
+    const res = await fetch(`/api/admin/tenants/${tenant.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ validated }),
+    });
+    setLoading(false);
+    if (res.ok) {
+      setTenant((t) => ({ ...t, validated }));
+      showMsg("ok", validated ? "Tenant berhasil divalidasi" : "Validasi tenant dibatalkan");
+    } else {
+      showMsg("err", "Gagal mengubah validasi");
+    }
   };
 
   const handleStatus = async (status: "ACTIVE" | "SUSPENDED") => {
@@ -92,6 +109,12 @@ export default function TenantDetailClient({ tenant: initial, mikrotikCred }: { 
     { label: "Alamat", value: tenant.alamat || "—" },
     { label: "No. WhatsApp", value: tenant.noWa || "—" },
     { label: "Email Verified", value: tenant.emailVerified ? "Ya" : "Belum" },
+    {
+      label: "Validasi Admin",
+      value: tenant.validated
+        ? <span className="text-green-600 dark:text-green-400 font-medium">Tervalidasi</span>
+        : <span className="text-amber-600 dark:text-amber-400 font-medium">Menunggu validasi</span>,
+    },
     {
       label: "Kuota Chat Hari Ini",
       value: (
@@ -186,6 +209,15 @@ export default function TenantDetailClient({ tenant: initial, mikrotikCred }: { 
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 p-5 shadow-sm space-y-3">
         <h2 className="text-sm font-semibold text-gray-400 dark:text-white/50 uppercase tracking-wider">Aksi</h2>
         <div className="flex flex-wrap gap-3">
+          {!tenant.validated ? (
+            <button onClick={() => handleValidate(true)} disabled={loading} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition disabled:opacity-50">
+              Validasi Tenant
+            </button>
+          ) : (
+            <button onClick={() => handleValidate(false)} disabled={loading} className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/60 text-sm font-medium transition disabled:opacity-50">
+              Batal Validasi
+            </button>
+          )}
           {tenant.status === "ACTIVE" ? (
             <button onClick={() => handleStatus("SUSPENDED")} disabled={loading} className="px-4 py-2 rounded-lg bg-orange-100 dark:bg-orange-500/10 hover:bg-orange-200 dark:hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 text-sm font-medium transition disabled:opacity-50">
               Suspend Tenant

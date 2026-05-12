@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import DashboardLayoutClient from "@/components/DashboardLayoutClient";
+import PendingValidation from "./PendingValidation";
 
 const LOGIN_URL = process.env.NODE_ENV === "production"
   ? `${process.env.NEXT_PUBLIC_APP_URL || "https://mikroplay.com"}/masuk`
@@ -17,11 +18,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const [user, config] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.userId },
-      select: { name: true, brand: true, email: true },
+      select: { name: true, brand: true, email: true, validated: true },
     }),
     prisma.appConfig.findUnique({ where: { id: "singleton" } }),
   ]);
   if (!user) redirect(LOGIN_URL);
+
+  if (!user.validated) {
+    return <PendingValidation name={user.name} email={user.email} />;
+  }
 
   const showBrandField = config?.showBrandField ?? true;
 

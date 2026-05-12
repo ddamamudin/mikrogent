@@ -43,7 +43,7 @@ export default function VerifyEmailContent() {
         <div className="text-center max-w-md px-6">
           <div className="text-5xl mb-4">✅</div>
           <h2 className="text-2xl font-bold mb-2 text-gray-900">Email Terverifikasi!</h2>
-          <p className="text-gray-500">Akun Anda sudah aktif. Mengarahkan ke dashboard...</p>
+          <p className="text-gray-500">Email Anda berhasil dikonfirmasi. Mengarahkan ke dashboard...</p>
         </div>
       </div>
     );
@@ -55,7 +55,7 @@ export default function VerifyEmailContent() {
         <div className="text-5xl mb-4">❌</div>
         <h2 className="text-2xl font-bold mb-2 text-gray-900">Link Tidak Valid</h2>
         <p className="text-gray-500 mb-6">Link sudah kadaluarsa atau tidak valid.</p>
-        <Link href="/register" className="text-blue-600 hover:underline">Daftar ulang</Link>
+        <Link href="/daftar" className="text-blue-600 hover:underline">Daftar ulang</Link>
       </div>
     </div>
   );

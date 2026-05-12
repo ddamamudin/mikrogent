@@ -9,6 +9,7 @@ type Tenant = {
   brand: string | null;
   status: "ACTIVE" | "SUSPENDED";
   emailVerified: boolean;
+  validated: boolean;
   createdAt: string;
   chatCount: number;
 };
@@ -45,6 +46,22 @@ export default function TenantListClient() {
   }, [page, q, status]);
 
   useEffect(() => { fetchTenants(); }, [fetchTenants]);
+
+  const handleValidate = async (id: string, newValidated: boolean) => {
+    setActionLoading(id);
+    const res = await fetch(`/api/admin/tenants/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ validated: newValidated }),
+    });
+    setActionLoading(null);
+    if (res.ok) {
+      showMsg("ok", newValidated ? "Tenant berhasil divalidasi" : "Validasi tenant dibatalkan");
+      fetchTenants();
+    } else {
+      showMsg("err", "Gagal mengubah validasi");
+    }
+  };
 
   const handleStatus = async (id: string, newStatus: "ACTIVE" | "SUSPENDED") => {
     setActionLoading(id);
@@ -119,6 +136,8 @@ export default function TenantListClient() {
         />
         <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className={inputClass}>
           <option value="">Semua Status</option>
+          <option value="PENDING">Belum Validasi</option>
+          <option value="VALIDATED">Sudah Validasi</option>
           <option value="ACTIVE">Aktif</option>
           <option value="SUSPENDED">Suspended</option>
         </select>
@@ -159,9 +178,16 @@ export default function TenantListClient() {
                       )}
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${t.status === "ACTIVE" ? "bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400" : "bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400"}`}>
-                        {t.status === "ACTIVE" ? "Aktif" : "Suspended"}
-                      </span>
+                      <div className="flex flex-col gap-1 items-start">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${t.status === "ACTIVE" ? "bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400" : "bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400"}`}>
+                          {t.status === "ACTIVE" ? "Aktif" : "Suspended"}
+                        </span>
+                        {!t.validated && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                            Belum Validasi
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
                       <div className="flex items-center gap-2">
@@ -184,10 +210,28 @@ export default function TenantListClient() {
                       {new Date(t.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2 justify-end">
+                      <div className="flex items-center gap-2 justify-end flex-wrap">
                         <a href={`/admin/tenant/${t.id}`} className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/60 transition">
                           Detail
                         </a>
+                        {!t.validated ? (
+                          <button
+                            onClick={() => handleValidate(t.id, true)}
+                            disabled={actionLoading === t.id}
+                            className="text-xs px-3 py-1.5 rounded-lg bg-blue-100 dark:bg-blue-500/10 hover:bg-blue-200 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 transition disabled:opacity-50 font-medium"
+                          >
+                            Validasi
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleValidate(t.id, false)}
+                            disabled={actionLoading === t.id}
+                            title="Batalkan validasi"
+                            className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-500 dark:text-white/40 transition disabled:opacity-50"
+                          >
+                            Batal Validasi
+                          </button>
+                        )}
                         {t.status === "ACTIVE" ? (
                           <button
                             onClick={() => handleStatus(t.id, "SUSPENDED")}

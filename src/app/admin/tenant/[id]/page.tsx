@@ -15,7 +15,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
   const [tenant, dailyCount, config, cred] = await Promise.all([
     prisma.user.findUnique({
       where: { id, role: "USER" },
-      select: { id: true, name: true, email: true, brand: true, alamat: true, noWa: true, status: true, emailVerified: true, createdAt: true, updatedAt: true },
+      select: { id: true, name: true, email: true, brand: true, alamat: true, noWa: true, status: true, emailVerified: true, validated: true, createdAt: true, updatedAt: true },
     }),
     prisma.agentDailyCount.findUnique({ where: { userId: id } }),
     prisma.appConfig.findUnique({ where: { id: "singleton" }, select: { dailyChatLimit: true } }),
