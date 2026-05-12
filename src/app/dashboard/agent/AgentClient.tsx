@@ -316,6 +316,7 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
       <div ref={messagesRef} className="flex-1 overflow-y-auto">
         {isEmpty && !loading ? (
           <div className="flex flex-col items-center justify-center h-full px-6 py-12 text-center">
+            <img src="/agent-logo.png" alt="Replay Agent" className="w-24 h-24 sm:w-28 sm:h-28 mb-5 object-contain" />
             <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-3 leading-tight">
               {greeting ? `${greeting},` : "Halo,"}<br />Kak {firstName}
             </h1>
@@ -404,8 +405,10 @@ export default function AgentClient({ userId, firstName, isConnected, hasMemory,
               disabled={attachments.length >= 5}
               title="Lampirkan gambar"
               className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition border-none bg-transparent cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
               </svg>
             </button>
 
