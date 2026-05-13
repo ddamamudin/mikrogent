@@ -32,6 +32,7 @@ export default async function PengaturanPage() {
     dailyChatLimit: 50,
     voiceCallEnabled: false,
     voiceDailySeconds: 180,
+    defaultMaxRouters: 1,
   };
 
   return (

@@ -50,6 +50,36 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json(config);
   }
 
+  if ("defaultMaxRouters" in body) {
+    const v = body.defaultMaxRouters;
+    const n = typeof v === "number" ? v : parseInt(String(v), 10);
+    if (!Number.isFinite(n) || n < 1 || n > 5) {
+      return NextResponse.json({ error: "Default kuota router harus 1 - 5" }, { status: 400 });
+    }
+    const syncExisting = body.syncExisting === true;
+    const config = await prisma.appConfig.upsert({
+      where: { id: "singleton" },
+      update: { defaultMaxRouters: n },
+      create: { id: "singleton", defaultMaxRouters: n },
+    });
+    let synced = 0;
+    if (syncExisting) {
+      // Naikkin maxRouters semua user yang masih di bawah n. User yang sudah > n di-skip
+      // supaya gak nurunin kuota orang yang admin manual-naikkin sebelumnya.
+      const result = await prisma.user.updateMany({
+        where: { role: "USER", maxRouters: { lt: n } },
+        data: { maxRouters: n },
+      });
+      synced = result.count;
+    }
+    await logAdmin({
+      adminId: admin.id, adminName: admin.name,
+      action: "set_default_max_routers",
+      details: `${n}${syncExisting ? ` (sync existing: ${synced} user)` : ""}`,
+    });
+    return NextResponse.json({ ...config, syncedCount: synced });
+  }
+
   if (body.agentConfig) {
     const {
       llmProvider,

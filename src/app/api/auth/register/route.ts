@@ -74,8 +74,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Email sudah terdaftar" }, { status: 400 });
 
   const hashed = await bcrypt.hash(password, 12);
+  const config = await prisma.appConfig.findUnique({
+    where: { id: "singleton" },
+    select: { defaultMaxRouters: true },
+  });
   const user = await prisma.user.create({
-    data: { name, email, brand, alamat: alamat || null, noWa: noWa || null, password: hashed },
+    data: {
+      name, email, brand, alamat: alamat || null, noWa: noWa || null, password: hashed,
+      maxRouters: config?.defaultMaxRouters ?? 1,
+    },
   });
 
   const token = crypto.randomBytes(32).toString("hex");

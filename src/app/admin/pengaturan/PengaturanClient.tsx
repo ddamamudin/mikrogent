@@ -17,6 +17,7 @@ type Config = {
   dailyChatLimit: number;
   voiceCallEnabled: boolean;
   voiceDailySeconds: number;
+  defaultMaxRouters: number;
 };
 type Admin = { name: string; email: string };
 
@@ -78,6 +79,10 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
   const [voiceDailySeconds, setVoiceDailySeconds] = useState(String(initial.voiceDailySeconds));
   const [openaiVoice, setOpenaiVoice] = useState(initial.openaiVoice || "coral");
   const [voiceLoading, setVoiceLoading] = useState(false);
+
+  const [defaultMaxRouters, setDefaultMaxRouters] = useState(String(initial.defaultMaxRouters ?? 1));
+  const [syncExisting, setSyncExisting] = useState(false);
+  const [routerQuotaLoading, setRouterQuotaLoading] = useState(false);
 
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
@@ -172,6 +177,31 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
     setPersonaLoading(false);
     if (res.ok) showMsg("ok", "Persona, knowledge & limit chat disimpan");
     else showMsg("err", "Gagal menyimpan");
+  };
+
+  const handleSaveRouterQuota = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const n = parseInt(defaultMaxRouters, 10);
+    if (!Number.isFinite(n) || n < 1 || n > 5) {
+      return showMsg("err", "Default kuota router harus 1 - 5");
+    }
+    setRouterQuotaLoading(true);
+    const res = await fetch("/api/admin/config", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ defaultMaxRouters: n, syncExisting }),
+    });
+    setRouterQuotaLoading(false);
+    const data = await res.json().catch(() => null);
+    if (res.ok) {
+      const synced = data?.syncedCount ?? 0;
+      showMsg("ok", syncExisting
+        ? `Default kuota router = ${n}. ${synced} user existing ikut di-update.`
+        : `Default kuota router = ${n}.`);
+      setSyncExisting(false);
+    } else {
+      showMsg("err", data?.error || "Gagal menyimpan default kuota router");
+    }
   };
 
   const handleSaveVoice = async (e: React.FormEvent) => {
@@ -353,6 +383,35 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
 
           <button type="submit" disabled={personaLoading} className={btnPrimary}>
             {personaLoading ? "Menyimpan..." : "Simpan Persona & Limit"}
+          </button>
+        </form>
+
+        {/* Default Kuota Router */}
+        <form onSubmit={handleSaveRouterQuota} className={cardClass}>
+          <h2 className={sectionHead}>Default Kuota Router</h2>
+
+          <div className="space-y-1">
+            <label className="text-sm text-gray-600 dark:text-white/60">Jumlah router default per user baru</label>
+            <input type="number" min={1} max={5}
+              value={defaultMaxRouters} onChange={(e) => setDefaultMaxRouters(e.target.value)}
+              className={inputClass} placeholder="1" />
+            <p className="text-xs text-gray-400 dark:text-white/30">
+              Berlaku untuk user yang daftar setelah disimpan. Range 1 - 5. Untuk fase internal sekarang isi <strong>5</strong>; untuk public/eksternal isi <strong>1</strong>.
+            </p>
+          </div>
+
+          <label className="flex items-start gap-2 cursor-pointer">
+            <input type="checkbox" checked={syncExisting} onChange={(e) => setSyncExisting(e.target.checked)} className="mt-0.5 accent-blue-600" />
+            <span className="text-sm text-gray-600 dark:text-white/60">
+              Sync ke user existing
+              <span className="block text-xs text-gray-400 dark:text-white/30 mt-0.5">
+                Naikkin <code className="bg-gray-100 dark:bg-white/5 px-1 rounded">maxRouters</code> semua user yang sekarang di bawah nilai default ini. User yang sudah di atas tidak diturunin.
+              </span>
+            </span>
+          </label>
+
+          <button type="submit" disabled={routerQuotaLoading} className={btnPrimary}>
+            {routerQuotaLoading ? "Menyimpan..." : "Simpan Default Kuota Router"}
           </button>
         </form>
 
