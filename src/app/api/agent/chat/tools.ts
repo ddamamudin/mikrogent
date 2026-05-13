@@ -43,12 +43,30 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
       "Re-scan konfigurasi router aktif secara lengkap dan perbarui memory snapshot-nya. Gunakan setelah ada perubahan konfigurasi besar.",
     parameters: { type: "object", properties: {}, required: [] },
   },
+  {
+    name: "execute_on_routers",
+    description:
+      "Jalankan SATU perintah RouterOS yang sama ke BEBERAPA router sekaligus (paralel). Pakai ini kalau user minta cek/eksekusi ke 'semua router', 'semua', atau ke beberapa router spesifik dalam 1 request. JANGAN pakai untuk eksekusi 1 router — pakai execute_mikrotik_command. Tool ini gak butuh set_active_router dulu. Otomatis skip router yang gak terhubung.",
+    parameters: {
+      type: "object",
+      properties: {
+        command: { type: "string", description: "Perintah RouterOS lengkap. Contoh: '/system resource print', '/ip hotspot active print'." },
+        routers: { type: "string", description: "Pakai 'all' untuk semua router terhubung user, atau daftar nama router dipisahkan koma (mis. 'Router 1, Router 3'). Nama harus persis seperti di daftar router user." },
+      },
+      required: ["command", "routers"],
+    },
+  },
 ];
 
 export const TOOL_LABELS: Record<string, (input: Record<string, unknown>) => string> = {
   set_active_router: (input) => `Memilih router: ${(input as { name?: string }).name ?? ""}`,
   execute_mikrotik_command: (input) => `Menjalankan: ${(input as { command?: string }).command ?? "perintah"}`,
   update_memory: () => "Memperbarui konfigurasi...",
+  execute_on_routers: (input) => {
+    const i = input as { command?: string; routers?: string };
+    const target = (i.routers ?? "").trim().toLowerCase() === "all" ? "semua router" : (i.routers ?? "beberapa router");
+    return `Menjalankan ke ${target}: ${i.command ?? "perintah"}`;
+  },
 };
 
 export interface ToolContext {
@@ -116,6 +134,73 @@ export async function executeTool(
           `\n\n[Output dipotong: ${output.length} → ${MAX} karakter. Gunakan filter RouterOS untuk hasil lebih spesifik - contoh: 'where', '?status=...', 'count-only', atau 'print brief'.]`;
       }
       return output;
+    }
+
+    if (name === "execute_on_routers") {
+      const command = String(input.command ?? "").trim();
+      if (!command) return "ERROR: command kosong.";
+      const routersArg = String(input.routers ?? "").trim();
+      if (!routersArg) return "ERROR: argumen 'routers' kosong. Pakai 'all' atau daftar nama dipisah koma.";
+
+      const all = await prisma.mikrotikCredential.findMany({
+        where: { userId: ctx.userId },
+        select: { id: true, name: true, host: true, port: true, sshUser: true, sshPass: true, connected: true },
+      });
+      if (all.length === 0) return "ERROR: User belum punya router.";
+
+      const connected = all.filter((c) => c.connected);
+      if (connected.length === 0) return "ERROR: Tidak ada router yang terhubung saat ini.";
+
+      // Resolve target list
+      const wantAll = ["all", "semua", "*"].includes(routersArg.toLowerCase());
+      let targets: typeof connected;
+      if (wantAll) {
+        targets = connected;
+      } else {
+        const wanted = routersArg.split(",").map((s) => s.trim()).filter(Boolean);
+        const notFound: string[] = [];
+        const notConnected: string[] = [];
+        targets = [];
+        for (const w of wanted) {
+          const lw = w.toLowerCase();
+          const match = all.find((c) => c.name.toLowerCase() === lw)
+            ?? all.find((c) => c.name.toLowerCase().includes(lw));
+          if (!match) notFound.push(w);
+          else if (!match.connected) notConnected.push(match.name);
+          else targets.push(match);
+        }
+        if (targets.length === 0) {
+          const names = all.map((c) => c.name).join(", ");
+          return `ERROR: Tidak ada router valid yang match. Tidak ditemukan: ${notFound.join(", ") || "-"}. Tidak terhubung: ${notConnected.join(", ") || "-"}. Pilihan valid: ${names}`;
+        }
+      }
+
+      const PER_CAP = 4000;
+      const TOTAL_CAP = 40000;
+
+      const results = await Promise.all(
+        targets.map(async (r) => {
+          const cfg: MikrotikConfig = { host: r.host, port: r.port, username: r.sshUser, password: decryptSshPass(r.sshPass) };
+          try {
+            const out = await executeMikrotikCommand(command, cfg);
+            const capped = out.length > PER_CAP
+              ? out.slice(0, PER_CAP) + `\n[Output dipotong: ${out.length} → ${PER_CAP} karakter.]`
+              : out;
+            return { name: r.name, host: r.host, ok: true, output: capped };
+          } catch (e) {
+            return { name: r.name, host: r.host, ok: false, output: e instanceof Error ? e.message : String(e) };
+          }
+        }),
+      );
+
+      const sections = results.map((r) =>
+        `=== ${r.name} (${r.host}) ===\n${r.ok ? r.output : `ERROR: ${r.output}`}`,
+      );
+      const joined = sections.join("\n\n");
+      if (joined.length > TOTAL_CAP) {
+        return joined.slice(0, TOTAL_CAP) + `\n\n[Total dipotong di ${TOTAL_CAP} karakter — jalankan per-router pakai execute_mikrotik_command kalau butuh detail.]`;
+      }
+      return joined;
     }
 
     if (name === "update_memory") {
