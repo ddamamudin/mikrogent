@@ -44,6 +44,7 @@ export default function RouterListClient() {
   const [editingCredId, setEditingCredId] = useState<string | null>(null);
   const [form, setForm] = useState({ userId: "", name: "", host: "", port: "22", sshUser: "", sshPass: "" });
   const [available, setAvailable] = useState<AvailableTenant[]>([]);
+  const [tenantSearch, setTenantSearch] = useState("");
   const [modalLoading, setModalLoading] = useState(false);
   const [modalError, setModalError] = useState("");
 
@@ -69,6 +70,7 @@ export default function RouterListClient() {
     setModalMode("add");
     setEditingCredId(null);
     setForm({ userId: "", name: "", host: "", port: "22", sshUser: "", sshPass: "" });
+    setTenantSearch("");
     setModalError("");
     const res = await fetch("/api/admin/routers/available-tenants");
     const data = await res.json();
@@ -335,21 +337,59 @@ export default function RouterListClient() {
 
               {modalMode === "add" ? (
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500 dark:text-white/50">Tenant</label>
-                  <select
-                    value={form.userId}
-                    onChange={(e) => setForm({ ...form, userId: e.target.value })}
-                    required
-                    className={`${inputClass} w-full`}
-                  >
-                    <option value="">- Pilih tenant -</option>
-                    {available.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name} ({t.email}) - {t.routerCount}/{t.maxRouters} router
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-[11px] text-gray-400 dark:text-white/30">Hanya tenant tervalidasi yang belum penuh kuota router</p>
+                  <label className="text-xs font-medium text-gray-500 dark:text-white/50">Tenant ({available.length} kandidat)</label>
+                  {(() => {
+                    const q = tenantSearch.trim().toLowerCase();
+                    const filtered = q
+                      ? available.filter((t) =>
+                          t.name.toLowerCase().includes(q) ||
+                          t.email.toLowerCase().includes(q) ||
+                          (t.brand?.toLowerCase().includes(q) ?? false)
+                        )
+                      : available;
+                    const selected = available.find((t) => t.id === form.userId);
+                    return (
+                      <>
+                        <input
+                          type="search"
+                          value={tenantSearch}
+                          onChange={(e) => setTenantSearch(e.target.value)}
+                          placeholder="Cari nama / email / brand..."
+                          className={`${inputClass} w-full`}
+                        />
+                        <div className="max-h-64 overflow-y-auto rounded-lg border border-gray-200 dark:border-white/10 mt-1">
+                          {filtered.length === 0 ? (
+                            <div className="px-3 py-4 text-xs text-gray-400 dark:text-white/30 text-center">
+                              {available.length === 0 ? "Gak ada tenant yang available" : "Tidak ada hasil"}
+                            </div>
+                          ) : filtered.map((t) => (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => setForm({ ...form, userId: t.id })}
+                              className={`w-full text-left px-3 py-2 border-b border-gray-50 dark:border-white/5 last:border-0 transition ${
+                                form.userId === t.id
+                                  ? "bg-blue-50 dark:bg-blue-500/10"
+                                  : "hover:bg-gray-50 dark:hover:bg-white/5"
+                              }`}
+                            >
+                              <div className="text-sm font-medium text-gray-900 dark:text-white">{t.name}</div>
+                              <div className="text-xs text-gray-500 dark:text-white/40 flex items-center gap-2">
+                                <span>{t.email}</span>
+                                <span className="text-gray-300 dark:text-white/20">|</span>
+                                <span>{t.routerCount}/{t.maxRouters} router</span>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                        {selected && (
+                          <p className="text-[11px] text-blue-600 dark:text-blue-400 mt-1">
+                            Dipilih: <strong>{selected.name}</strong>
+                          </p>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               ) : (
                 <div className="text-sm text-gray-500 dark:text-white/50">
