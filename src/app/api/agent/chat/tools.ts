@@ -1,8 +1,5 @@
-import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { executeMikrotikCommand, scanMikrotikConfig, MikrotikConfig } from "@/lib/mikrotik";
-
-export const AGENT_SSH_USER = "replay-agent";
 
 export interface ToolSchema {
   name: string;
@@ -15,19 +12,6 @@ export interface ToolSchema {
 }
 
 export const TOOL_SCHEMAS: ToolSchema[] = [
-  {
-    name: "generate_connection_script",
-    description:
-      "Generate script RouterOS untuk membuat user SSH agent di MikroTik user. Simpan kredensial pending ke database.",
-    parameters: {
-      type: "object",
-      properties: {
-        host: { type: "string", description: "IP public MikroTik user" },
-        port: { type: "number", description: "Port SSH, default 22" },
-      },
-      required: ["host"],
-    },
-  },
   {
     name: "verify_and_connect",
     description:
@@ -55,8 +39,7 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
 ];
 
 export const TOOL_LABELS: Record<string, (input: Record<string, unknown>) => string> = {
-  generate_connection_script: () => "Membuat script koneksi...",
-  verify_and_connect: () => "Menghubungkan ke MikroTik...",
+  verify_and_connect: () => "Mengecek koneksi MikroTik...",
   execute_mikrotik_command: (input) => `Menjalankan: ${(input as { command?: string }).command ?? "perintah"}`,
   update_memory: () => "Memperbarui konfigurasi...",
 };
@@ -73,40 +56,6 @@ export async function executeTool(
   ctx: ToolContext,
 ): Promise<string> {
   try {
-    if (name === "generate_connection_script") {
-      const host = String(input.host ?? "");
-      const port = typeof input.port === "number" ? input.port : 22;
-      if (!host) return "ERROR: host tidak diberikan.";
-
-      const serverIp = process.env.MIKROPLAY_SERVER_IP;
-      const sshPass = crypto.randomBytes(10).toString("hex");
-      await prisma.mikrotikCredential.upsert({
-        where: { userId: ctx.userId },
-        update: { host, port, sshUser: AGENT_SSH_USER, sshPass, connected: false },
-        create: { userId: ctx.userId, host, port, sshUser: AGENT_SSH_USER, sshPass, connected: false },
-      });
-      ctx.setConnected(false);
-
-      const addressClause = serverIp ? ` address=${serverIp}/32` : "";
-
-      return `Script berhasil dibuat.
-
-PENJELASAN UNTUK USER (sampaikan ini sebelum menampilkan script):
-Script ini berisi 2 perintah:
-1. Membuat username "${AGENT_SSH_USER}" dengan password khusus - kredensial login khusus aku
-2. Membuka akses SSH (port ${port})${serverIp ? ` HANYA dari IP server Mikroplay (${serverIp}) - bot scanner di internet langsung ditolak, lebih aman` : " - agar aku bisa terhubung ke router kamu dari jarak jauh"}
-
-SCRIPT YANG HARUS DIJALANKAN:
-/user add name=${AGENT_SSH_USER} password=${sshPass} group=write
-/ip service set ssh port=${port} disabled=no${addressClause}
-
-INSTRUKSI:
-1. Buka Winbox → klik menu "New Terminal"
-2. Copy kedua baris script di atas
-3. Paste di terminal dan tekan Enter
-4. Konfirmasi kepadaku setelah selesai`;
-    }
-
     if (name === "verify_and_connect") {
       const cred = await prisma.mikrotikCredential.findUnique({ where: { userId: ctx.userId } });
       if (!cred) return "ERROR: Belum ada kredensial tersimpan. Minta user memberikan IP terlebih dahulu.";

@@ -33,6 +33,12 @@ export async function POST() {
   if (!config?.voiceCallEnabled) {
     return NextResponse.json({ error: "Fitur voice call belum diaktifkan" }, { status: 403 });
   }
+  if (!cred?.connected) {
+    return NextResponse.json(
+      { error: "Router belum terhubung. Isi data router di menu Router dulu yaa." },
+      { status: 403 },
+    );
+  }
   if (config.llmProvider !== "openai") {
     return NextResponse.json({ error: "Voice call hanya tersedia saat provider = OpenAI" }, { status: 503 });
   }
@@ -55,7 +61,6 @@ export async function POST() {
   const baseInstructions = buildSystemPrompt({
     persona: config.agentPersona ?? "",
     knowledge: config.agentKnowledge ?? "",
-    isConnected: cred?.connected ?? false,
     memory: memory?.content ?? null,
     firstName,
   });

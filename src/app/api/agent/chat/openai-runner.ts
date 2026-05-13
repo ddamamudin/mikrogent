@@ -110,7 +110,6 @@ export async function runOpenAI(opts: {
   const systemPrompt = buildSystemPrompt({
     persona: opts.persona,
     knowledge: opts.knowledge,
-    isConnected,
     memory: opts.memory,
     firstName: opts.firstName,
   });
@@ -182,7 +181,7 @@ export async function runOpenAI(opts: {
 
     if (finishReason === "stop" || finishReason === null) {
       if (totalTextEmitted === 0) {
-        opts.emit({ type: "text", text: fallbackText(isConnected, opts.firstName) });
+        opts.emit({ type: "text", text: fallbackText(opts.firstName) });
       }
       opts.emit({ type: "done", messages });
       return;

@@ -46,7 +46,6 @@ export async function runAnthropic(opts: {
       text: buildSystemPrompt({
         persona: opts.persona,
         knowledge: opts.knowledge,
-        isConnected,
         memory: opts.memory,
         firstName: opts.firstName,
       }),
@@ -86,7 +85,7 @@ export async function runAnthropic(opts: {
 
     if (finalMsg.stop_reason === "end_turn") {
       if (totalTextEmitted === 0) {
-        opts.emit({ type: "text", text: fallbackText(isConnected, opts.firstName) });
+        opts.emit({ type: "text", text: fallbackText(opts.firstName) });
       }
       opts.emit({ type: "done", messages, cacheRead, cacheWrite });
       return;

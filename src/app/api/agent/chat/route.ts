@@ -124,6 +124,13 @@ export async function POST(req: NextRequest) {
   const firstName = (user?.name ?? "").trim().split(/\s+/)[0] || "Kak";
   const isConnected = cred?.connected ?? false;
 
+  if (!isConnected) {
+    return new Response(
+      sseRaw({ type: "error", error: "Router belum terhubung. Silahkan hubungkan dulu lewat menu Router di sidebar." }),
+      { status: 403, headers: { "Content-Type": "text/event-stream" } },
+    );
+  }
+
   const runnerOpts = {
     apiKey,
     model,

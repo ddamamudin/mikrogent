@@ -135,6 +135,20 @@ export default function AgentClient({ firstName, isConnected, hasMemory, agentRe
       return;
     }
 
+    if (!isConnected) {
+      const cannedReply = `Router Kakak **belum terhubung** nih 🙈\n\nSilahkan hubungkan dulu lewat menu **Router** di sidebar. Yang perlu dipastikan cuma 2:\n\n1. **Service SSH aktif** di MikroTik, dan **port di form sama persis** sama port SSH yang dipakai di router (default 22, atau angka custom kalau Kakak ubah).\n2. **Kredensial benar** - username & password SSH yang Kakak isi harus bisa login (boleh user lama, boleh user baru).\n\nIsi form → klik **Cek Port** → klik **Simpan & Tes Koneksi**. Setelah status berubah jadi terhubung, balik ke sini ya, Aku siap bantu ✨`;
+      const nextMessages: Message[] = [
+        ...messages,
+        { role: "user", content },
+        { role: "assistant", content: cannedReply },
+      ];
+      setMessages(nextMessages);
+      setInput("");
+      if (textareaRef.current) textareaRef.current.style.height = "auto";
+      saveSession(nextMessages, apiMessages);
+      return;
+    }
+
     const snapshot = [...attachments];
     setAttachments([]);
 
@@ -328,9 +342,15 @@ export default function AgentClient({ firstName, isConnected, hasMemory, agentRe
             <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-3 leading-tight">
               {greeting ? `${greeting},` : "Halo,"}<br />Kak {firstName}
             </h1>
-            <p className="text-sm text-gray-500 max-w-sm">
-              silahkan tanya / perintahkan Aku untuk menjaga / mengelola Mikrotik Kakak ya.
-            </p>
+            {isConnected ? (
+              <p className="text-sm text-gray-500 max-w-sm">
+                silahkan tanya / perintahkan Aku untuk menjaga / mengelola Mikrotik Kakak ya.
+              </p>
+            ) : (
+              <p className="text-sm text-gray-500 max-w-sm">
+                Router Kakak belum terhubung. Silahkan hubungkan dulu lewat menu <strong className="text-gray-700">Router</strong> di sidebar, baru kita bisa mulai ngobrol ya.
+              </p>
+            )}
           </div>
         ) : (
           <div className="max-w-3xl mx-auto px-4 py-6">
@@ -438,12 +458,18 @@ export default function AgentClient({ firstName, isConnected, hasMemory, agentRe
               (() => {
                 const voiceRemaining = Math.max(0, voiceDailyLimitSeconds - voiceSecondsUsed);
                 const voiceExhausted = voiceRemaining <= 0;
+                const voiceDisabled = voiceExhausted || !isConnected;
+                const voiceTitle = !isConnected
+                  ? "Router belum terhubung - isi data router di menu Router dulu"
+                  : voiceExhausted
+                    ? "Batas voice harian sudah habis"
+                    : `Voice call (${voiceRemaining}s tersisa)`;
                 return (
                   <button type="button"
-                    onClick={() => { if (!voiceExhausted) setVoiceModalOpen(true); }}
-                    disabled={voiceExhausted}
-                    title={voiceExhausted ? "Batas voice harian sudah habis" : `Voice call (${voiceRemaining}s tersisa)`}
-                    className={`shrink-0 w-8 h-8 rounded-full border-none flex items-center justify-center transition ${voiceExhausted ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-gray-900 text-white cursor-pointer hover:bg-gray-700"}`}>
+                    onClick={() => { if (!voiceDisabled) setVoiceModalOpen(true); }}
+                    disabled={voiceDisabled}
+                    title={voiceTitle}
+                    className={`shrink-0 w-8 h-8 rounded-full border-none flex items-center justify-center transition ${voiceDisabled ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-gray-900 text-white cursor-pointer hover:bg-gray-700"}`}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
                     </svg>
@@ -458,6 +484,12 @@ export default function AgentClient({ firstName, isConnected, hasMemory, agentRe
             )}
           </div>
         </form>
+
+        {voiceCallEnabled && !isConnected && !input.trim() && attachments.length === 0 && !loading && (
+          <p className="max-w-3xl mx-auto text-center text-xs text-gray-400 mt-2 px-2">
+            Voice call belum bisa dipakai - <span className="text-gray-600">router belum terhubung</span>. Isi data router di menu <strong>Router</strong> dulu yaa.
+          </p>
+        )}
       </div>
 
       {voiceModalOpen && (
