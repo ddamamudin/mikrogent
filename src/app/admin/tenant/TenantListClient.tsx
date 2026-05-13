@@ -94,8 +94,8 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
     setTimeout(() => setMessage(null), 3000);
   };
 
-  const fetchTenants = useCallback(async () => {
-    setLoading(true);
+  const fetchTenants = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     const params = new URLSearchParams({ page: String(page), q, status });
     const res = await fetch(`/api/admin/tenants?${params}`);
     const data = await res.json();
@@ -129,7 +129,7 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
     setDailyChatLimit(data.dailyChatLimit ?? 50);
     setVoiceDailySeconds(data.voiceDailySeconds ?? 180);
     setVoiceCallEnabled(!!data.voiceCallEnabled);
-    setLoading(false);
+    if (!opts?.silent) setLoading(false);
   }, [page, q, status]);
 
   useEffect(() => { fetchTenants(); }, [fetchTenants]);
@@ -152,24 +152,32 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
     }
   };
 
-  // Auto-refresh tiap 15 detik supaya admin lihat update verifikasi email
-  // tenant tanpa harus reload manual. Pause kalau tab di background.
+  // Realtime: subscribe SSE ke topic admin:tenant. Pas ada event update/delete,
+  // patch state lokal (delete) atau silent refetch (upsert) — gak ada loading
+  // flash, gak nginterupsi state UI yang lagi dipakai admin.
   useEffect(() => {
-    let timer: ReturnType<typeof setInterval> | null = null;
-    const start = () => {
-      if (timer) return;
-      timer = setInterval(() => {
-        if (document.visibilityState === "visible") fetchTenants();
-      }, 15000);
-    };
-    const stop = () => { if (timer) { clearInterval(timer); timer = null; } };
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") { fetchTenants(); start(); }
-      else stop();
-    };
-    start();
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => { stop(); document.removeEventListener("visibilitychange", onVisibility); };
+    const es = new EventSource("/api/realtime?topic=admin:tenant");
+
+    es.addEventListener("tenant.deleted", (e) => {
+      try {
+        const { id } = JSON.parse((e as MessageEvent).data) as { id: string };
+        setTenants((prev) => prev.filter((t) => t.id !== id));
+        setTotal((n) => Math.max(0, n - 1));
+        seenIdsRef.current?.delete(id);
+      } catch {}
+    });
+
+    es.addEventListener("tenant.upserted", () => {
+      fetchTenants({ silent: true });
+    });
+
+    // Kalau koneksi drop / tab balik aktif, EventSource auto-reconnect.
+    // Sekalian silent refetch tiap kali "ready" supaya gap waktu disconnect ke-cover.
+    es.addEventListener("ready", () => {
+      fetchTenants({ silent: true });
+    });
+
+    return () => { es.close(); };
   }, [fetchTenants]);
 
   const handleValidate = async (id: string, newValidated: boolean) => {

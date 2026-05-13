@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { logAdmin } from "@/lib/admin-log";
+import { RT } from "@/lib/realtime/events";
 
 async function requireAdmin() {
   const cookieStore = await cookies();
@@ -70,12 +71,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.action === "resetChatQuota") {
     await prisma.agentDailyCount.deleteMany({ where: { userId: id } });
     await logAdmin({ adminId: admin.id, adminName: admin.name, action: "reset_chat_quota", details: label });
+    RT.tenantUpserted(id).catch(() => {});
     return NextResponse.json({ ok: true });
   }
 
   if (body.action === "resetVoiceQuota") {
     await prisma.agentDailyCount.updateMany({ where: { userId: id }, data: { voiceSeconds: 0 } });
     await logAdmin({ adminId: admin.id, adminName: admin.name, action: "reset_voice_quota", details: label });
+    RT.tenantUpserted(id).catch(() => {});
     return NextResponse.json({ ok: true });
   }
 
@@ -90,6 +93,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       action: body.validated ? "validate_tenant" : "unvalidate_tenant",
       details: label,
     });
+    RT.tenantUpserted(id).catch(() => {});
     return NextResponse.json({ ok: true });
   }
 
@@ -113,6 +117,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       action: "set_chat_limit",
       details: `${label} → ${value === null ? "default global" : `${value}/hari`}`,
     });
+    RT.tenantUpserted(id).catch(() => {});
     return NextResponse.json({ ok: true });
   }
 
@@ -138,6 +143,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       action: "set_voice_limit",
       details: `${label} → ${value === null ? "default global" : `${value}s/hari`}`,
     });
+    RT.tenantUpserted(id).catch(() => {});
     return NextResponse.json({ ok: true });
   }
 
@@ -162,6 +168,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       action: "set_max_routers",
       details: `${label} → ${n} router`,
     });
+    RT.tenantUpserted(id).catch(() => {});
     return NextResponse.json({ ok: true });
   }
 
@@ -179,6 +186,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     action: status === "ACTIVE" ? "activate_tenant" : "suspend_tenant",
     details: label,
   });
+  RT.tenantUpserted(id).catch(() => {});
   return NextResponse.json({ ok: true });
 }
 
@@ -191,5 +199,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const deleted = await prisma.user.deleteMany({ where: { id, role: "USER" } });
   if (deleted.count === 0) return NextResponse.json({ error: "Tenant tidak ditemukan" }, { status: 404 });
   await logAdmin({ adminId: admin.id, adminName: admin.name, action: "delete_tenant", details: label });
+  RT.tenantDeleted(id).catch(() => {});
   return NextResponse.json({ ok: true });
 }
