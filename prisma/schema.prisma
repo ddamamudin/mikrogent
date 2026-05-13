@@ -141,6 +141,27 @@ model AdminLog {
   @@index([adminId])
 }
 
+// Audit log SSH command yang dieksekusi agent ke router user.
+// Untuk forensik: siapa eksekusi command apa di router mana, sukses/gagal, durasi.
+// Retention policy: cleanup baris > 90 hari via cron eksternal (belum di-setup).
+model AgentSshLog {
+  id           String   @id @default(cuid())
+  userId       String
+  credentialId String?  // null kalau credential udah dihapus (onDelete: SetNull)
+  routerName   String   // disimpan denormalized supaya tetap ada kalau credential dihapus
+  routerHost   String
+  command      String
+  ok           Boolean
+  errorMsg     String?  // diisi kalau ok=false
+  durationMs   Int
+  source       String   // "execute_mikrotik_command" | "execute_on_routers"
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([credentialId])
+  @@index([createdAt])
+}
+
 // Rate limit bucket per (action, ip). Atomic INSERT ... ON CONFLICT untuk race-safe counter.
 // Persisten lewat restart PM2 / crash. Bucket expired di-reuse otomatis saat resetAt < NOW().
 model RateLimitBucket {

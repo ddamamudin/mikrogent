@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { randomUUID } from "crypto";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
 import type Anthropic from "@anthropic-ai/sdk";
 import { runAnthropic, type SseEvent } from "./anthropic-runner";
 import { runOpenAI } from "./openai-runner";
@@ -44,6 +45,21 @@ export async function POST(req: NextRequest) {
     });
   }
   const userId = session.userId;
+
+  // Burst rate limit per-user: cegah retry loop / client bug bikin biaya LLM meledak.
+  // 20 request / 60 detik — jauh di atas pemakaian normal user, tapi nge-block storm.
+  // Pakai userId sebagai identifier (rateLimit treat string apa pun sebagai opaque key).
+  const burst = await rateLimit({ key: "chat-burst", ip: `user:${userId}`, limit: 20, windowMs: 60_000 });
+  if (!burst.ok) {
+    const retrySec = Math.ceil(burst.resetIn / 1000);
+    return new Response(
+      sseRaw({ type: "error", error: `Terlalu banyak request. Coba lagi dalam ${retrySec} detik.` }),
+      {
+        status: 429,
+        headers: { "Content-Type": "text/event-stream", "Retry-After": String(retrySec) },
+      },
+    );
+  }
 
   const userRecord = await prisma.user.findUnique({ where: { id: userId }, select: { validated: true, dailyChatLimit: true } });
   if (!userRecord?.validated) {

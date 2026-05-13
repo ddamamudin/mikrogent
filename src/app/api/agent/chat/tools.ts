@@ -2,6 +2,37 @@ import { prisma } from "@/lib/prisma";
 import { executeMikrotikCommand, scanMikrotikConfig, MikrotikConfig } from "@/lib/mikrotik";
 import { decryptSshPass } from "@/lib/crypto";
 
+// Fire-and-forget SSH audit log. Jangan block command execution kalau insert gagal.
+function logSshExec(args: {
+  userId: string;
+  credentialId: string | null;
+  routerName: string;
+  routerHost: string;
+  command: string;
+  ok: boolean;
+  errorMsg?: string;
+  durationMs: number;
+  source: "execute_mikrotik_command" | "execute_on_routers";
+}) {
+  prisma.agentSshLog
+    .create({
+      data: {
+        userId: args.userId,
+        credentialId: args.credentialId,
+        routerName: args.routerName,
+        routerHost: args.routerHost,
+        command: args.command.slice(0, 2000),
+        ok: args.ok,
+        errorMsg: args.errorMsg ? args.errorMsg.slice(0, 500) : null,
+        durationMs: args.durationMs,
+        source: args.source,
+      },
+    })
+    .catch((e) => {
+      console.error("[ssh-log] insert gagal:", e instanceof Error ? e.message : e);
+    });
+}
+
 export interface ToolSchema {
   name: string;
   description: string;
@@ -127,13 +158,27 @@ export async function executeTool(
       const command = String(input.command ?? "");
       if (!command) return "ERROR: command kosong.";
       const cfg: MikrotikConfig = { host: cred.host, port: cred.port, username: cred.sshUser, password: decryptSshPass(cred.sshPass) };
-      const output = await executeMikrotikCommand(command, cfg);
-      const MAX = 8000;
-      if (output.length > MAX) {
-        return output.slice(0, MAX) +
-          `\n\n[Output dipotong: ${output.length} → ${MAX} karakter. Gunakan filter RouterOS untuk hasil lebih spesifik - contoh: 'where', '?status=...', 'count-only', atau 'print brief'.]`;
+      const t0 = Date.now();
+      try {
+        const output = await executeMikrotikCommand(command, cfg);
+        logSshExec({
+          userId: ctx.userId, credentialId: cred.id, routerName: cred.name, routerHost: cred.host,
+          command, ok: true, durationMs: Date.now() - t0, source: "execute_mikrotik_command",
+        });
+        const MAX = 8000;
+        if (output.length > MAX) {
+          return output.slice(0, MAX) +
+            `\n\n[Output dipotong: ${output.length} → ${MAX} karakter. Gunakan filter RouterOS untuk hasil lebih spesifik - contoh: 'where', '?status=...', 'count-only', atau 'print brief'.]`;
+        }
+        return output;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        logSshExec({
+          userId: ctx.userId, credentialId: cred.id, routerName: cred.name, routerHost: cred.host,
+          command, ok: false, errorMsg: msg, durationMs: Date.now() - t0, source: "execute_mikrotik_command",
+        });
+        throw e;
       }
-      return output;
     }
 
     if (name === "execute_on_routers") {
@@ -181,14 +226,24 @@ export async function executeTool(
       const results = await Promise.all(
         targets.map(async (r) => {
           const cfg: MikrotikConfig = { host: r.host, port: r.port, username: r.sshUser, password: decryptSshPass(r.sshPass) };
+          const t0 = Date.now();
           try {
             const out = await executeMikrotikCommand(command, cfg);
+            logSshExec({
+              userId: ctx.userId, credentialId: r.id, routerName: r.name, routerHost: r.host,
+              command, ok: true, durationMs: Date.now() - t0, source: "execute_on_routers",
+            });
             const capped = out.length > PER_CAP
               ? out.slice(0, PER_CAP) + `\n[Output dipotong: ${out.length} → ${PER_CAP} karakter.]`
               : out;
             return { name: r.name, host: r.host, ok: true, output: capped };
           } catch (e) {
-            return { name: r.name, host: r.host, ok: false, output: e instanceof Error ? e.message : String(e) };
+            const msg = e instanceof Error ? e.message : String(e);
+            logSshExec({
+              userId: ctx.userId, credentialId: r.id, routerName: r.name, routerHost: r.host,
+              command, ok: false, errorMsg: msg, durationMs: Date.now() - t0, source: "execute_on_routers",
+            });
+            return { name: r.name, host: r.host, ok: false, output: msg };
           }
         }),
       );
