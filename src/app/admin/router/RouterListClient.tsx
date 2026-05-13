@@ -170,7 +170,11 @@ export default function RouterListClient() {
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Router</h1>
-          <p className="text-sm text-gray-500 dark:text-white/40 mt-0.5">{total} tenant terdaftar (untuk setup manual)</p>
+          <p className="text-sm text-gray-500 dark:text-white/40 mt-0.5">
+            {filter === "without_router"
+              ? `${total} tenant belum punya router`
+              : `${total} router tersimpan${filter ? " (sesuai filter)" : ""}`}
+          </p>
         </div>
         <button
           onClick={openAdd}
