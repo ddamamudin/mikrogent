@@ -273,10 +273,10 @@ export default function RouterClient({ initialRouters, maxRouters }: { initialRo
               <div className="text-xs space-y-1.5 font-mono text-gray-700 dark:text-white/70">
                 <div className="flex gap-3"><span className="text-gray-400 dark:text-white/30 w-20">Host</span><span>{r.host}:{r.port}</span></div>
                 <div className="flex gap-3"><span className="text-gray-400 dark:text-white/30 w-20">User</span><span>{r.sshUser}</span></div>
-                <div className="flex gap-3 items-center">
-                  <span className="text-gray-400 dark:text-white/30 w-20">Pass</span>
-                  <span>{showPassId === r.id ? r.sshPass : "••••••••"}</span>
-                  <button onClick={() => setShowPassId(showPassId === r.id ? null : r.id)} className="text-blue-500 hover:text-blue-600 text-xs transition">
+                <div className="flex gap-3 items-start">
+                  <span className="text-gray-400 dark:text-white/30 w-20 shrink-0">Pass</span>
+                  <span className="flex-1 min-w-0 break-all">{showPassId === r.id ? r.sshPass : "••••••••"}</span>
+                  <button onClick={() => setShowPassId(showPassId === r.id ? null : r.id)} className="text-blue-500 hover:text-blue-600 text-xs transition shrink-0">
                     {showPassId === r.id ? "Sembunyikan" : "Tampilkan"}
                   </button>
                 </div>
