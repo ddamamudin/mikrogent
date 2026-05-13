@@ -53,18 +53,27 @@ export default function RouterListClient() {
     setTimeout(() => setMessage(null), 3000);
   };
 
-  const fetchRows = useCallback(async () => {
-    setLoading(true);
+  const fetchRows = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     const params = new URLSearchParams({ page: String(page), q, filter });
     const res = await fetch(`/api/admin/routers?${params}`);
     const data = await res.json();
     setRows(data.routers ?? []);
     setTotal(data.total ?? 0);
     setTotalPages(data.totalPages ?? 1);
-    setLoading(false);
+    if (!opts?.silent) setLoading(false);
   }, [page, q, filter]);
 
   useEffect(() => { fetchRows(); }, [fetchRows]);
+
+  // Realtime: silent refetch saat ada perubahan router CRUD / status connect.
+  // Gak ada "Memuat..." flash, gak ganggu modal yang lagi kebuka.
+  useEffect(() => {
+    const es = new EventSource("/api/realtime?topic=admin:router");
+    es.addEventListener("router.changed", () => { fetchRows({ silent: true }); });
+    es.addEventListener("ready", () => { fetchRows({ silent: true }); });
+    return () => { es.close(); };
+  }, [fetchRows]);
 
   const openAdd = async () => {
     setModalMode("add");

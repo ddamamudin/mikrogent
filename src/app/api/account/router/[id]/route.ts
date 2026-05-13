@@ -4,6 +4,13 @@ import { cookies } from "next/headers";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { encryptSshPass, decryptSshPass } from "@/lib/crypto";
+import { RT } from "@/lib/realtime/events";
+
+function notifyRouterChange(userId: string) {
+  RT.adminRouterChanged().catch(() => {});
+  RT.tenantUpserted(userId).catch(() => {});
+  RT.userRouterChanged(userId).catch(() => {});
+}
 
 async function requireOwnership(id: string) {
   const cookieStore = await cookies();
@@ -60,6 +67,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     data,
     select: { id: true, name: true, host: true, port: true, sshUser: true, sshPass: true, connected: true },
   });
+  notifyRouterChange(auth.userId);
   return NextResponse.json({ ok: true, router: { ...updated, sshPass: decryptSshPass(updated.sshPass) } });
 }
 
@@ -70,5 +78,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
   // Cascade akan menghapus AgentMemory; activeCredentialId di session di-SET NULL
   await prisma.mikrotikCredential.delete({ where: { id } });
+  notifyRouterChange(auth.userId);
   return NextResponse.json({ ok: true });
 }

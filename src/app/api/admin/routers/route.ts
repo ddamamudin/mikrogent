@@ -5,6 +5,7 @@ import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { logAdmin } from "@/lib/admin-log";
 import { encryptSshPass, decryptSshPass } from "@/lib/crypto";
+import { RT } from "@/lib/realtime/events";
 
 async function requireSuperAdmin() {
   const cookieStore = await cookies();
@@ -154,6 +155,10 @@ export async function POST(req: NextRequest) {
     action: "router_create",
     details: `${user.name} (${user.email}) [${finalName}] → ${cleanHost}:${portNum} as ${cleanUser}`,
   });
+
+  RT.adminRouterChanged().catch(() => {});
+  RT.tenantUpserted(userId).catch(() => {});
+  RT.userRouterChanged(userId).catch(() => {});
 
   return NextResponse.json({ ok: true });
 }

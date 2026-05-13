@@ -5,6 +5,7 @@ import { randomUUID } from "crypto";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
+import { RT } from "@/lib/realtime/events";
 import type Anthropic from "@anthropic-ai/sdk";
 import { runAnthropic, type SseEvent } from "./anthropic-runner";
 import { runOpenAI } from "./openai-runner";
@@ -209,6 +210,9 @@ export async function POST(req: NextRequest) {
       { status: 429, headers: { "Content-Type": "text/event-stream" } },
     );
   }
+
+  // Push update kuota ke admin list (kolom "Kuota Hari Ini")
+  RT.tenantUpserted(userId).catch(() => {});
 
   const stream = new ReadableStream({
     async start(controller) {

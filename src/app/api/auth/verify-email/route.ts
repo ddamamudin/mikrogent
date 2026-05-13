@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { createSession, sessionCookieOptions } from "@/lib/session";
+import { RT } from "@/lib/realtime/events";
 
 export async function POST(req: NextRequest) {
   const { token } = await req.json();
@@ -24,6 +25,9 @@ export async function POST(req: NextRequest) {
 
   const cookieStore = await cookies();
   cookieStore.set("session", createSession(emailToken.user.id, emailToken.user.brand), sessionCookieOptions());
+
+  // Push ke admin list (badge "Email Belum Verifikasi" ilang)
+  RT.tenantUpserted(emailToken.userId).catch(() => {});
 
   return NextResponse.json({ ok: true });
 }

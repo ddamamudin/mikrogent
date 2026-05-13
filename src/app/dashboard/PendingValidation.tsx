@@ -5,9 +5,14 @@ import { useEffect } from "react";
 export default function PendingValidation({ name, email }: { name: string; email: string }) {
   const firstName = name.trim().split(/\s+/)[0] || "Kak";
 
+  // Realtime: subscribe ke channel personal user lewat alias "user:me". Server
+  // resolve ke user:<userId> dari session cookie. Begitu admin klik "Validasi",
+  // event "user.validated" fire → langsung redirect ke dashboard agent.
+  // Fallback: SSE auto-reconnect by browser, dan kita re-check status di event
+  // "ready" (saat connect/reconnect) supaya gap waktu offline ke-cover.
   useEffect(() => {
     let cancelled = false;
-    const tick = async () => {
+    const checkStatus = async () => {
       try {
         const res = await fetch("/api/account", { cache: "no-store" });
         if (!res.ok) return;
@@ -17,8 +22,12 @@ export default function PendingValidation({ name, email }: { name: string; email
         }
       } catch {}
     };
-    const interval = setInterval(tick, 5000);
-    return () => { cancelled = true; clearInterval(interval); };
+
+    const es = new EventSource("/api/realtime?topic=user:me");
+    es.addEventListener("ready", () => { checkStatus(); });
+    es.addEventListener("user.validated", () => { checkStatus(); });
+
+    return () => { cancelled = true; es.close(); };
   }, []);
 
   async function handleLogout() {

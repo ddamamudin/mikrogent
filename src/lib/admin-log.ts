@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { RT } from "@/lib/realtime/events";
 
 export async function logAdmin(opts: {
   adminId: string;
@@ -7,7 +8,7 @@ export async function logAdmin(opts: {
   details?: string;
 }): Promise<void> {
   try {
-    await prisma.adminLog.create({
+    const row = await prisma.adminLog.create({
       data: {
         adminId: opts.adminId,
         adminName: opts.adminName,
@@ -15,6 +16,14 @@ export async function logAdmin(opts: {
         details: opts.details ?? null,
       },
     });
+    RT.adminLog({
+      id: row.id,
+      adminId: row.adminId,
+      adminName: row.adminName,
+      action: row.action,
+      details: row.details,
+      createdAt: row.createdAt.toISOString(),
+    }).catch(() => {});
   } catch (e) {
     console.error("[admin-log] failed:", e instanceof Error ? e.message : String(e));
   }

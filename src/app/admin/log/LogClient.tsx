@@ -70,6 +70,26 @@ export default function LogClient() {
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
+  // Realtime: prepend log baru tanpa refetch. Cuma kalau di halaman 1 & filter
+  // cocok (atau gak ada filter) — biar gak ganggu pagination/filter user.
+  useEffect(() => {
+    const es = new EventSource("/api/realtime?topic=admin:log");
+    es.addEventListener("log.created", (e) => {
+      try {
+        const row = JSON.parse((e as MessageEvent).data) as Log;
+        if (page !== 1) return;
+        if (action && row.action !== action) return;
+        setLogs((prev) => {
+          if (prev.some((l) => l.id === row.id)) return prev;
+          return [row, ...prev].slice(0, 50);
+        });
+        setTotal((n) => n + 1);
+        setAvailableActions((prev) => (prev.includes(row.action) ? prev : [...prev, row.action]));
+      } catch {}
+    });
+    return () => { es.close(); };
+  }, [page, action]);
+
   const inputClass = "bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500";
 
   return (

@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { logAdmin } from "@/lib/admin-log";
+import { RT } from "@/lib/realtime/events";
 
 async function requireAdmin() {
   const cookieStore = await cookies();
@@ -37,6 +38,7 @@ export async function PATCH(req: NextRequest) {
       create: { id: "singleton", adminSetupEnabled: body.adminSetupEnabled },
     });
     await logAdmin({ adminId: admin.id, adminName: admin.name, action: "set_admin_setup_enabled", details: String(body.adminSetupEnabled) });
+    RT.configUpdated().catch(() => {});
     return NextResponse.json(config);
   }
 
@@ -47,6 +49,7 @@ export async function PATCH(req: NextRequest) {
       create: { id: "singleton", showBrandField: body.showBrandField },
     });
     await logAdmin({ adminId: admin.id, adminName: admin.name, action: "set_show_brand_field", details: String(body.showBrandField) });
+    RT.configUpdated().catch(() => {});
     return NextResponse.json(config);
   }
 
@@ -66,17 +69,26 @@ export async function PATCH(req: NextRequest) {
     if (syncExisting) {
       // Naikkin maxRouters semua user yang masih di bawah n. User yang sudah > n di-skip
       // supaya gak nurunin kuota orang yang admin manual-naikkin sebelumnya.
+      // Fetch ID dulu supaya bisa fire event ke user:* channel per-orang.
+      const affected = await prisma.user.findMany({
+        where: { role: "USER", maxRouters: { lt: n } },
+        select: { id: true },
+      });
       const result = await prisma.user.updateMany({
         where: { role: "USER", maxRouters: { lt: n } },
         data: { maxRouters: n },
       });
       synced = result.count;
+      for (const u of affected) {
+        RT.userMaxRoutersChanged(u.id).catch(() => {});
+      }
     }
     await logAdmin({
       adminId: admin.id, adminName: admin.name,
       action: "set_default_max_routers",
       details: `${n}${syncExisting ? ` (sync existing: ${synced} user)` : ""}`,
     });
+    RT.configUpdated().catch(() => {});
     return NextResponse.json({ ...config, syncedCount: synced });
   }
 
@@ -148,6 +160,7 @@ export async function PATCH(req: NextRequest) {
       create: { id: "singleton", ...data },
     });
     await logAdmin({ adminId: admin.id, adminName: admin.name, action: "update_agent_config", details: changed.join(", ") });
+    RT.configUpdated().catch(() => {});
     return NextResponse.json(config);
   }
 

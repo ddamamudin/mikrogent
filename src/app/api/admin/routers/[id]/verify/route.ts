@@ -6,6 +6,13 @@ import { prisma } from "@/lib/prisma";
 import { executeMikrotikCommand, scanMikrotikConfig } from "@/lib/mikrotik";
 import { logAdmin } from "@/lib/admin-log";
 import { decryptSshPass } from "@/lib/crypto";
+import { RT } from "@/lib/realtime/events";
+
+function notifyRouterChange(userId: string) {
+  RT.adminRouterChanged().catch(() => {});
+  RT.tenantUpserted(userId).catch(() => {});
+  RT.userRouterChanged(userId).catch(() => {});
+}
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const cookieStore = await cookies();
@@ -43,6 +50,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       action: "router_verify",
       details: `${cred.user.name} (${cred.user.email}) - ${cred.host}:${cred.port} → SUKSES`,
     });
+    notifyRouterChange(cred.userId);
     return NextResponse.json({ ok: true, connected: true });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -52,6 +60,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       action: "router_verify",
       details: `${cred.user.name} (${cred.user.email}) - ${cred.host}:${cred.port} → GAGAL: ${msg}`,
     });
+    notifyRouterChange(cred.userId);
     return NextResponse.json({ ok: false, connected: false, error: msg }, { status: 400 });
   }
 }

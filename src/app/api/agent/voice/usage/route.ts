@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { RT } from "@/lib/realtime/events";
 
 function getTodayString(): string {
   return new Date().toISOString().slice(0, 10);
@@ -46,6 +47,8 @@ export async function POST(req: NextRequest) {
   const updated = await prisma.agentDailyCount.findUnique({ where: { userId } });
   const used = updated?.voiceSeconds ?? 0;
   const remaining = Math.max(0, limit - used);
+
+  RT.tenantUpserted(userId).catch(() => {});
 
   return NextResponse.json({ ok: true, remainingSeconds: remaining, usedSeconds: used, limitSeconds: limit });
 }

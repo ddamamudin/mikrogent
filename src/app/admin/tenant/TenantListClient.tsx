@@ -164,11 +164,12 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
     }
   };
 
-  // Realtime: subscribe SSE ke topic admin:tenant. Pas ada event update/delete,
-  // patch state lokal (delete) atau silent refetch (upsert) — gak ada loading
-  // flash, gak nginterupsi state UI yang lagi dipakai admin.
+  // Realtime: subscribe SSE ke topic admin:tenant + admin:config. Pas ada
+  // event update/delete tenant, patch state lokal (delete) atau silent refetch
+  // (upsert) — gak ada loading flash, gak nginterupsi state UI. Config update
+  // (limit chat/voice global) juga trigger silent refetch.
   useEffect(() => {
-    const es = new EventSource("/api/realtime?topic=admin:tenant");
+    const es = new EventSource("/api/realtime?topic=admin:tenant&topic=admin:config");
 
     es.addEventListener("tenant.deleted", (e) => {
       try {
@@ -180,6 +181,10 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
     });
 
     es.addEventListener("tenant.upserted", () => {
+      fetchTenants({ silent: true });
+    });
+
+    es.addEventListener("config.updated", () => {
       fetchTenants({ silent: true });
     });
 

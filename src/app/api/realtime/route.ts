@@ -22,7 +22,29 @@ const TOPIC_ACL: Array<{ match: RegExp; check: Authorizer }> = [
       return admin?.role === "ADMIN";
     },
   },
+  {
+    // user:<id> — boleh diri sendiri, atau admin (buat impersonate / monitoring)
+    match: /^user:[^:]+$/,
+    check: async (session, topic) => {
+      const targetId = topic.slice("user:".length);
+      if (session.userId === targetId) return true;
+      if (session.role === "ADMIN") {
+        const admin = await prisma.user.findUnique({
+          where: { id: session.userId },
+          select: { role: true },
+        });
+        return admin?.role === "ADMIN";
+      }
+      return false;
+    },
+  },
 ];
+
+// "user:me" → "user:<sessionUserId>" — biar client gak perlu nyebut userId di URL
+function resolveTopic(session: SessionPayload, topic: string): string {
+  if (topic === "user:me") return `user:${session.userId}`;
+  return topic;
+}
 
 async function authorize(session: SessionPayload, topic: string): Promise<boolean> {
   for (const rule of TOPIC_ACL) {
@@ -40,9 +62,11 @@ export async function GET(req: NextRequest) {
   const session = getSessionFromCookie(cookieStore.get("session")?.value);
   if (!session) return new Response("Unauthorized", { status: 401 });
 
-  const topics = req.nextUrl.searchParams.getAll("topic").filter(Boolean);
-  if (topics.length === 0) return new Response("Missing topic", { status: 400 });
-  if (topics.length > 10) return new Response("Too many topics", { status: 400 });
+  const rawTopics = req.nextUrl.searchParams.getAll("topic").filter(Boolean);
+  if (rawTopics.length === 0) return new Response("Missing topic", { status: 400 });
+  if (rawTopics.length > 10) return new Response("Too many topics", { status: 400 });
+
+  const topics = rawTopics.map((t) => resolveTopic(session, t));
 
   for (const topic of topics) {
     if (!(await authorize(session, topic))) {

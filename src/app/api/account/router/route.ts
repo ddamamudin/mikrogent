@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { encryptSshPass, decryptSshPass } from "@/lib/crypto";
+import { RT } from "@/lib/realtime/events";
 
 async function requireValidatedUser() {
   const cookieStore = await cookies();
@@ -82,6 +83,9 @@ export async function POST(req: NextRequest) {
     },
     select: { id: true, name: true, host: true, port: true, sshUser: true, sshPass: true, connected: true },
   });
+
+  RT.adminRouterChanged().catch(() => {});
+  RT.tenantUpserted(auth.userId).catch(() => {});
 
   return NextResponse.json({ ok: true, router: { ...created, sshPass: decryptSshPass(created.sshPass) } });
 }

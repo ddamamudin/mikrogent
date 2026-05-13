@@ -5,6 +5,7 @@ import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { logAdmin } from "@/lib/admin-log";
 import { encryptSshPass } from "@/lib/crypto";
+import { RT } from "@/lib/realtime/events";
 
 async function requireSuperAdmin() {
   const cookieStore = await cookies();
@@ -66,8 +67,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   const label = await credLabel(id);
+  let userId: string | null = null;
   try {
-    await prisma.mikrotikCredential.update({ where: { id }, data });
+    const updated = await prisma.mikrotikCredential.update({ where: { id }, data, select: { userId: true } });
+    userId = updated.userId;
   } catch {
     return NextResponse.json({ error: "Router tidak ditemukan" }, { status: 404 });
   }
@@ -77,6 +80,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     action: "router_update",
     details: label,
   });
+  if (userId) {
+    RT.adminRouterChanged().catch(() => {});
+    RT.tenantUpserted(userId).catch(() => {});
+    RT.userRouterChanged(userId).catch(() => {});
+  }
   return NextResponse.json({ ok: true });
 }
 
@@ -87,8 +95,10 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   const { id } = await params;
   const label = await credLabel(id);
 
+  let userId: string | null = null;
   try {
-    await prisma.mikrotikCredential.delete({ where: { id } });
+    const deleted = await prisma.mikrotikCredential.delete({ where: { id }, select: { userId: true } });
+    userId = deleted.userId;
   } catch {
     return NextResponse.json({ error: "Router tidak ditemukan" }, { status: 404 });
   }
@@ -98,5 +108,10 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     action: "router_delete",
     details: label,
   });
+  if (userId) {
+    RT.adminRouterChanged().catch(() => {});
+    RT.tenantUpserted(userId).catch(() => {});
+    RT.userRouterChanged(userId).catch(() => {});
+  }
   return NextResponse.json({ ok: true });
 }

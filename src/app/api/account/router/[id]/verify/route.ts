@@ -5,6 +5,13 @@ import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { executeMikrotikCommand, scanMikrotikConfig } from "@/lib/mikrotik";
 import { decryptSshPass } from "@/lib/crypto";
+import { RT } from "@/lib/realtime/events";
+
+function notifyRouterChange(userId: string) {
+  RT.adminRouterChanged().catch(() => {});
+  RT.tenantUpserted(userId).catch(() => {});
+  RT.userRouterChanged(userId).catch(() => {});
+}
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -32,9 +39,11 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
         create: { credentialId: id, content: snapshot },
       }),
     ]);
+    notifyRouterChange(user.id);
     return NextResponse.json({ ok: true, connected: true });
   } catch (e) {
     await prisma.mikrotikCredential.update({ where: { id }, data: { connected: false } }).catch(() => {});
+    notifyRouterChange(user.id);
     return NextResponse.json({ ok: false, connected: false, error: e instanceof Error ? e.message : String(e) }, { status: 400 });
   }
 }

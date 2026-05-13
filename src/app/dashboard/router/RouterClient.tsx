@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 type RouterRow = {
   id: string;
@@ -25,8 +25,9 @@ type PendingRow = {
 const inputClass =
   "w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-blue-500";
 
-export default function RouterClient({ initialRouters, maxRouters }: { initialRouters: RouterRow[]; maxRouters: number }) {
+export default function RouterClient({ initialRouters, maxRouters: initialMaxRouters }: { initialRouters: RouterRow[]; maxRouters: number }) {
   const [routers, setRouters] = useState<RouterRow[]>(initialRouters);
+  const [maxRouters, setMaxRouters] = useState<number>(initialMaxRouters);
   const [pending, setPending] = useState<PendingRow | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -35,6 +36,31 @@ export default function RouterClient({ initialRouters, maxRouters }: { initialRo
   const [busyId, setBusyId] = useState<string | null>(null);
   const [pingState, setPingState] = useState<Record<string, { status: "idle" | "ok" | "fail" | "loading"; msg?: string }>>({});
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  // Refetch silent: dipakai SSE handler waktu router/quota berubah dari sisi
+  // lain (admin edit, multi-tab, dll). Skip kalau user lagi edit/add — biar
+  // gak nge-overwrite draft yang lagi diketik.
+  const refetchSilent = useCallback(async () => {
+    if (editingId || pending) return;
+    try {
+      const res = await fetch("/api/account/router", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data.routers)) setRouters(data.routers);
+      if (typeof data.maxRouters === "number") setMaxRouters(data.maxRouters);
+    } catch {}
+  }, [editingId, pending]);
+
+  // Realtime: subscribe ke channel personal user. Server fire event saat
+  // router CRUD/verify (admin maupun user lain di tab lain) atau saat admin
+  // sync defaultMaxRouters → kita refetch state.
+  useEffect(() => {
+    const es = new EventSource("/api/realtime?topic=user:me");
+    es.addEventListener("user.router_changed", () => { refetchSilent(); });
+    es.addEventListener("user.max_routers_changed", () => { refetchSilent(); });
+    es.addEventListener("ready", () => { refetchSilent(); });
+    return () => { es.close(); };
+  }, [refetchSilent]);
 
   const showMsg = (type: "ok" | "err", text: string) => {
     setMessage({ type, text });

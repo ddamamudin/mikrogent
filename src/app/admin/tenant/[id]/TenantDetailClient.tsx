@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Tenant = {
@@ -53,6 +53,38 @@ export default function TenantDetailClient({ tenant: initial, mikrotikCreds, isV
     setMessage({ type, text });
     setTimeout(() => setMessage(null), 3000);
   };
+
+  // Sync state lokal dengan props baru habis router.refresh() — RSC kasih
+  // initial baru, kita pakai updatedAt sebagai change marker biar gak loop.
+  useEffect(() => {
+    setTenant(initial);
+    setChatCount(initial.chatCount);
+    setVoiceUsed(initial.voiceSecondsUsed);
+    setMaxRoutersInput(String(initial.maxRouters));
+  }, [initial]);
+
+  // Realtime: subscribe admin:tenant + admin:router. Begitu event terkait
+  // tenant ini masuk dari aksi admin lain (atau verify router otomatis),
+  // refresh data via router.refresh() — RSC akan rebuild server component
+  // dan kasih data terbaru tanpa hard reload halaman.
+  useEffect(() => {
+    const es = new EventSource("/api/realtime?topic=admin:tenant&topic=admin:router");
+    const refresh = () => router.refresh();
+    es.addEventListener("tenant.upserted", (e) => {
+      try {
+        const { id } = JSON.parse((e as MessageEvent).data) as { id: string };
+        if (id === tenant.id) refresh();
+      } catch {}
+    });
+    es.addEventListener("tenant.deleted", (e) => {
+      try {
+        const { id } = JSON.parse((e as MessageEvent).data) as { id: string };
+        if (id === tenant.id) window.location.href = "/admin/tenant";
+      } catch {}
+    });
+    es.addEventListener("router.changed", refresh);
+    return () => { es.close(); };
+  }, [router, tenant.id]);
 
   const handleValidate = async (validated: boolean) => {
     if (validated && !tenant.emailVerified) {

@@ -1,8 +1,24 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+
 type Stats = { total: number; active: number; suspended: number; newThisMonth: number };
 
 export default function AdminDashboardClient({ stats }: { stats: Stats }) {
+  const router = useRouter();
+
+  // Realtime: subscribe admin:tenant. Saat tenant dibuat/diupdate/dihapus,
+  // refresh RSC supaya angka di kartu (Total, Aktif, Disuspend, Baru Bulan Ini)
+  // auto-update.
+  useEffect(() => {
+    const es = new EventSource("/api/realtime?topic=admin:tenant");
+    const refresh = () => router.refresh();
+    es.addEventListener("tenant.upserted", refresh);
+    es.addEventListener("tenant.deleted", refresh);
+    return () => { es.close(); };
+  }, [router]);
+
   const cards = [
     { label: "Total Tenant", value: stats.total, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-500/10" },
     { label: "Aktif", value: stats.active, color: "text-green-600 dark:text-green-400", bg: "bg-green-50 dark:bg-green-500/10" },

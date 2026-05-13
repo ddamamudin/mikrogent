@@ -94,6 +94,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       details: label,
     });
     RT.tenantUpserted(id).catch(() => {});
+    if (body.validated) RT.userValidated(id).catch(() => {});
     return NextResponse.json({ ok: true });
   }
 
@@ -169,6 +170,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       details: `${label} → ${n} router`,
     });
     RT.tenantUpserted(id).catch(() => {});
+    RT.userMaxRoutersChanged(id).catch(() => {});
     return NextResponse.json({ ok: true });
   }
 
