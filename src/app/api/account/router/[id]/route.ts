@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { encryptSshPass, decryptSshPass } from "@/lib/crypto";
 
 async function requireOwnership(id: string) {
   const cookieStore = await cookies();
@@ -47,7 +48,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     data.port = portNum;
   }
   if (typeof sshUser === "string") data.sshUser = sshUser.trim();
-  if (typeof sshPass === "string") data.sshPass = sshPass.trim();
+  if (typeof sshPass === "string") data.sshPass = encryptSshPass(sshPass.trim());
 
   // Kalau kredensial koneksi berubah, reset status connected supaya user wajib verify ulang
   if (data.host !== undefined || data.port !== undefined || data.sshUser !== undefined || data.sshPass !== undefined) {
@@ -59,7 +60,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     data,
     select: { id: true, name: true, host: true, port: true, sshUser: true, sshPass: true, connected: true },
   });
-  return NextResponse.json({ ok: true, router: updated });
+  return NextResponse.json({ ok: true, router: { ...updated, sshPass: decryptSshPass(updated.sshPass) } });
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

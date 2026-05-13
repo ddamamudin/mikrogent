@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { logAdmin } from "@/lib/admin-log";
+import { encryptSshPass, decryptSshPass } from "@/lib/crypto";
 
 async function requireSuperAdmin() {
   const cookieStore = await cookies();
@@ -93,7 +94,7 @@ export async function GET(req: NextRequest) {
     userId: c.user.id, userName: c.user.name, userEmail: c.user.email, userBrand: c.user.brand,
     maxRouters: c.user.maxRouters, routerCount: c.user._count.mikrotikCredentials,
     cred: {
-      id: c.id, name: c.name, host: c.host, port: c.port, sshUser: c.sshUser, sshPass: c.sshPass,
+      id: c.id, name: c.name, host: c.host, port: c.port, sshUser: c.sshUser, sshPass: decryptSshPass(c.sshPass),
       connected: c.connected, createdAt: c.createdAt, updatedAt: c.updatedAt,
     },
   }));
@@ -145,7 +146,7 @@ export async function POST(req: NextRequest) {
   }
 
   await prisma.mikrotikCredential.create({
-    data: { userId, name: finalName, host: cleanHost, port: portNum, sshUser: cleanUser, sshPass: cleanPass, connected: false },
+    data: { userId, name: finalName, host: cleanHost, port: portNum, sshUser: cleanUser, sshPass: encryptSshPass(cleanPass), connected: false },
   });
 
   await logAdmin({

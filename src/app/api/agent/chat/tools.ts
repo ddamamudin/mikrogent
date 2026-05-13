@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { executeMikrotikCommand, scanMikrotikConfig, MikrotikConfig } from "@/lib/mikrotik";
+import { decryptSshPass } from "@/lib/crypto";
 
 export interface ToolSchema {
   name: string;
@@ -107,7 +108,7 @@ export async function executeTool(
       }
       const command = String(input.command ?? "");
       if (!command) return "ERROR: command kosong.";
-      const cfg: MikrotikConfig = { host: cred.host, port: cred.port, username: cred.sshUser, password: cred.sshPass };
+      const cfg: MikrotikConfig = { host: cred.host, port: cred.port, username: cred.sshUser, password: decryptSshPass(cred.sshPass) };
       const output = await executeMikrotikCommand(command, cfg);
       const MAX = 8000;
       if (output.length > MAX) {
@@ -123,7 +124,7 @@ export async function executeTool(
       if (!cred || cred.userId !== ctx.userId || !cred.connected) {
         return "ERROR: Router aktif tidak terhubung atau tidak ditemukan.";
       }
-      const cfg: MikrotikConfig = { host: cred.host, port: cred.port, username: cred.sshUser, password: cred.sshPass };
+      const cfg: MikrotikConfig = { host: cred.host, port: cred.port, username: cred.sshUser, password: decryptSshPass(cred.sshPass) };
       const snapshot = await scanMikrotikConfig(cfg);
       await prisma.agentMemory.upsert({
         where: { credentialId: cred.id },

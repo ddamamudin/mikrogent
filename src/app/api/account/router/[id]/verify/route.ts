@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { executeMikrotikCommand, scanMikrotikConfig } from "@/lib/mikrotik";
+import { decryptSshPass } from "@/lib/crypto";
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -19,7 +20,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   if (!cred) return NextResponse.json({ error: "Router tidak ditemukan" }, { status: 404 });
   if (cred.userId !== user.id) return NextResponse.json({ error: "Router bukan milik Anda" }, { status: 403 });
 
-  const cfg = { host: cred.host, port: cred.port, username: cred.sshUser, password: cred.sshPass };
+  const cfg = { host: cred.host, port: cred.port, username: cred.sshUser, password: decryptSshPass(cred.sshPass) };
   try {
     await executeMikrotikCommand("/system identity print", cfg);
     const snapshot = await scanMikrotikConfig(cfg);

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { encryptSshPass, decryptSshPass } from "@/lib/crypto";
 
 async function requireValidatedUser() {
   const cookieStore = await cookies();
@@ -20,11 +21,12 @@ export async function GET() {
   const auth = await requireValidatedUser();
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
-  const routers = await prisma.mikrotikCredential.findMany({
+  const rows = await prisma.mikrotikCredential.findMany({
     where: { userId: auth.userId },
     select: { id: true, name: true, host: true, port: true, sshUser: true, sshPass: true, connected: true, updatedAt: true },
     orderBy: { createdAt: "asc" },
   });
+  const routers = rows.map((r) => ({ ...r, sshPass: decryptSshPass(r.sshPass) }));
   return NextResponse.json({ routers, maxRouters: auth.maxRouters });
 }
 
@@ -75,11 +77,11 @@ export async function POST(req: NextRequest) {
       host: String(host).trim(),
       port: portNum,
       sshUser: String(sshUser).trim(),
-      sshPass: String(sshPass).trim(),
+      sshPass: encryptSshPass(String(sshPass).trim()),
       connected: false,
     },
     select: { id: true, name: true, host: true, port: true, sshUser: true, sshPass: true, connected: true },
   });
 
-  return NextResponse.json({ ok: true, router: created });
+  return NextResponse.json({ ok: true, router: { ...created, sshPass: decryptSshPass(created.sshPass) } });
 }

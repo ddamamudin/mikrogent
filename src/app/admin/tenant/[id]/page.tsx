@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { decryptSshPass } from "@/lib/crypto";
 import TenantDetailClient from "./TenantDetailClient";
 
 export default async function TenantDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -47,7 +48,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
         dailyVoiceSeconds: userVoiceOverride ?? globalVoiceLimit,
         voiceCallEnabled: config?.voiceCallEnabled ?? false,
       }}
-      mikrotikCreds={creds}
+      mikrotikCreds={creds.map((c) => ({ ...c, sshPass: decryptSshPass(c.sshPass) }))}
       isValidator={isValidator}
     />
   );

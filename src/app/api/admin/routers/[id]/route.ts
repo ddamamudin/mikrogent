@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { logAdmin } from "@/lib/admin-log";
+import { encryptSshPass } from "@/lib/crypto";
 
 async function requireSuperAdmin() {
   const cookieStore = await cookies();
@@ -55,7 +56,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     data.port = p;
   }
   if (typeof body.sshUser === "string") data.sshUser = body.sshUser.trim();
-  if (typeof body.sshPass === "string") data.sshPass = body.sshPass.trim();
+  if (typeof body.sshPass === "string") data.sshPass = encryptSshPass(body.sshPass.trim());
 
   if (Object.keys(data).length === 0) return NextResponse.json({ error: "Tidak ada perubahan" }, { status: 400 });
 
