@@ -39,6 +39,7 @@ export async function PATCH(req: NextRequest) {
     });
     await logAdmin({ adminId: admin.id, adminName: admin.name, action: "set_admin_setup_enabled", details: String(body.adminSetupEnabled) });
     RT.configUpdated().catch(() => {});
+    RT.publicConfigChanged().catch(() => {});
     return NextResponse.json(config);
   }
 
@@ -50,6 +51,7 @@ export async function PATCH(req: NextRequest) {
     });
     await logAdmin({ adminId: admin.id, adminName: admin.name, action: "set_registration_enabled", details: String(body.registrationEnabled) });
     RT.configUpdated().catch(() => {});
+    RT.publicConfigChanged().catch(() => {});
     return NextResponse.json(config);
   }
 

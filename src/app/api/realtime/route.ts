@@ -10,6 +10,13 @@ const PING_MS = 15000;
 
 type Authorizer = (session: SessionPayload, topic: string) => Promise<boolean>;
 
+// Topic public:* terbuka untuk siapa aja (gak butuh login). Payload yang
+// di-publish ke topic ini harus dipastikan TIDAK berisi data sensitif —
+// pakai cuma untuk signal "sesuatu di server udah berubah, refresh".
+function isPublicTopic(topic: string): boolean {
+  return topic.startsWith("public:");
+}
+
 const TOPIC_ACL: Array<{ match: RegExp; check: Authorizer }> = [
   {
     match: /^admin:/,
@@ -58,18 +65,26 @@ function formatSse(evt: RealtimeEvent): string {
 }
 
 export async function GET(req: NextRequest) {
-  const cookieStore = await cookies();
-  const session = getSessionFromCookie(cookieStore.get("session")?.value);
-  if (!session) return new Response("Unauthorized", { status: 401 });
-
   const rawTopics = req.nextUrl.searchParams.getAll("topic").filter(Boolean);
   if (rawTopics.length === 0) return new Response("Missing topic", { status: 400 });
   if (rawTopics.length > 10) return new Response("Too many topics", { status: 400 });
 
-  const topics = rawTopics.map((t) => resolveTopic(session, t));
+  // Kalau semua topic public, skip auth — visitor anonymous boleh subscribe
+  // (mis. /daftar yang mau auto-refresh saat admin toggle registrationEnabled).
+  const allPublic = rawTopics.every(isPublicTopic);
+
+  let session: SessionPayload | null = null;
+  if (!allPublic) {
+    const cookieStore = await cookies();
+    session = getSessionFromCookie(cookieStore.get("session")?.value);
+    if (!session) return new Response("Unauthorized", { status: 401 });
+  }
+
+  const topics = rawTopics.map((t) => (session ? resolveTopic(session, t) : t));
 
   for (const topic of topics) {
-    if (!(await authorize(session, topic))) {
+    if (isPublicTopic(topic)) continue;
+    if (!session || !(await authorize(session, topic))) {
       return new Response("Forbidden", { status: 403 });
     }
   }

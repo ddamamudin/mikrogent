@@ -36,6 +36,10 @@ export const RT = {
   // Global app config update
   configUpdated: () =>
     publish({ topic: TOPIC.adminConfig, event: "config.updated", data: null }),
+  // Public broadcast — buat visitor anonymous yang lagi buka halaman publik
+  // (/daftar, /admin/setup) supaya auto-refresh saat toggle diubah admin.
+  publicConfigChanged: () =>
+    publish({ topic: "public:config", event: "config.changed", data: null }),
 
   // Per-user channel: client subscribe via "user:me" alias (resolved server-side)
   userValidated: (userId: string) =>
