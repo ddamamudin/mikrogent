@@ -99,7 +99,7 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
     <AgentSidebarCtx.Provider value={{ state: agentState, setState: setAgentState }}>
       <div className={`fixed inset-0 flex flex-col ${isAgentPage ? "bg-white" : "bg-gray-100"} dark:bg-slate-950 text-gray-900 dark:text-white`}>
         {/* Header */}
-        <header className="h-14 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-white/10 flex items-center justify-between px-4 shrink-0 z-40">
+        <header className="h-14 bg-white dark:bg-slate-900 flex items-center justify-between px-4 shrink-0 z-40">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen((o) => !o)}
