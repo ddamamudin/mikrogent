@@ -63,7 +63,7 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
   const [passLoading, setPassLoading] = useState(false);
 
   const [llmProvider, setLlmProvider] = useState<"anthropic" | "openai">(
-    initial.llmProvider === "openai" ? "openai" : "anthropic",
+    initial.llmProvider === "anthropic" ? "anthropic" : "openai",
   );
   const [claudeApiKey, setClaudeApiKey] = useState(initial.claudeApiKey ?? "");
   const [openaiApiKey, setOpenaiApiKey] = useState(initial.openaiApiKey ?? "");

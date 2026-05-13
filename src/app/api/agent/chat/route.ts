@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const provider = config.llmProvider === "openai" ? "openai" : "anthropic";
+  const provider = config.llmProvider === "anthropic" ? "anthropic" : "openai";
   const apiKey = provider === "openai" ? config.openaiApiKey : config.claudeApiKey;
   const model = provider === "openai" ? config.openaiModel : config.anthropicModel;
   if (!apiKey) {

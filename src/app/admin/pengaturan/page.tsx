@@ -21,7 +21,7 @@ export default async function PengaturanPage() {
     adminSetupEnabled: true,
     registrationEnabled: true,
     showBrandField: true,
-    llmProvider: "anthropic" as const,
+    llmProvider: "openai" as const,
     claudeApiKey: null,
     openaiApiKey: null,
     anthropicModel: "claude-sonnet-4-6",

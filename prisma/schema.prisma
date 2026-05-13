@@ -52,7 +52,7 @@ model AppConfig {
   showBrandField      Boolean @default(true)
   claudeApiKey        String?
   openaiApiKey        String?
-  llmProvider         String  @default("anthropic")
+  llmProvider         String  @default("openai")
   anthropicModel      String  @default("claude-sonnet-4-6")
   openaiModel         String  @default("gpt-4o")
   openaiRealtimeModel String  @default("gpt-realtime")
