@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { RT } from "@/lib/realtime/events";
 
 // GET /api/notifications?limit=10&unreadOnly=1
 export async function GET(req: NextRequest) {
@@ -29,4 +30,16 @@ export async function GET(req: NextRequest) {
   ]);
 
   return NextResponse.json({ items, unreadCount });
+}
+
+// DELETE /api/notifications — bersihkan SEMUA notif milik user yang login
+// (read + unread). Bell jadi kosong total.
+export async function DELETE() {
+  const cookieStore = await cookies();
+  const session = getSessionFromCookie(cookieStore.get("session")?.value);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  await prisma.notification.deleteMany({ where: { userId: session.userId } });
+  RT.adminNotif(session.userId).catch(() => {});
+  return NextResponse.json({ ok: true });
 }

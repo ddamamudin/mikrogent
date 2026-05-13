@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { notifyAdmins } from "@/lib/notifications";
 import { RT } from "@/lib/realtime/events";
 
 // POST /api/feedback/[id]/message — user kirim pesan lanjutan di thread existing
@@ -50,13 +49,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   });
   await prisma.feedback.update({ where: { id }, data: { updatedAt: new Date() } });
 
-  notifyAdmins({
-    type: "feedback_received",
-    title: "Pesan baru di thread masukan",
-    body: `${user?.name ?? "Tenant"}: ${feedback.subject}`,
-    link: `/admin/inbox/${id}`,
-    meta: { feedbackId: id, tenantId: session.userId },
-  }).catch(() => {});
+  // Inbox counter handle sendiri via admin:inbox topic — skip bell notif
   RT.feedbackChanged().catch(() => {});
 
   return NextResponse.json({ ok: true });

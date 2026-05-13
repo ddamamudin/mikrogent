@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { notifyAdmins } from "@/lib/notifications";
 import { RT } from "@/lib/realtime/events";
 
 // GET /api/feedback — list thread milik user yang login
@@ -89,13 +88,8 @@ export async function POST(req: NextRequest) {
     select: { id: true },
   });
 
-  notifyAdmins({
-    type: "feedback_received",
-    title: "Masukan baru dari tenant",
-    body: `${user.name}: ${subject}`,
-    link: `/admin/inbox/${feedback.id}`,
-    meta: { feedbackId: feedback.id, tenantId: user.id },
-  }).catch(() => {});
+  // Inbox icon admin punya counter sendiri (unread feedback msg) — gak perlu
+  // bell notif tambahan biar gak double counter
   RT.feedbackChanged().catch(() => {});
 
   return NextResponse.json({ ok: true, id: feedback.id });

@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { notifyUser } from "@/lib/notifications";
 import { RT } from "@/lib/realtime/events";
 import { logAdmin } from "@/lib/admin-log";
 
@@ -35,15 +34,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   await prisma.feedback.update({ where: { id }, data: { status } });
 
-  if (status === "RESOLVED") {
-    notifyUser(feedback.userId, {
-      type: "feedback_resolved",
-      title: "Masukan ditutup oleh admin",
-      body: feedback.subject,
-      link: `/dashboard/masukan/${id}`,
-      meta: { feedbackId: id },
-    }).catch(() => {});
-  }
+  // User langsung lihat status berubah di thread via userFeedbackUpdated
   RT.feedbackChanged().catch(() => {});
   RT.userFeedbackUpdated(feedback.userId).catch(() => {});
 

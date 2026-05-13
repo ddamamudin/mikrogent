@@ -82,6 +82,12 @@ export default function NotificationBell() {
     fetchNotifs();
   };
 
+  const handleClearAll = async () => {
+    if (items.length === 0) return;
+    await fetch("/api/notifications", { method: "DELETE" });
+    fetchNotifs();
+  };
+
   const handleClickNotif = async (n: NotifItem) => {
     if (!n.readAt) {
       await fetch("/api/notifications/read", {
@@ -115,16 +121,27 @@ export default function NotificationBell() {
 
       {open && (
         <div className="absolute right-0 mt-2 w-80 sm:w-96 max-h-[80vh] overflow-hidden bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 rounded-xl shadow-2xl z-50 flex flex-col">
-          <div className="px-4 py-3 border-b border-gray-100 dark:border-white/5 flex items-center justify-between">
+          <div className="px-4 py-3 border-b border-gray-100 dark:border-white/5 flex items-center justify-between gap-2">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Notifikasi</h3>
-            {unreadCount > 0 && (
-              <button
-                onClick={handleMarkAllRead}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                Tandai semua dibaca
-              </button>
-            )}
+            <div className="flex items-center gap-3">
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllRead}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  Tandai dibaca
+                </button>
+              )}
+              {items.length > 0 && (
+                <button
+                  onClick={handleClearAll}
+                  className="text-xs text-gray-500 dark:text-white/40 hover:text-red-600 dark:hover:text-red-400 hover:underline"
+                  title="Hapus semua notifikasi"
+                >
+                  Bersihkan
+                </button>
+              )}
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto">
             {items.length === 0 ? (

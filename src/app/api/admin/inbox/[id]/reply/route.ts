@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { notifyUser } from "@/lib/notifications";
 import { RT } from "@/lib/realtime/events";
 import { logAdmin } from "@/lib/admin-log";
 
@@ -51,13 +50,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     data: { updatedAt: new Date(), ...(feedback.status === "RESOLVED" ? { status: "OPEN" } : {}) },
   });
 
-  notifyUser(feedback.userId, {
-    type: "feedback_replied",
-    title: "Balasan masukan dari admin",
-    body: `${admin.name}: ${feedback.subject}`,
-    link: `/dashboard/masukan/${id}`,
-    meta: { feedbackId: id },
-  }).catch(() => {});
+  // Sidebar "Kirim Masukan" user punya badge sendiri (unread admin msg)
+  // dan thread auto-update via userFeedbackUpdated — gak perlu bell notif
   RT.feedbackChanged().catch(() => {});
   RT.userFeedbackUpdated(feedback.userId).catch(() => {});
 
