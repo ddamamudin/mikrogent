@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 type Cred = {
   id: string;
+  name: string;
   host: string;
   port: number;
   sshUser: string;
@@ -18,10 +19,12 @@ type Row = {
   userName: string;
   userEmail: string;
   userBrand: string | null;
+  maxRouters: number;
+  routerCount: number;
   cred: Cred;
 };
 
-type AvailableTenant = { id: string; name: string; email: string; brand: string | null };
+type AvailableTenant = { id: string; name: string; email: string; brand: string | null; maxRouters: number; routerCount: number };
 
 export default function RouterListClient() {
   const [rows, setRows] = useState<Row[]>([]);
@@ -39,7 +42,7 @@ export default function RouterListClient() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"add" | "edit">("add");
   const [editingCredId, setEditingCredId] = useState<string | null>(null);
-  const [form, setForm] = useState({ userId: "", host: "", port: "22", sshUser: "replay-agent", sshPass: "" });
+  const [form, setForm] = useState({ userId: "", name: "", host: "", port: "22", sshUser: "", sshPass: "" });
   const [available, setAvailable] = useState<AvailableTenant[]>([]);
   const [modalLoading, setModalLoading] = useState(false);
   const [modalError, setModalError] = useState("");
@@ -65,7 +68,7 @@ export default function RouterListClient() {
   const openAdd = async () => {
     setModalMode("add");
     setEditingCredId(null);
-    setForm({ userId: "", host: "", port: "22", sshUser: "replay-agent", sshPass: "" });
+    setForm({ userId: "", name: "", host: "", port: "22", sshUser: "", sshPass: "" });
     setModalError("");
     const res = await fetch("/api/admin/routers/available-tenants");
     const data = await res.json();
@@ -79,6 +82,7 @@ export default function RouterListClient() {
     setEditingCredId(r.cred.id);
     setForm({
       userId: r.userId,
+      name: r.cred.name,
       host: r.cred.host,
       port: String(r.cred.port),
       sshUser: r.cred.sshUser,
@@ -102,6 +106,7 @@ export default function RouterListClient() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         userId: form.userId,
+        name: form.name,
         host: form.host,
         port: parseInt(form.port, 10) || 22,
         sshUser: form.sshUser,
@@ -206,6 +211,7 @@ export default function RouterListClient() {
               <thead>
                 <tr className="border-b border-gray-100 dark:border-white/5">
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide">Tenant</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide">Router</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide">Host:Port</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide">Username</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide">Password</th>
@@ -215,10 +221,14 @@ export default function RouterListClient() {
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-white/5">
                 {rows.map((r) => (
-                  <tr key={r.userId} className="hover:bg-gray-50 dark:hover:bg-white/2 transition">
+                  <tr key={r.cred?.id ?? r.userId} className="hover:bg-gray-50 dark:hover:bg-white/2 transition">
                     <td className="px-4 py-3">
                       <div className="font-medium text-gray-900 dark:text-white">{r.userName}</div>
                       <div className="text-xs text-gray-400 dark:text-white/30">{r.userEmail}</div>
+                      <div className="text-[10px] text-gray-400 dark:text-white/30 mt-0.5">{r.routerCount}/{r.maxRouters} router</div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-700 dark:text-white/80">
+                      {r.cred?.name ?? <span className="text-gray-300 dark:text-white/20">-</span>}
                     </td>
                     <td className="px-4 py-3 font-mono text-gray-700 dark:text-white/80">
                       {r.cred ? `${r.cred.host}:${r.cred.port}` : <span className="text-gray-300 dark:text-white/20">-</span>}
@@ -334,10 +344,12 @@ export default function RouterListClient() {
                   >
                     <option value="">- Pilih tenant -</option>
                     {available.map((t) => (
-                      <option key={t.id} value={t.id}>{t.name} ({t.email})</option>
+                      <option key={t.id} value={t.id}>
+                        {t.name} ({t.email}) - {t.routerCount}/{t.maxRouters} router
+                      </option>
                     ))}
                   </select>
-                  <p className="text-[11px] text-gray-400 dark:text-white/30">Hanya tenant tervalidasi yang belum punya router</p>
+                  <p className="text-[11px] text-gray-400 dark:text-white/30">Hanya tenant tervalidasi yang belum penuh kuota router</p>
                 </div>
               ) : (
                 <div className="text-sm text-gray-500 dark:text-white/50">
@@ -345,6 +357,17 @@ export default function RouterListClient() {
                   <div className="text-xs">{rows.find((r) => r.userId === form.userId)?.userEmail}</div>
                 </div>
               )}
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-gray-500 dark:text-white/50">Nama Router</label>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="Router 1 (default kalau dikosongin)"
+                  className={`${inputClass} w-full`}
+                />
+              </div>
 
               <div className="space-y-1">
                 <label className="text-xs font-medium text-gray-500 dark:text-white/50">Host (IP public router)</label>

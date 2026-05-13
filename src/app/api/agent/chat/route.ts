@@ -116,20 +116,54 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const [user, cred, memory] = await Promise.all([
+  const [user, routers, chatSession] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { name: true } }),
-    prisma.mikrotikCredential.findUnique({ where: { userId } }),
-    prisma.agentMemory.findUnique({ where: { userId } }),
+    prisma.mikrotikCredential.findMany({
+      where: { userId },
+      select: { id: true, name: true, host: true, connected: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.agentChatSession.findUnique({
+      where: { userId },
+      select: { activeCredentialId: true },
+    }),
   ]);
   const firstName = (user?.name ?? "").trim().split(/\s+/)[0] || "Kak";
-  const isConnected = cred?.connected ?? false;
+  const connectedRouters = routers.filter((r) => r.connected);
 
-  if (!isConnected) {
+  if (connectedRouters.length === 0) {
     return new Response(
-      sseRaw({ type: "error", error: "Router belum terhubung. Silahkan hubungkan dulu lewat menu Router di sidebar." }),
+      sseRaw({
+        type: "error",
+        error: routers.length === 0
+          ? "Belum ada router yang Kakak tambahkan. Tambah dulu di menu Router di sidebar yaa."
+          : "Belum ada router yang terhubung. Cek lagi data router di menu Router (pastikan SSH aktif, port match, kredensial benar).",
+      }),
       { status: 403, headers: { "Content-Type": "text/event-stream" } },
     );
   }
+
+  // Resolve active router: kalau session simpan activeCredentialId dan masih valid (router masih ada + connected), pakai itu.
+  // Kalau cuma 1 router connected, auto-pick. Kalau >1 dan belum ada, biarkan null - agent akan tanya user.
+  let activeCredentialId: string | null = null;
+  if (chatSession?.activeCredentialId) {
+    const stillValid = connectedRouters.find((r) => r.id === chatSession.activeCredentialId);
+    if (stillValid) activeCredentialId = stillValid.id;
+  }
+  if (!activeCredentialId && connectedRouters.length === 1) {
+    activeCredentialId = connectedRouters[0].id;
+    // Persist auto-pick supaya next request konsisten
+    await prisma.agentChatSession.upsert({
+      where: { userId },
+      update: { activeCredentialId },
+      create: { userId, activeCredentialId, messages: [], apiMessages: [] },
+    });
+  }
+
+  // Load memory dari router aktif (kalau ada)
+  const memory = activeCredentialId
+    ? await prisma.agentMemory.findUnique({ where: { credentialId: activeCredentialId } })
+    : null;
 
   const runnerOpts = {
     apiKey,
@@ -137,10 +171,11 @@ export async function POST(req: NextRequest) {
     inputMessages,
     persona: config.agentPersona ?? "",
     knowledge: config.agentKnowledge ?? "",
-    isConnected,
     memory: memory?.content ?? null,
     firstName,
     userId,
+    routers: connectedRouters.map((r) => ({ id: r.id, name: r.name, host: r.host })),
+    activeCredentialId,
   };
 
   const stream = new ReadableStream({

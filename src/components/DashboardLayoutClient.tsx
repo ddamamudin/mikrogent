@@ -53,8 +53,10 @@ const NAV = [
 type User = { name: string; brand: string | null; email: string };
 
 export type AgentSidebarState = {
-  isConnected: boolean;
-  hasMemory: boolean;
+  hasAnyConnected: boolean;
+  totalRouters: number;
+  connectedCount: number;
+  activeRouterName: string | null;
   chatCount: number;
   dailyChatLimit: number;
   voiceCallEnabled: boolean;
@@ -181,15 +183,24 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
                         );
                       })}
 
-                      {/* Info agent: status koneksi, kuota, tombol chat baru */}
+                      {/* Info agent: status router, kuota, tombol chat baru */}
                       {group === "Replay Agent" && agentState && (
                         <div className="mt-2 mx-1 px-3 py-2.5 bg-gray-50 dark:bg-white/5 rounded-lg space-y-1.5">
                           <div className="flex items-center gap-1.5 text-xs">
-                            <span className={`w-1.5 h-1.5 rounded-full ${agentState.isConnected ? "bg-green-500" : "bg-yellow-500"}`} />
+                            <span className={`w-1.5 h-1.5 rounded-full ${agentState.hasAnyConnected ? "bg-green-500" : "bg-yellow-500"}`} />
                             <span className="text-gray-600 dark:text-white/60">
-                              {agentState.isConnected ? "Terhubung" : "Belum terhubung"}
+                              {agentState.totalRouters === 0
+                                ? "Belum ada router"
+                                : agentState.hasAnyConnected
+                                  ? `${agentState.connectedCount}/${agentState.totalRouters} router terhubung`
+                                  : `${agentState.totalRouters} router, belum terhubung`}
                             </span>
                           </div>
+                          {agentState.activeRouterName && (
+                            <div className="text-xs text-gray-500 dark:text-white/40 truncate">
+                              Aktif: <strong className="text-gray-700 dark:text-white/70">{agentState.activeRouterName}</strong>
+                            </div>
+                          )}
                           <div className="text-xs text-gray-500 dark:text-white/40">
                             {agentState.chatCount}/{agentState.dailyChatLimit} chat hari ini
                           </div>

@@ -32,9 +32,9 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     await Promise.all([
       prisma.mikrotikCredential.update({ where: { id }, data: { connected: true } }),
       prisma.agentMemory.upsert({
-        where: { userId: cred.userId },
+        where: { credentialId: id },
         update: { content: snapshot },
-        create: { userId: cred.userId, content: snapshot },
+        create: { credentialId: id, content: snapshot },
       }),
     ]);
     await logAdmin({

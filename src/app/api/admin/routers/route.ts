@@ -27,49 +27,78 @@ export async function GET(req: NextRequest) {
   const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
   const limit = 20;
 
-  const where = {
-    role: "USER" as const,
-    ...(filter === "with_router" ? { mikrotikCredential: { is: { connected: { not: undefined } } } } : {}),
-    ...(filter === "without_router" ? { mikrotikCredential: { is: null } } : {}),
-    ...(filter === "connected" ? { mikrotikCredential: { is: { connected: true } } } : {}),
-    ...(filter === "disconnected" ? { mikrotikCredential: { is: { connected: false } } } : {}),
+  // "without_router": list tenant yang belum punya router sama sekali (1 baris per tenant, cred null)
+  if (filter === "without_router") {
+    const userWhere = {
+      role: "USER" as const,
+      mikrotikCredentials: { none: {} },
+      ...(q ? {
+        OR: [
+          { name: { contains: q, mode: "insensitive" as const } },
+          { email: { contains: q, mode: "insensitive" as const } },
+          { brand: { contains: q, mode: "insensitive" as const } },
+        ],
+      } : {}),
+    };
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where: userWhere,
+        select: { id: true, name: true, email: true, brand: true, maxRouters: true },
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.user.count({ where: userWhere }),
+    ]);
+    const routers = users.map((u) => ({
+      userId: u.id, userName: u.name, userEmail: u.email, userBrand: u.brand,
+      maxRouters: u.maxRouters, routerCount: 0,
+      cred: null,
+    }));
+    return NextResponse.json({ routers, total, page, totalPages: Math.ceil(total / limit) });
+  }
+
+  // Default & filter koneksi: list per credential
+  const credWhere = {
+    user: { role: "USER" as const },
+    ...(filter === "connected" ? { connected: true } : {}),
+    ...(filter === "disconnected" ? { connected: false } : {}),
     ...(q ? {
       OR: [
         { name: { contains: q, mode: "insensitive" as const } },
-        { email: { contains: q, mode: "insensitive" as const } },
-        { brand: { contains: q, mode: "insensitive" as const } },
-        { mikrotikCredential: { is: { host: { contains: q, mode: "insensitive" as const } } } },
+        { host: { contains: q, mode: "insensitive" as const } },
+        { user: { name: { contains: q, mode: "insensitive" as const } } },
+        { user: { email: { contains: q, mode: "insensitive" as const } } },
+        { user: { brand: { contains: q, mode: "insensitive" as const } } },
       ],
     } : {}),
   };
 
-  const [users, total] = await Promise.all([
-    prisma.user.findMany({
-      where,
+  const [creds, total] = await Promise.all([
+    prisma.mikrotikCredential.findMany({
+      where: credWhere,
       select: {
-        id: true, name: true, email: true, brand: true,
-        mikrotikCredential: {
-          select: { id: true, host: true, port: true, sshUser: true, sshPass: true, connected: true, createdAt: true, updatedAt: true },
-        },
+        id: true, name: true, host: true, port: true, sshUser: true, sshPass: true, connected: true,
+        createdAt: true, updatedAt: true,
+        user: { select: { id: true, name: true, email: true, brand: true, maxRouters: true, _count: { select: { mikrotikCredentials: true } } } },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ user: { createdAt: "desc" } }, { createdAt: "asc" }],
       skip: (page - 1) * limit,
       take: limit,
     }),
-    prisma.user.count({ where }),
+    prisma.mikrotikCredential.count({ where: credWhere }),
   ]);
 
-  const routers = users.map((u) => ({
-    userId: u.id,
-    userName: u.name,
-    userEmail: u.email,
-    userBrand: u.brand,
-    cred: u.mikrotikCredential,
+  const routers = creds.map((c) => ({
+    userId: c.user.id, userName: c.user.name, userEmail: c.user.email, userBrand: c.user.brand,
+    maxRouters: c.user.maxRouters, routerCount: c.user._count.mikrotikCredentials,
+    cred: {
+      id: c.id, name: c.name, host: c.host, port: c.port, sshUser: c.sshUser, sshPass: c.sshPass,
+      connected: c.connected, createdAt: c.createdAt, updatedAt: c.updatedAt,
+    },
   }));
 
-  return NextResponse.json({
-    routers, total, page, totalPages: Math.ceil(total / limit),
-  });
+  return NextResponse.json({ routers, total, page, totalPages: Math.ceil(total / limit) });
 }
 
 export async function POST(req: NextRequest) {
@@ -77,7 +106,7 @@ export async function POST(req: NextRequest) {
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-  const { userId, host, port, sshUser, sshPass } = body;
+  const { userId, name, host, port, sshUser, sshPass } = body;
 
   if (!userId || !host || !sshUser || !sshPass) {
     return NextResponse.json({ error: "userId, host, sshUser, sshPass wajib diisi" }, { status: 400 });
@@ -87,23 +116,42 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Port tidak valid" }, { status: 400 });
   }
 
-  const user = await prisma.user.findUnique({ where: { id: userId, role: "USER" }, select: { name: true, email: true } });
+  const user = await prisma.user.findUnique({
+    where: { id: userId, role: "USER" },
+    select: { name: true, email: true, maxRouters: true, _count: { select: { mikrotikCredentials: true } } },
+  });
   if (!user) return NextResponse.json({ error: "Tenant tidak ditemukan" }, { status: 404 });
+  if (user._count.mikrotikCredentials >= user.maxRouters) {
+    return NextResponse.json({ error: `Tenant sudah mentok kuota router (${user.maxRouters}). Naikkan dulu di Tenant > Edit.` }, { status: 400 });
+  }
 
   const cleanHost = String(host).trim();
   const cleanUser = String(sshUser).trim();
   const cleanPass = String(sshPass).trim();
+  let finalName = String(name ?? "").trim() || `Router ${user._count.mikrotikCredentials + 1}`;
 
-  await prisma.mikrotikCredential.upsert({
-    where: { userId },
-    update: { host: cleanHost, port: portNum, sshUser: cleanUser, sshPass: cleanPass, connected: false },
-    create: { userId, host: cleanHost, port: portNum, sshUser: cleanUser, sshPass: cleanPass, connected: false },
+  // Cek bentrok nama
+  const dup = await prisma.mikrotikCredential.findUnique({
+    where: { userId_name: { userId, name: finalName } },
+  });
+  if (dup) {
+    for (let i = user._count.mikrotikCredentials + 2; i <= user._count.mikrotikCredentials + 20; i++) {
+      const candidate = `Router ${i}`;
+      const exists = await prisma.mikrotikCredential.findUnique({
+        where: { userId_name: { userId, name: candidate } },
+      });
+      if (!exists) { finalName = candidate; break; }
+    }
+  }
+
+  await prisma.mikrotikCredential.create({
+    data: { userId, name: finalName, host: cleanHost, port: portNum, sshUser: cleanUser, sshPass: cleanPass, connected: false },
   });
 
   await logAdmin({
     adminId: admin.id, adminName: admin.name,
     action: "router_create",
-    details: `${user.name} (${user.email}) → ${cleanHost}:${portNum} as ${cleanUser}`,
+    details: `${user.name} (${user.email}) [${finalName}] → ${cleanHost}:${portNum} as ${cleanUser}`,
   });
 
   return NextResponse.json({ ok: true });

@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { TOOL_SCHEMAS, TOOL_LABELS, executeTool, ToolContext } from "./tools";
-import { buildSystemPrompt, fallbackText } from "./persona";
+import { buildSystemPrompt, fallbackText, type RouterInfo } from "./persona";
 
 export type SseEvent =
   | { type: "text"; text: string }
@@ -26,19 +26,24 @@ export async function runAnthropic(opts: {
   inputMessages: Anthropic.MessageParam[];
   persona: string;
   knowledge: string;
-  isConnected: boolean;
   memory: string | null;
   firstName: string;
   userId: string;
+  routers: RouterInfo[];
+  activeCredentialId: string | null;
   emit: (evt: SseEvent) => void;
 }): Promise<void> {
   const client = new Anthropic({ apiKey: opts.apiKey });
-  let isConnected = opts.isConnected;
+  let activeCredentialId = opts.activeCredentialId;
   const ctx: ToolContext = {
     userId: opts.userId,
-    isConnected,
-    setConnected: (v) => { isConnected = v; ctx.isConnected = v; },
+    activeCredentialId,
+    setActiveCredentialId: (id) => { activeCredentialId = id; ctx.activeCredentialId = id; },
   };
+
+  const activeRouter = opts.activeCredentialId
+    ? opts.routers.find((r) => r.id === opts.activeCredentialId) ?? null
+    : null;
 
   const systemBlocks: Anthropic.TextBlockParam[] = [
     {
@@ -48,6 +53,8 @@ export async function runAnthropic(opts: {
         knowledge: opts.knowledge,
         memory: opts.memory,
         firstName: opts.firstName,
+        routers: opts.routers,
+        activeRouter,
       }),
       cache_control: { type: "ephemeral" },
     },

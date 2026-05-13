@@ -19,8 +19,10 @@ interface Attachment {
 interface Props {
   userId: string;
   firstName: string;
-  isConnected: boolean;
-  hasMemory: boolean;
+  hasAnyConnected: boolean;
+  totalRouters: number;
+  connectedRouters: { id: string; name: string }[];
+  activeRouter: { id: string; name: string } | null;
   agentReady: boolean;
   dailyChatLimit: number;
   initialChatCount: number;
@@ -39,7 +41,7 @@ function greetingByTime(d: Date = new Date()): string {
   return "Selamat Malam";
 }
 
-export default function AgentClient({ firstName, isConnected, hasMemory, agentReady, dailyChatLimit, initialChatCount, initialMessages, initialApiMessages, voiceCallEnabled, voiceDailyLimitSeconds, initialVoiceSecondsUsed }: Props) {
+export default function AgentClient({ firstName, hasAnyConnected, totalRouters, connectedRouters, activeRouter, agentReady, dailyChatLimit, initialChatCount, initialMessages, initialApiMessages, voiceCallEnabled, voiceDailyLimitSeconds, initialVoiceSecondsUsed }: Props) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [apiMessages, setApiMessages] = useState<ApiMessage[]>(initialApiMessages);
   const [input, setInput] = useState("");
@@ -107,8 +109,10 @@ export default function AgentClient({ firstName, isConnected, hasMemory, agentRe
   // Push agent state ke sidebar
   useEffect(() => {
     setAgentSidebar({
-      isConnected,
-      hasMemory,
+      hasAnyConnected,
+      totalRouters,
+      connectedCount: connectedRouters.length,
+      activeRouterName: activeRouter?.name ?? null,
       chatCount,
       dailyChatLimit,
       voiceCallEnabled,
@@ -118,7 +122,7 @@ export default function AgentClient({ firstName, isConnected, hasMemory, agentRe
       onReset: resetChat,
     });
     return () => setAgentSidebar(null);
-  }, [setAgentSidebar, isConnected, hasMemory, chatCount, dailyChatLimit, voiceCallEnabled, voiceSecondsUsed, voiceDailyLimitSeconds, messages.length, resetChat]);
+  }, [setAgentSidebar, hasAnyConnected, totalRouters, connectedRouters.length, activeRouter?.name, chatCount, dailyChatLimit, voiceCallEnabled, voiceSecondsUsed, voiceDailyLimitSeconds, messages.length, resetChat]);
 
   function autoResize() {
     const el = textareaRef.current;
@@ -135,8 +139,10 @@ export default function AgentClient({ firstName, isConnected, hasMemory, agentRe
       return;
     }
 
-    if (!isConnected) {
-      const cannedReply = `Router Kakak **belum terhubung** nih 🙈\n\nSilahkan hubungkan dulu lewat menu **Router** di sidebar. Yang perlu dipastikan cuma 2:\n\n1. **Service SSH aktif** di MikroTik, dan **port di form sama persis** sama port SSH yang dipakai di router (default 22, atau angka custom kalau Kakak ubah).\n2. **Kredensial benar** - username & password SSH yang Kakak isi harus bisa login (boleh user lama, boleh user baru).\n\nIsi form → klik **Cek Port** → klik **Simpan & Tes Koneksi**. Setelah status berubah jadi terhubung, balik ke sini ya, Aku siap bantu ✨`;
+    if (!hasAnyConnected) {
+      const cannedReply = totalRouters === 0
+        ? `Kakak belum punya router yang ditambahkan 🙈\n\nYuk ke menu **Router** di sidebar, klik **Tambah Router**, lalu isi data koneksinya. Yang perlu dipastikan cuma 2:\n\n1. **Service SSH aktif** di MikroTik & **port di form sama persis** sama port SSH-nya (default 22 atau angka custom kalau Kakak ubah).\n2. **Kredensial benar** - username & password SSH yang bisa login (boleh user lama, boleh bikin baru).\n\nIsi → klik **Cek Port** → klik **Simpan & Tes Koneksi**. Setelah status jadi **Terhubung**, balik ke sini yaa ✨`
+        : `Router Kakak ada, tapi **belum ada yang terhubung** nih 🙈\n\nCek di menu **Router** - klik **Tes Koneksi** di router yang dimaksud, atau **Edit** kalau ada data yang perlu diperbaiki. Pastikan dua hal:\n\n1. **SSH aktif & port match** di MikroTik\n2. **Kredensial benar** (username + password)\n\nKalau status udah jadi **Terhubung**, balik ke Aku ya, langsung siap bantu ✨`;
       const nextMessages: Message[] = [
         ...messages,
         { role: "user", content },
@@ -342,13 +348,23 @@ export default function AgentClient({ firstName, isConnected, hasMemory, agentRe
             <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-3 leading-tight">
               {greeting ? `${greeting},` : "Halo,"}<br />Kak {firstName}
             </h1>
-            {isConnected ? (
-              <p className="text-sm text-gray-500 max-w-sm">
-                silahkan tanya / perintahkan Aku untuk menjaga / mengelola Mikrotik Kakak ya.
-              </p>
+            {hasAnyConnected ? (
+              <>
+                <p className="text-sm text-gray-500 max-w-sm">
+                  silahkan tanya / perintahkan Aku untuk menjaga / mengelola Mikrotik Kakak ya.
+                </p>
+                {activeRouter ? (
+                  <p className="text-xs text-gray-400 mt-2">Router aktif: <strong className="text-gray-600">{activeRouter.name}</strong></p>
+                ) : connectedRouters.length > 1 ? (
+                  <p className="text-xs text-gray-400 mt-2">{connectedRouters.length} router terhubung - Aku akan tanya Kakak mau pakai yang mana di awal chat.</p>
+                ) : null}
+              </>
             ) : (
               <p className="text-sm text-gray-500 max-w-sm">
-                Router Kakak belum terhubung. Silahkan hubungkan dulu lewat menu <strong className="text-gray-700">Router</strong> di sidebar, baru kita bisa mulai ngobrol ya.
+                {totalRouters === 0
+                  ? <>Belum ada router yang Kakak tambahkan. Yuk ke menu <strong className="text-gray-700">Router</strong> di sidebar dulu.</>
+                  : <>Router Kakak belum terhubung. Cek lagi di menu <strong className="text-gray-700">Router</strong> di sidebar yaa.</>
+                }
               </p>
             )}
           </div>
@@ -443,7 +459,7 @@ export default function AgentClient({ firstName, isConnected, hasMemory, agentRe
             <textarea ref={textareaRef} value={input}
               onChange={(e) => { setInput(e.target.value); autoResize(); }}
               onKeyDown={handleKeyDown}
-              placeholder={isConnected ? "Kirim pesan ke Replay Agent..." : "Ketik 'halo' untuk mulai..."}
+              placeholder={hasAnyConnected ? "Kirim pesan ke Replay Agent..." : "Ketik 'halo' untuk mulai..."}
               rows={1}
               className="flex-1 resize-none overflow-hidden border-none outline-none bg-transparent text-[15px] text-gray-900 placeholder-gray-400 leading-relaxed min-h-[24px] font-[inherit]"
             />
@@ -458,9 +474,9 @@ export default function AgentClient({ firstName, isConnected, hasMemory, agentRe
               (() => {
                 const voiceRemaining = Math.max(0, voiceDailyLimitSeconds - voiceSecondsUsed);
                 const voiceExhausted = voiceRemaining <= 0;
-                const voiceDisabled = voiceExhausted || !isConnected;
-                const voiceTitle = !isConnected
-                  ? "Router belum terhubung - isi data router di menu Router dulu"
+                const voiceDisabled = voiceExhausted || !hasAnyConnected;
+                const voiceTitle = !hasAnyConnected
+                  ? "Belum ada router yang terhubung - cek menu Router dulu"
                   : voiceExhausted
                     ? "Batas voice harian sudah habis"
                     : `Voice call (${voiceRemaining}s tersisa)`;
@@ -485,9 +501,9 @@ export default function AgentClient({ firstName, isConnected, hasMemory, agentRe
           </div>
         </form>
 
-        {voiceCallEnabled && !isConnected && !input.trim() && attachments.length === 0 && !loading && (
+        {voiceCallEnabled && !hasAnyConnected && !input.trim() && attachments.length === 0 && !loading && (
           <p className="max-w-3xl mx-auto text-center text-xs text-gray-400 mt-2 px-2">
-            Voice call belum bisa dipakai - <span className="text-gray-600">router belum terhubung</span>. Isi data router di menu <strong>Router</strong> dulu yaa.
+            Voice call belum bisa dipakai - <span className="text-gray-600">belum ada router yang terhubung</span>. Cek menu <strong>Router</strong> dulu yaa.
           </p>
         )}
       </div>

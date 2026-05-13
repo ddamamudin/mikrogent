@@ -20,16 +20,16 @@ model User {
   status        UserStatus  @default(ACTIVE)
   dailyChatLimit Int?
   dailyVoiceSeconds Int?
+  maxRouters    Int         @default(1)
   role          Role        @default(USER)
   adminLevel    AdminLevel?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
-  emailTokens        EmailToken[]
-  mikrotikCredential MikrotikCredential?
-  agentMemory        AgentMemory?
-  agentDailyCount    AgentDailyCount?
-  agentChatSession   AgentChatSession?
+  emailTokens         EmailToken[]
+  mikrotikCredentials MikrotikCredential[]
+  agentDailyCount     AgentDailyCount?
+  agentChatSession    AgentChatSession?
 }
 
 model EmailToken {
@@ -63,7 +63,8 @@ model AppConfig {
 
 model MikrotikCredential {
   id        String   @id @default(cuid())
-  userId    String   @unique
+  userId    String
+  name      String
   host      String
   port      Int      @default(22)
   sshUser   String
@@ -72,23 +73,30 @@ model MikrotikCredential {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentMemory       AgentMemory?
+  activeInSessions  AgentChatSession[] @relation("ActiveCredential")
+
+  @@unique([userId, name])
+  @@index([userId])
 }
 
 model AgentMemory {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  content   String
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String             @id @default(cuid())
+  credentialId String             @unique
+  content      String
+  updatedAt    DateTime           @updatedAt
+  credential   MikrotikCredential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
 }
 
 model AgentChatSession {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  messages    Json
-  apiMessages Json
-  updatedAt   DateTime @updatedAt
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                 String              @id @default(cuid())
+  userId             String              @unique
+  activeCredentialId String?
+  messages           Json
+  apiMessages        Json
+  updatedAt          DateTime            @updatedAt
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeCredential   MikrotikCredential? @relation("ActiveCredential", fields: [activeCredentialId], references: [id], onDelete: SetNull)
 }
 
 model AgentDailyCount {

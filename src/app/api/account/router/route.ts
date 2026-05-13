@@ -8,27 +8,39 @@ async function requireValidatedUser() {
   const cookieStore = await cookies();
   const session = getSessionFromCookie(cookieStore.get("session")?.value);
   if (!session || session.role !== "USER") return { error: "Unauthorized" as const, status: 401 };
-  const user = await prisma.user.findUnique({ where: { id: session.userId }, select: { id: true, validated: true } });
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { id: true, validated: true, maxRouters: true },
+  });
   if (!user?.validated) return { error: "Akun belum tervalidasi oleh admin" as const, status: 403 };
-  return { userId: user.id };
+  return { userId: user.id, maxRouters: user.maxRouters };
 }
 
 export async function GET() {
   const auth = await requireValidatedUser();
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
-  const cred = await prisma.mikrotikCredential.findUnique({
+  const routers = await prisma.mikrotikCredential.findMany({
     where: { userId: auth.userId },
-    select: { host: true, port: true, sshUser: true, sshPass: true, connected: true, updatedAt: true },
+    select: { id: true, name: true, host: true, port: true, sshUser: true, sshPass: true, connected: true, updatedAt: true },
+    orderBy: { createdAt: "asc" },
   });
-  return NextResponse.json({ cred });
+  return NextResponse.json({ routers, maxRouters: auth.maxRouters });
 }
 
 export async function POST(req: NextRequest) {
   const auth = await requireValidatedUser();
   if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
-  const { host, port, sshUser, sshPass } = await req.json();
+  const count = await prisma.mikrotikCredential.count({ where: { userId: auth.userId } });
+  if (count >= auth.maxRouters) {
+    return NextResponse.json(
+      { error: `Sudah mencapai batas ${auth.maxRouters} router. Hubungi admin untuk menambah kuota.` },
+      { status: 400 },
+    );
+  }
+
+  const { name, host, port, sshUser, sshPass } = await req.json();
   if (!host || !sshUser || !sshPass) {
     return NextResponse.json({ error: "Host, username, password wajib diisi" }, { status: 400 });
   }
@@ -39,20 +51,35 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Port harus angka 1-65535" }, { status: 400 });
   }
 
-  await prisma.mikrotikCredential.upsert({
-    where: { userId: auth.userId },
-    update: { host: String(host).trim(), port: portNum, sshUser: String(sshUser).trim(), sshPass: String(sshPass).trim(), connected: false },
-    create: { userId: auth.userId, host: String(host).trim(), port: portNum, sshUser: String(sshUser).trim(), sshPass: String(sshPass).trim(), connected: false },
+  // Default name: "Router {N}" dengan N sequential berdasarkan count yang ada
+  let finalName = String(name ?? "").trim() || `Router ${count + 1}`;
+  // Cek bentrok nama dengan router lain milik user yang sama
+  const existing = await prisma.mikrotikCredential.findUnique({
+    where: { userId_name: { userId: auth.userId, name: finalName } },
+  });
+  if (existing) {
+    // Auto suffix - cari nama berikutnya
+    for (let i = count + 2; i <= count + 20; i++) {
+      const candidate = `Router ${i}`;
+      const dup = await prisma.mikrotikCredential.findUnique({
+        where: { userId_name: { userId: auth.userId, name: candidate } },
+      });
+      if (!dup) { finalName = candidate; break; }
+    }
+  }
+
+  const created = await prisma.mikrotikCredential.create({
+    data: {
+      userId: auth.userId,
+      name: finalName,
+      host: String(host).trim(),
+      port: portNum,
+      sshUser: String(sshUser).trim(),
+      sshPass: String(sshPass).trim(),
+      connected: false,
+    },
+    select: { id: true, name: true, host: true, port: true, sshUser: true, sshPass: true, connected: true },
   });
 
-  return NextResponse.json({ ok: true });
-}
-
-export async function DELETE() {
-  const auth = await requireValidatedUser();
-  if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
-
-  await prisma.mikrotikCredential.deleteMany({ where: { userId: auth.userId } });
-  await prisma.agentMemory.deleteMany({ where: { userId: auth.userId } });
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, router: created });
 }

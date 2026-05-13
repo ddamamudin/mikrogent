@@ -13,15 +13,21 @@ export interface ToolSchema {
 
 export const TOOL_SCHEMAS: ToolSchema[] = [
   {
-    name: "verify_and_connect",
+    name: "set_active_router",
     description:
-      "Test koneksi SSH ke MikroTik user menggunakan kredensial yang tersimpan. Jika berhasil, scan konfigurasi lengkap dan simpan ke memory.",
-    parameters: { type: "object", properties: {}, required: [] },
+      "Pilih router aktif untuk semua perintah berikutnya. Wajib dipanggil sekali di awal saat user pilih router, dan setiap kali user minta ganti router. Sticky sampai user ganti.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string", description: "Nama router persis seperti yang tertulis di daftar router user (mis. 'Router 1', 'Router Utama', dll)." },
+      },
+      required: ["name"],
+    },
   },
   {
     name: "execute_mikrotik_command",
     description:
-      "Jalankan perintah RouterOS CLI via SSH ke MikroTik user dan kembalikan hasilnya. Contoh: '/ip address print', '/interface print', '/ppp active print'.",
+      "Jalankan perintah RouterOS CLI via SSH ke router aktif user. Contoh: '/ip address print', '/interface print'. Hanya jalan kalau router aktif sudah dipilih lewat set_active_router.",
     parameters: {
       type: "object",
       properties: {
@@ -33,21 +39,22 @@ export const TOOL_SCHEMAS: ToolSchema[] = [
   {
     name: "update_memory",
     description:
-      "Re-scan konfigurasi MikroTik user secara lengkap dan perbarui memory. Gunakan setelah ada perubahan konfigurasi besar.",
+      "Re-scan konfigurasi router aktif secara lengkap dan perbarui memory snapshot-nya. Gunakan setelah ada perubahan konfigurasi besar.",
     parameters: { type: "object", properties: {}, required: [] },
   },
 ];
 
 export const TOOL_LABELS: Record<string, (input: Record<string, unknown>) => string> = {
-  verify_and_connect: () => "Mengecek koneksi MikroTik...",
+  set_active_router: (input) => `Memilih router: ${(input as { name?: string }).name ?? ""}`,
   execute_mikrotik_command: (input) => `Menjalankan: ${(input as { command?: string }).command ?? "perintah"}`,
   update_memory: () => "Memperbarui konfigurasi...",
 };
 
 export interface ToolContext {
   userId: string;
-  isConnected: boolean;
-  setConnected: (v: boolean) => void;
+  // Active router state - bisa berubah dalam satu sesi via set_active_router
+  activeCredentialId: string | null;
+  setActiveCredentialId: (id: string | null) => void;
 }
 
 export async function executeTool(
@@ -56,42 +63,51 @@ export async function executeTool(
   ctx: ToolContext,
 ): Promise<string> {
   try {
-    if (name === "verify_and_connect") {
-      const cred = await prisma.mikrotikCredential.findUnique({ where: { userId: ctx.userId } });
-      if (!cred) return "ERROR: Belum ada kredensial tersimpan. Minta user memberikan IP terlebih dahulu.";
+    if (name === "set_active_router") {
+      const target = String(input.name ?? "").trim();
+      if (!target) return "ERROR: Nama router tidak diberikan.";
 
-      const cfg: MikrotikConfig = {
-        host: cred.host, port: cred.port,
-        username: cred.sshUser, password: cred.sshPass,
-      };
-      try {
-        await executeMikrotikCommand("/system identity print", cfg);
-        const snapshot = await scanMikrotikConfig(cfg);
-        await Promise.all([
-          prisma.mikrotikCredential.update({ where: { userId: ctx.userId }, data: { connected: true } }),
-          prisma.agentMemory.upsert({
-            where: { userId: ctx.userId },
-            update: { content: snapshot },
-            create: { userId: ctx.userId, content: snapshot },
-          }),
-        ]);
-        ctx.setConnected(true);
-        return `SUKSES: Koneksi SSH ke ${cred.host}:${cred.port} berhasil. Konfigurasi sudah dipelajari.`;
-      } catch (e) {
-        return `GAGAL: Tidak bisa konek ke ${cred.host}:${cred.port}. Error: ${e instanceof Error ? e.message : String(e)}.`;
+      // Match nama case-insensitive exact, fallback ke contains
+      const all = await prisma.mikrotikCredential.findMany({
+        where: { userId: ctx.userId },
+        select: { id: true, name: true, host: true, connected: true },
+      });
+      if (all.length === 0) return "ERROR: User belum punya router. Suruh user isi data router di menu Router dulu.";
+
+      const lower = target.toLowerCase();
+      let match = all.find((c) => c.name.toLowerCase() === lower);
+      if (!match) match = all.find((c) => c.name.toLowerCase().includes(lower));
+      if (!match) {
+        const names = all.map((c) => c.name).join(", ");
+        return `ERROR: Router "${target}" tidak ditemukan. Pilihan yang valid: ${names}`;
       }
+      if (!match.connected) {
+        return `ERROR: Router "${match.name}" (${match.host}) belum terhubung. Suruh user verifikasi koneksi router itu dulu di menu Router.`;
+      }
+
+      await prisma.agentChatSession.upsert({
+        where: { userId: ctx.userId },
+        update: { activeCredentialId: match.id },
+        create: { userId: ctx.userId, activeCredentialId: match.id, messages: [], apiMessages: [] },
+      });
+      ctx.setActiveCredentialId(match.id);
+      return `SUKSES: Router aktif sekarang "${match.name}" (${match.host}). Perintah selanjutnya akan jalan ke router ini.`;
     }
 
     if (name === "execute_mikrotik_command") {
-      if (!ctx.isConnected) return "ERROR: MikroTik belum terhubung.";
-      const cred = await prisma.mikrotikCredential.findUnique({ where: { userId: ctx.userId } });
-      if (!cred) return "ERROR: Kredensial tidak ditemukan.";
-      const cfg: MikrotikConfig = {
-        host: cred.host, port: cred.port,
-        username: cred.sshUser, password: cred.sshPass,
-      };
+      if (!ctx.activeCredentialId) {
+        return "ERROR: Belum ada router aktif. Panggil set_active_router dulu dengan nama router yang dipilih user.";
+      }
+      const cred = await prisma.mikrotikCredential.findUnique({ where: { id: ctx.activeCredentialId } });
+      if (!cred || cred.userId !== ctx.userId) {
+        return "ERROR: Router aktif tidak ditemukan (mungkin sudah dihapus). Suruh user pilih ulang router.";
+      }
+      if (!cred.connected) {
+        return `ERROR: Router "${cred.name}" tidak terhubung. Suruh user verifikasi koneksi.`;
+      }
       const command = String(input.command ?? "");
       if (!command) return "ERROR: command kosong.";
+      const cfg: MikrotikConfig = { host: cred.host, port: cred.port, username: cred.sshUser, password: cred.sshPass };
       const output = await executeMikrotikCommand(command, cfg);
       const MAX = 8000;
       if (output.length > MAX) {
@@ -102,19 +118,19 @@ export async function executeTool(
     }
 
     if (name === "update_memory") {
-      const cred = await prisma.mikrotikCredential.findUnique({ where: { userId: ctx.userId } });
-      if (!cred?.connected) return "ERROR: MikroTik belum terhubung.";
-      const cfg: MikrotikConfig = {
-        host: cred.host, port: cred.port,
-        username: cred.sshUser, password: cred.sshPass,
-      };
+      if (!ctx.activeCredentialId) return "ERROR: Belum ada router aktif.";
+      const cred = await prisma.mikrotikCredential.findUnique({ where: { id: ctx.activeCredentialId } });
+      if (!cred || cred.userId !== ctx.userId || !cred.connected) {
+        return "ERROR: Router aktif tidak terhubung atau tidak ditemukan.";
+      }
+      const cfg: MikrotikConfig = { host: cred.host, port: cred.port, username: cred.sshUser, password: cred.sshPass };
       const snapshot = await scanMikrotikConfig(cfg);
       await prisma.agentMemory.upsert({
-        where: { userId: ctx.userId },
+        where: { credentialId: cred.id },
         update: { content: snapshot },
-        create: { userId: ctx.userId, content: snapshot },
+        create: { credentialId: cred.id, content: snapshot },
       });
-      return "Memory berhasil diperbarui.";
+      return `Memory router "${cred.name}" berhasil diperbarui.`;
     }
 
     return "Unknown tool";

@@ -19,11 +19,15 @@ export async function POST() {
 
   const userId = session.userId;
 
-  const [config, user, cred, memory, dailyCount] = await Promise.all([
+  const [config, user, routers, chatSession, dailyCount] = await Promise.all([
     prisma.appConfig.findUnique({ where: { id: "singleton" } }),
     prisma.user.findUnique({ where: { id: userId }, select: { name: true, validated: true, dailyVoiceSeconds: true } }),
-    prisma.mikrotikCredential.findUnique({ where: { userId } }),
-    prisma.agentMemory.findUnique({ where: { userId } }),
+    prisma.mikrotikCredential.findMany({
+      where: { userId },
+      select: { id: true, name: true, host: true, connected: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.agentChatSession.findUnique({ where: { userId }, select: { activeCredentialId: true } }),
     prisma.agentDailyCount.findUnique({ where: { userId } }),
   ]);
 
@@ -33,9 +37,14 @@ export async function POST() {
   if (!config?.voiceCallEnabled) {
     return NextResponse.json({ error: "Fitur voice call belum diaktifkan" }, { status: 403 });
   }
-  if (!cred?.connected) {
+  const connectedRouters = routers.filter((r) => r.connected);
+  if (connectedRouters.length === 0) {
     return NextResponse.json(
-      { error: "Router belum terhubung. Isi data router di menu Router dulu yaa." },
+      {
+        error: routers.length === 0
+          ? "Belum ada router yang Kakak tambahkan. Tambah dulu di menu Router yaa."
+          : "Belum ada router yang terhubung. Cek lagi data router di menu Router.",
+      },
       { status: 403 },
     );
   }
@@ -58,11 +67,36 @@ export async function POST() {
   }
 
   const firstName = (user.name ?? "").trim().split(/\s+/)[0] || "Kak";
+
+  // Resolve active router: pakai session yang sticky kalau masih valid + connected; auto-pick kalau cuma 1
+  let activeCredentialId: string | null = null;
+  if (chatSession?.activeCredentialId) {
+    const stillValid = connectedRouters.find((r) => r.id === chatSession.activeCredentialId);
+    if (stillValid) activeCredentialId = stillValid.id;
+  }
+  if (!activeCredentialId && connectedRouters.length === 1) {
+    activeCredentialId = connectedRouters[0].id;
+    await prisma.agentChatSession.upsert({
+      where: { userId },
+      update: { activeCredentialId },
+      create: { userId, activeCredentialId, messages: [], apiMessages: [] },
+    });
+  }
+
+  const memory = activeCredentialId
+    ? await prisma.agentMemory.findUnique({ where: { credentialId: activeCredentialId } })
+    : null;
+  const activeRouter = activeCredentialId
+    ? connectedRouters.find((r) => r.id === activeCredentialId) ?? null
+    : null;
+
   const baseInstructions = buildSystemPrompt({
     persona: config.agentPersona ?? "",
     knowledge: config.agentKnowledge ?? "",
     memory: memory?.content ?? null,
     firstName,
+    routers: connectedRouters.map((r) => ({ id: r.id, name: r.name, host: r.host })),
+    activeRouter: activeRouter ? { id: activeRouter.id, name: activeRouter.name, host: activeRouter.host } : null,
   });
 
   // Hitung sapaan berdasar jam Jakarta (server zona SEAST = WIB)
@@ -84,8 +118,10 @@ Kak ${firstName} lagi voice call sama kamu. Aturan khusus:
 - Kalau hasil tool panjang, RINGKAS angka & info pentingnya aja. Tawarin detail lanjut kalau Kakak mau.
 
 # Sapaan Pertama (WAJIB)
-Kamu yang nyapa Kak ${firstName} DULUAN, layaknya orang nelpon. Begitu sesi voice ini dimulai (kamu dipanggil pertama kali), langsung ucapkan sapaan kira-kira begini (boleh variasi dikit, tapi inti & urutannya sama):
-"Halo Kak ${firstName}, selamat ${timeOfDay}! Ada yang mau ditanyakan, atau Aku perlu ngerjain sesuatu di MikroTik Kakak?"
+Kamu yang nyapa Kak ${firstName} DULUAN, layaknya orang nelpon. Begitu sesi voice ini dimulai, langsung sapa Kakak.
+${activeRouter
+  ? `Sebut router aktifnya, contoh: "Halo Kak ${firstName}, selamat ${timeOfDay}! Kita lagi di **${activeRouter.name}** yaa. Ada yang mau dikerjain di MikroTik?"`
+  : `Karena Kakak punya lebih dari satu router dan belum pilih, contoh: "Halo Kak ${firstName}, selamat ${timeOfDay}! Kakak punya ${connectedRouters.length} router yang terhubung - ${connectedRouters.map((r) => r.name).join(", ")}. Mau Aku bantu yang mana dulu?" Setelah Kakak jawab, panggil tool \`set_active_router\` dengan nama yang dipilih.`}
 Setelah itu tunggu Kakak jawab.
 
 # Tutup Panggilan (HATI-HATI)

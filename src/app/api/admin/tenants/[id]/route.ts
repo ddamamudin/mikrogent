@@ -141,6 +141,30 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ ok: true });
   }
 
+  if ("maxRouters" in body) {
+    const v = body.maxRouters;
+    const n = typeof v === "number" ? v : parseInt(String(v), 10);
+    if (!Number.isFinite(n) || n < 1 || n > 5) {
+      return NextResponse.json({ error: "Kuota router harus 1 - 5" }, { status: 400 });
+    }
+    // Pastikan kuota baru gak di bawah jumlah router yang sudah dimiliki tenant
+    const existing = await prisma.mikrotikCredential.count({ where: { userId: id } });
+    if (n < existing) {
+      return NextResponse.json(
+        { error: `Tenant sudah punya ${existing} router. Hapus dulu router-nya kalau mau turunin kuota.` },
+        { status: 400 },
+      );
+    }
+    const tenant = await prisma.user.updateMany({ where: { id, role: "USER" }, data: { maxRouters: n } });
+    if (tenant.count === 0) return NextResponse.json({ error: "Tenant tidak ditemukan" }, { status: 404 });
+    await logAdmin({
+      adminId: admin.id, adminName: admin.name,
+      action: "set_max_routers",
+      details: `${label} → ${n} router`,
+    });
+    return NextResponse.json({ ok: true });
+  }
+
   const { status } = body;
   if (status !== "ACTIVE" && status !== "SUSPENDED")
     return NextResponse.json({ error: "Status tidak valid" }, { status: 400 });

@@ -20,19 +20,19 @@ export async function POST(req: NextRequest) {
   }
 
   const userId = session.userId;
-  const [user, cred] = await Promise.all([
+  const [user, chatSession] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { validated: true } }),
-    prisma.mikrotikCredential.findUnique({ where: { userId } }),
+    prisma.agentChatSession.findUnique({ where: { userId }, select: { activeCredentialId: true } }),
   ]);
   if (!user?.validated) {
     return NextResponse.json({ error: "Akun belum tervalidasi" }, { status: 403 });
   }
 
-  let isConnected = cred?.connected ?? false;
+  let activeCredentialId = chatSession?.activeCredentialId ?? null;
   const ctx = {
     userId,
-    isConnected,
-    setConnected: (v: boolean) => { isConnected = v; ctx.isConnected = v; },
+    activeCredentialId,
+    setActiveCredentialId: (id: string | null) => { activeCredentialId = id; ctx.activeCredentialId = id; },
   };
 
   const parsedArgs = typeof args === "string"

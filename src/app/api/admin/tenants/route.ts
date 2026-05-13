@@ -21,9 +21,9 @@ export async function GET(req: NextRequest) {
     ...(status === "ACTIVE" || status === "SUSPENDED" ? { status: status as "ACTIVE" | "SUSPENDED" } : {}),
     ...(status === "PENDING" ? { validated: false } : {}),
     ...(status === "VALIDATED" ? { validated: true } : {}),
-    ...(status === "ROUTER_CONNECTED" ? { mikrotikCredential: { is: { connected: true } } } : {}),
-    ...(status === "ROUTER_DISCONNECTED" ? { mikrotikCredential: { is: { connected: false } } } : {}),
-    ...(status === "ROUTER_NONE" ? { mikrotikCredential: { is: null } } : {}),
+    ...(status === "ROUTER_CONNECTED" ? { mikrotikCredentials: { some: { connected: true } } } : {}),
+    ...(status === "ROUTER_DISCONNECTED" ? { mikrotikCredentials: { some: { connected: false } }, NOT: { mikrotikCredentials: { some: { connected: true } } } } : {}),
+    ...(status === "ROUTER_NONE" ? { mikrotikCredentials: { none: {} } } : {}),
     ...(q ? {
       OR: [
         { name: { contains: q, mode: "insensitive" as const } },
@@ -38,9 +38,9 @@ export async function GET(req: NextRequest) {
     prisma.user.findMany({
       where,
       select: {
-        id: true, name: true, email: true, brand: true, status: true, emailVerified: true, validated: true, dailyChatLimit: true, dailyVoiceSeconds: true, createdAt: true,
+        id: true, name: true, email: true, brand: true, status: true, emailVerified: true, validated: true, dailyChatLimit: true, dailyVoiceSeconds: true, maxRouters: true, createdAt: true,
         agentDailyCount: { select: { count: true, voiceSeconds: true, date: true } },
-        mikrotikCredential: { select: { connected: true } },
+        mikrotikCredentials: { select: { connected: true } },
       },
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * limit,
@@ -54,9 +54,12 @@ export async function GET(req: NextRequest) {
   const voiceDailySeconds = config?.voiceDailySeconds ?? 180;
   const voiceCallEnabled = config?.voiceCallEnabled ?? false;
   const tenantsWithCount = tenants.map((t) => {
-    const { dailyChatLimit: userOverride, dailyVoiceSeconds: userVoiceOverride, agentDailyCount, mikrotikCredential, ...rest } = t;
+    const { dailyChatLimit: userOverride, dailyVoiceSeconds: userVoiceOverride, agentDailyCount, mikrotikCredentials, ...rest } = t;
+    // Status agregat: connected kalau minimal 1 router up; none kalau gak ada router sama sekali
+    const total = mikrotikCredentials.length;
+    const connected = mikrotikCredentials.filter((c) => c.connected).length;
     const mikrotikStatus: "connected" | "disconnected" | "none" =
-      !mikrotikCredential ? "none" : mikrotikCredential.connected ? "connected" : "disconnected";
+      total === 0 ? "none" : connected > 0 ? "connected" : "disconnected";
     const sameDay = agentDailyCount?.date === today;
     return {
       ...rest,
@@ -67,6 +70,8 @@ export async function GET(req: NextRequest) {
       userDailyVoiceSeconds: userVoiceOverride,
       effectiveVoiceLimit: userVoiceOverride ?? voiceDailySeconds,
       mikrotikStatus,
+      routerCount: total,
+      routersConnected: connected,
     };
   });
 

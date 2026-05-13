@@ -2,22 +2,38 @@
 
 import { useState } from "react";
 
-type Initial = { host: string; port: number; sshUser: string; sshPass: string; connected: boolean } | null;
+type RouterRow = {
+  id: string;
+  name: string;
+  host: string;
+  port: number;
+  sshUser: string;
+  sshPass: string;
+  connected: boolean;
+};
 
-const inputClass = "w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-blue-500";
+// Pending new router (belum punya id, belum save)
+type PendingRow = {
+  tempKey: string;
+  name: string;
+  host: string;
+  port: string;
+  sshUser: string;
+  sshPass: string;
+};
 
-export default function RouterClient({ initial }: { initial: Initial }) {
-  const [host, setHost] = useState(initial?.host ?? "");
-  const [port, setPort] = useState(initial ? String(initial.port) : "");
-  const [sshUser, setSshUser] = useState(initial?.sshUser ?? "");
-  const [sshPass, setSshPass] = useState(initial?.sshPass ?? "");
-  const [connected, setConnected] = useState<boolean>(initial?.connected ?? false);
-  const [showPass, setShowPass] = useState(false);
+const inputClass =
+  "w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-blue-500";
 
-  const [pingState, setPingState] = useState<{ status: "idle" | "ok" | "fail" | "loading"; msg?: string }>({ status: "idle" });
-  const [saving, setSaving] = useState(false);
-  const [verifying, setVerifying] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+export default function RouterClient({ initialRouters, maxRouters }: { initialRouters: RouterRow[]; maxRouters: number }) {
+  const [routers, setRouters] = useState<RouterRow[]>(initialRouters);
+  const [pending, setPending] = useState<PendingRow | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [editDraft, setEditDraft] = useState<any>(null);
+  const [showPassId, setShowPassId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [pingState, setPingState] = useState<Record<string, { status: "idle" | "ok" | "fail" | "loading"; msg?: string }>>({});
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
   const showMsg = (type: "ok" | "err", text: string) => {
@@ -25,166 +41,321 @@ export default function RouterClient({ initial }: { initial: Initial }) {
     setTimeout(() => setMessage(null), 4000);
   };
 
-  const portNum = (): number | null => {
-    if (!port.trim()) return 22;
-    const n = parseInt(port, 10);
-    if (!Number.isFinite(n) || n < 1 || n > 65535) return null;
-    return n;
+  const canAddMore = routers.length + (pending ? 1 : 0) < maxRouters;
+  const nextDefaultName = () => {
+    for (let i = 1; i <= maxRouters; i++) {
+      const candidate = `Router ${i}`;
+      if (!routers.some((r) => r.name === candidate) && pending?.name !== candidate) return candidate;
+    }
+    return `Router ${routers.length + 1}`;
   };
 
-  const handlePing = async () => {
-    if (!host) return showMsg("err", "Host wajib diisi");
-    const p = portNum();
-    if (p === null) return showMsg("err", "Port harus angka 1-65535");
-    setPingState({ status: "loading" });
+  const handleAddNew = () => {
+    if (!canAddMore) return;
+    setPending({
+      tempKey: `new-${Date.now()}`,
+      name: nextDefaultName(),
+      host: "",
+      port: "22",
+      sshUser: "",
+      sshPass: "",
+    });
+  };
+
+  const handleCancelPending = () => setPending(null);
+
+  const handleSavePending = async () => {
+    if (!pending) return;
+    if (!pending.host.trim() || !pending.sshUser.trim() || !pending.sshPass.trim()) {
+      return showMsg("err", "Host, username, password wajib diisi");
+    }
+    const portNum = pending.port.trim() ? parseInt(pending.port, 10) : 22;
+    if (!Number.isFinite(portNum) || portNum < 1 || portNum > 65535) {
+      return showMsg("err", "Port harus angka 1-65535");
+    }
+    setBusyId(pending.tempKey);
+    const res = await fetch("/api/account/router", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: pending.name,
+        host: pending.host,
+        port: portNum,
+        sshUser: pending.sshUser,
+        sshPass: pending.sshPass,
+      }),
+    });
+    setBusyId(null);
+    const data = await res.json();
+    if (!res.ok) return showMsg("err", data.error || "Gagal menambah router");
+
+    // Auto verify setelah berhasil save
+    const newRouter: RouterRow = { ...data.router };
+    setRouters((rs) => [...rs, newRouter]);
+    setPending(null);
+    showMsg("ok", "Router ditambahkan, mengetes koneksi...");
+    void verifyRouter(newRouter.id);
+  };
+
+  const handlePing = async (id: string, host: string, port: number) => {
+    if (!host) return;
+    setPingState((s) => ({ ...s, [id]: { status: "loading" } }));
     const res = await fetch("/api/account/router/ping", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ host, port: p }),
+      body: JSON.stringify({ host, port }),
     });
     const data = await res.json();
-    if (data.ok) setPingState({ status: "ok", msg: `Port ${p} terbuka (${data.latencyMs}ms)` });
-    else setPingState({ status: "fail", msg: data.error || `Gagal connect ke port ${p}` });
+    if (data.ok) setPingState((s) => ({ ...s, [id]: { status: "ok", msg: `Port ${port} terbuka (${data.latencyMs}ms)` } }));
+    else setPingState((s) => ({ ...s, [id]: { status: "fail", msg: data.error || `Gagal connect port ${port}` } }));
   };
 
-  const handleSaveAndVerify = async () => {
-    if (!host || !sshUser || !sshPass) return showMsg("err", "Host, username, password wajib diisi");
-    const p = portNum();
-    if (p === null) return showMsg("err", "Port harus angka 1-65535");
-    setSaving(true);
-    const saveRes = await fetch("/api/account/router", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ host, port: p, sshUser, sshPass }),
-    });
-    setSaving(false);
-    if (!saveRes.ok) {
-      const d = await saveRes.json();
-      return showMsg("err", d.error || "Gagal menyimpan");
-    }
+  const startEdit = (r: RouterRow) => {
+    setEditingId(r.id);
+    setEditDraft({ name: r.name, host: r.host, port: String(r.port), sshUser: r.sshUser, sshPass: r.sshPass });
+  };
 
-    setVerifying(true);
-    const vRes = await fetch("/api/account/router/verify", { method: "POST" });
-    setVerifying(false);
-    const data = await vRes.json();
-    if (vRes.ok) {
-      setConnected(true);
+  const handleSaveEdit = async (id: string) => {
+    if (!editDraft) return;
+    if (!editDraft.host.trim() || !editDraft.sshUser.trim() || !editDraft.sshPass.trim()) {
+      return showMsg("err", "Host, username, password wajib diisi");
+    }
+    const portNum = String(editDraft.port).trim() ? parseInt(String(editDraft.port), 10) : 22;
+    if (!Number.isFinite(portNum) || portNum < 1 || portNum > 65535) {
+      return showMsg("err", "Port harus angka 1-65535");
+    }
+    setBusyId(id);
+    const res = await fetch(`/api/account/router/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: editDraft.name,
+        host: editDraft.host,
+        port: portNum,
+        sshUser: editDraft.sshUser,
+        sshPass: editDraft.sshPass,
+      }),
+    });
+    setBusyId(null);
+    const data = await res.json();
+    if (!res.ok) return showMsg("err", data.error || "Gagal menyimpan");
+    setRouters((rs) => rs.map((r) => (r.id === id ? { ...r, ...data.router } : r)));
+    setEditingId(null);
+    setEditDraft(null);
+    showMsg("ok", "Tersimpan, mengetes koneksi...");
+    void verifyRouter(id);
+  };
+
+  const verifyRouter = async (id: string) => {
+    setBusyId(id);
+    const res = await fetch(`/api/account/router/${id}/verify`, { method: "POST" });
+    setBusyId(null);
+    const data = await res.json();
+    if (res.ok) {
+      setRouters((rs) => rs.map((r) => (r.id === id ? { ...r, connected: true } : r)));
       showMsg("ok", "Berhasil terhubung - konfigurasi sudah dipelajari Replay Agent");
     } else {
-      setConnected(false);
+      setRouters((rs) => rs.map((r) => (r.id === id ? { ...r, connected: false } : r)));
       showMsg("err", `Gagal konek: ${data.error || "unknown"}`);
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm("Hapus kredensial MikroTik? Replay Agent akan kehilangan akses ke router kamu sampai diisi ulang.")) return;
-    setDeleting(true);
-    const res = await fetch("/api/account/router", { method: "DELETE" });
-    setDeleting(false);
+  const handleDelete = async (r: RouterRow) => {
+    if (!confirm(`Hapus router "${r.name}" (${r.host})? Memory & status koneksi-nya juga ikut hilang.`)) return;
+    setBusyId(r.id);
+    const res = await fetch(`/api/account/router/${r.id}`, { method: "DELETE" });
+    setBusyId(null);
     if (res.ok) {
-      setHost(""); setPort(""); setSshUser(""); setSshPass(""); setConnected(false);
-      setPingState({ status: "idle" });
-      showMsg("ok", "Kredensial dihapus");
-    } else showMsg("err", "Gagal menghapus");
+      setRouters((rs) => rs.filter((x) => x.id !== r.id));
+      showMsg("ok", "Router dihapus");
+    } else {
+      const d = await res.json().catch(() => null);
+      showMsg("err", d?.error || "Gagal menghapus");
+    }
   };
+
+  const renderHeader = () => (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Setting Router</h1>
+          <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5">
+            {routers.length}/{maxRouters} router tersimpan
+          </p>
+        </div>
+        {canAddMore && !pending && (
+          <button
+            onClick={handleAddNew}
+            className="text-sm px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium transition"
+          >
+            + Tambah Router
+          </button>
+        )}
+      </div>
+      <p className="text-xs text-gray-500 dark:text-white/40">
+        Yang penting saat ngisi cuma 2: (1) <strong>SSH aktif di MikroTik &amp; port match</strong>, dan (2) <strong>kredensial benar</strong>. Mau lebih dari {maxRouters} router? Hubungi admin yaa.
+      </p>
+    </div>
+  );
 
   return (
     <div className="space-y-4">
+      {renderHeader()}
+
       {message && (
         <div className={`text-sm px-4 py-3 rounded-lg ${message.type === "ok" ? "bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-500/20" : "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/20"}`}>
           {message.text}
         </div>
       )}
 
-      {/* Status pill */}
-      <div className={`text-sm px-4 py-3 rounded-lg border flex items-center gap-2 ${
-        connected
-          ? "bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 border-green-200 dark:border-green-500/20"
-          : initial
-            ? "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20"
-            : "bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-white/40 border-gray-200 dark:border-white/5"
-      }`}>
-        <span className={`w-1.5 h-1.5 rounded-full ${connected ? "bg-green-500" : initial ? "bg-amber-500" : "bg-gray-400"}`} />
-        {connected ? "Router terhubung - Replay Agent siap pakai" : initial ? "Kredensial tersimpan, tapi belum terverifikasi" : "Belum ada kredensial"}
-      </div>
-
-      {/* Persiapan */}
-      <details className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 px-5 py-3 text-sm text-gray-700 dark:text-white/70 shadow-sm">
-        <summary className="cursor-pointer font-medium text-gray-900 dark:text-white">📘 Persiapan sebelum isi form (klik untuk buka)</summary>
-        <div className="mt-3 space-y-2 text-gray-600 dark:text-white/60">
-          <p><strong className="text-gray-900 dark:text-white">1. Aktifkan SSH di MikroTik.</strong> Default port 22 atau bebas - Winbox → New Terminal:</p>
-          <pre className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-xs overflow-x-auto"><code>/ip service set ssh disabled=no</code></pre>
-          <p><strong className="text-gray-900 dark:text-white">2. Pakai user yang udah ada</strong> dengan group <code className="bg-gray-100 dark:bg-slate-800 px-1 rounded">write</code> atau <code className="bg-gray-100 dark:bg-slate-800 px-1 rounded">full</code>, atau bikin baru:</p>
-          <pre className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-xs overflow-x-auto"><code>{`/user add name=USERNAME password=PASSWORD group=write`}</code></pre>
-          <p><strong className="text-gray-900 dark:text-white">3. Catat IP public router</strong> dan port SSH yang Kakak pakai.</p>
+      {routers.length === 0 && !pending && (
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 px-5 py-8 text-center text-sm text-gray-500 dark:text-white/40 shadow-sm">
+          Belum ada router. Klik <strong>Tambah Router</strong> untuk mulai onboarding.
         </div>
-      </details>
+      )}
 
-      {/* Form */}
-      <form onSubmit={(e) => { e.preventDefault(); handleSaveAndVerify(); }}>
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 p-6 space-y-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-gray-400 dark:text-white/50 uppercase tracking-wider">Setting Router</h2>
+      {/* Existing routers */}
+      {routers.map((r) => {
+        const isEditing = editingId === r.id;
+        const isBusy = busyId === r.id;
+        const ping = pingState[r.id];
+        return (
+          <div key={r.id} className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 p-5 space-y-3 shadow-sm">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              {isEditing ? (
+                <input
+                  value={editDraft?.name ?? ""}
+                  onChange={(e) => setEditDraft({ ...editDraft, name: e.target.value })}
+                  className={`${inputClass} max-w-xs`}
+                  placeholder="Nama router"
+                />
+              ) : (
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-white">{r.name}</h2>
+              )}
+              <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full ${
+                r.connected
+                  ? "bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400"
+                  : "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400"
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${r.connected ? "bg-green-500" : "bg-amber-500"}`} />
+                {r.connected ? "Terhubung" : "Belum terhubung"}
+              </span>
+            </div>
 
-          <div className="space-y-1">
-            <label className="text-sm text-gray-600 dark:text-white/60">Host / IP Public Router</label>
-            <input type="text" value={host} onChange={(e) => { setHost(e.target.value); setPingState({ status: "idle" }); }}
-              placeholder="103.xx.xx.xx" className={inputClass} />
+            {isEditing ? (
+              <div className="space-y-2">
+                <div>
+                  <label className="text-xs text-gray-500 dark:text-white/40">Host / IP Public</label>
+                  <input value={editDraft.host} onChange={(e) => setEditDraft({ ...editDraft, host: e.target.value })} placeholder="103.xx.xx.xx" className={inputClass} />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 dark:text-white/40">Port SSH</label>
+                  <input type="number" min={1} max={65535} value={editDraft.port} onChange={(e) => setEditDraft({ ...editDraft, port: e.target.value })} className={inputClass} />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 dark:text-white/40">Username</label>
+                  <input value={editDraft.sshUser} onChange={(e) => setEditDraft({ ...editDraft, sshUser: e.target.value })} className={inputClass} />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 dark:text-white/40">Password</label>
+                  <input value={editDraft.sshPass} onChange={(e) => setEditDraft({ ...editDraft, sshPass: e.target.value })} className={inputClass} />
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button onClick={() => { setEditingId(null); setEditDraft(null); }} className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-white/60 text-sm font-medium transition">
+                    Batal
+                  </button>
+                  <button onClick={() => handleSaveEdit(r.id)} disabled={isBusy} className="flex-1 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium transition">
+                    {isBusy ? "Menyimpan & cek koneksi..." : "Simpan & Tes Koneksi"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-xs space-y-1.5 font-mono text-gray-700 dark:text-white/70">
+                <div className="flex gap-3"><span className="text-gray-400 dark:text-white/30 w-20">Host</span><span>{r.host}:{r.port}</span></div>
+                <div className="flex gap-3"><span className="text-gray-400 dark:text-white/30 w-20">User</span><span>{r.sshUser}</span></div>
+                <div className="flex gap-3 items-center">
+                  <span className="text-gray-400 dark:text-white/30 w-20">Pass</span>
+                  <span>{showPassId === r.id ? r.sshPass : "••••••••"}</span>
+                  <button onClick={() => setShowPassId(showPassId === r.id ? null : r.id)} className="text-blue-500 hover:text-blue-600 text-xs transition">
+                    {showPassId === r.id ? "Sembunyikan" : "Tampilkan"}
+                  </button>
+                </div>
+
+                {ping && ping.status !== "idle" && (
+                  <div className={`mt-2 text-xs rounded-lg px-3 py-2 border font-sans ${
+                    ping.status === "ok" ? "bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 border-green-200 dark:border-green-500/20" :
+                    ping.status === "fail" ? "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-500/20" :
+                    "bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-white/40 border-gray-200 dark:border-white/5"
+                  }`}>
+                    {ping.status === "loading" ? `Mengecek port ${r.port}...` : ping.msg}
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <button onClick={() => handlePing(r.id, r.host, r.port)} disabled={isBusy} className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-white/70 font-medium transition disabled:opacity-50">
+                    Cek Port
+                  </button>
+                  <button onClick={() => verifyRouter(r.id)} disabled={isBusy} className="text-xs px-3 py-1.5 rounded-lg bg-blue-100 dark:bg-blue-500/10 hover:bg-blue-200 dark:hover:bg-blue-500/20 text-blue-700 dark:text-blue-400 font-medium transition disabled:opacity-50">
+                    {isBusy ? "..." : "Tes Koneksi"}
+                  </button>
+                  <button onClick={() => startEdit(r)} disabled={isBusy} className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-white/70 font-medium transition disabled:opacity-50">
+                    Edit
+                  </button>
+                  <button onClick={() => handleDelete(r)} disabled={isBusy} className="text-xs px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-500/10 hover:bg-red-200 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 font-medium transition disabled:opacity-50">
+                    Hapus
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
+        );
+      })}
 
-          <div className="space-y-1">
-            <label className="text-sm text-gray-600 dark:text-white/60">Port SSH</label>
-            <input type="number" min={1} max={65535} value={port}
-              onChange={(e) => { setPort(e.target.value); setPingState({ status: "idle" }); }}
-              placeholder="22" className={inputClass} />
-            <p className="text-xs text-gray-400 dark:text-white/30">Default 22. Kosongkan kalau pakai default.</p>
+      {/* Pending new router */}
+      {pending && (
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-blue-200 dark:border-blue-500/30 p-5 space-y-3 shadow-sm">
+          <div className="flex items-center justify-between">
+            <input
+              value={pending.name}
+              onChange={(e) => setPending({ ...pending, name: e.target.value })}
+              className={`${inputClass} max-w-xs`}
+              placeholder="Nama router"
+            />
+            <span className="text-xs text-blue-600 dark:text-blue-400">Router baru</span>
           </div>
-
-          <div className="space-y-1">
-            <label className="text-sm text-gray-600 dark:text-white/60">Username</label>
-            <input type="text" value={sshUser} onChange={(e) => setSshUser(e.target.value)}
-              placeholder="username MikroTik" className={inputClass} />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-sm text-gray-600 dark:text-white/60">Password</label>
-            <div className="relative">
-              <input type={showPass ? "text" : "password"} value={sshPass} onChange={(e) => setSshPass(e.target.value)}
-                placeholder="password MikroTik" className={`${inputClass} pr-20`} />
-              <button type="button" onClick={() => setShowPass((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-blue-600 hover:text-blue-700 bg-transparent border-none cursor-pointer">
-                {showPass ? "Sembunyikan" : "Tampilkan"}
-              </button>
+          <div className="space-y-2">
+            <div>
+              <label className="text-xs text-gray-500 dark:text-white/40">Host / IP Public</label>
+              <input value={pending.host} onChange={(e) => setPending({ ...pending, host: e.target.value })} placeholder="103.xx.xx.xx" className={inputClass} />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 dark:text-white/40">Port SSH</label>
+              <input type="number" min={1} max={65535} value={pending.port} onChange={(e) => setPending({ ...pending, port: e.target.value })} placeholder="22" className={inputClass} />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 dark:text-white/40">Username</label>
+              <input value={pending.sshUser} onChange={(e) => setPending({ ...pending, sshUser: e.target.value })} placeholder="username MikroTik" className={inputClass} />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 dark:text-white/40">Password</label>
+              <input value={pending.sshPass} onChange={(e) => setPending({ ...pending, sshPass: e.target.value })} placeholder="password" className={inputClass} />
             </div>
           </div>
-
-          {pingState.status !== "idle" && (
-            <div className={`text-sm rounded-lg px-3 py-2 border ${
-              pingState.status === "ok" ? "bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 border-green-200 dark:border-green-500/20" :
-              pingState.status === "fail" ? "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-500/20" :
-              "bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-white/40 border-gray-200 dark:border-white/5"
-            }`}>
-              {pingState.status === "loading" ? `Mengecek port ${portNum() ?? "?"}...` : pingState.msg}
-            </div>
-          )}
-
-          <div className="flex flex-wrap gap-2 pt-1">
-            <button type="button" onClick={handlePing} disabled={pingState.status === "loading" || !host}
-              className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 disabled:opacity-50 text-gray-700 dark:text-white/70 text-sm font-medium transition">
-              {pingState.status === "loading" ? "Cek..." : "Cek Port"}
+          <div className="flex gap-2 pt-1">
+            <button onClick={handleCancelPending} className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-white/60 text-sm font-medium transition">
+              Batal
             </button>
-            <button type="submit" disabled={saving || verifying || !host || !sshUser || !sshPass}
-              className="flex-1 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium transition">
-              {saving ? "Menyimpan..." : verifying ? "Tes Koneksi..." : "Simpan & Tes Koneksi"}
+            <button onClick={handleSavePending} disabled={busyId === pending.tempKey} className="flex-1 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium transition">
+              {busyId === pending.tempKey ? "Menyimpan & Tes Koneksi..." : "Simpan & Tes Koneksi"}
             </button>
           </div>
         </div>
-      </form>
+      )}
 
-      {initial && (
-        <button onClick={handleDelete} disabled={deleting}
-          className="w-full px-4 py-2 rounded-lg bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 disabled:opacity-50 text-red-600 dark:text-red-400 text-sm font-medium transition border border-red-100 dark:border-red-500/20">
-          {deleting ? "Menghapus..." : "Hapus Kredensial"}
-        </button>
+      {!canAddMore && !pending && (
+        <p className="text-xs text-gray-400 dark:text-white/30 text-center py-2">
+          Sudah mencapai batas {maxRouters} router. Hubungi admin kalau mau nambah kuota.
+        </p>
       )}
     </div>
   );

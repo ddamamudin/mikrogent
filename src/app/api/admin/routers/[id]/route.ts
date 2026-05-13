@@ -32,19 +32,37 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params;
   const body = await req.json();
   const data: Record<string, unknown> = {};
-  if (body.host !== undefined) data.host = String(body.host);
+
+  // Cek nama: kalau berubah, validasi tidak bentrok di user yang sama
+  if (typeof body.name === "string") {
+    const trimmed = body.name.trim();
+    if (!trimmed) return NextResponse.json({ error: "Nama router tidak boleh kosong" }, { status: 400 });
+    const current = await prisma.mikrotikCredential.findUnique({ where: { id }, select: { userId: true, name: true } });
+    if (!current) return NextResponse.json({ error: "Router tidak ditemukan" }, { status: 404 });
+    if (trimmed !== current.name) {
+      const dup = await prisma.mikrotikCredential.findUnique({
+        where: { userId_name: { userId: current.userId, name: trimmed } },
+      });
+      if (dup) return NextResponse.json({ error: "Nama router sudah dipakai tenant ini" }, { status: 400 });
+      data.name = trimmed;
+    }
+  }
+
+  if (typeof body.host === "string") data.host = body.host.trim();
   if (body.port !== undefined) {
     const p = parseInt(String(body.port), 10);
     if (!Number.isFinite(p) || p < 1 || p > 65535) return NextResponse.json({ error: "Port tidak valid" }, { status: 400 });
     data.port = p;
   }
-  if (body.sshUser !== undefined) data.sshUser = String(body.sshUser);
-  if (body.sshPass !== undefined) data.sshPass = String(body.sshPass);
+  if (typeof body.sshUser === "string") data.sshUser = body.sshUser.trim();
+  if (typeof body.sshPass === "string") data.sshPass = body.sshPass.trim();
 
   if (Object.keys(data).length === 0) return NextResponse.json({ error: "Tidak ada perubahan" }, { status: 400 });
 
-  // Setelah kred berubah, reset connected
-  data.connected = false;
+  // Kalau ada perubahan kredensial koneksi, reset connected supaya wajib verify ulang
+  if ("host" in data || "port" in data || "sshUser" in data || "sshPass" in data) {
+    data.connected = false;
+  }
 
   const label = await credLabel(id);
   try {

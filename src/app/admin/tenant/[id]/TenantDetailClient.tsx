@@ -13,6 +13,7 @@ type Tenant = {
   status: "ACTIVE" | "SUSPENDED";
   emailVerified: boolean;
   validated: boolean;
+  maxRouters: number;
   createdAt: string | Date;
   updatedAt: string | Date;
   chatCount: number;
@@ -27,23 +28,26 @@ type Tenant = {
 };
 
 type MikrotikCred = {
+  id: string;
+  name: string;
   host: string;
   port: number;
   sshUser: string;
   sshPass: string;
   connected: boolean;
-} | null;
+};
 
 const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
 
-export default function TenantDetailClient({ tenant: initial, mikrotikCred, isValidator = false }: { tenant: Tenant; mikrotikCred: MikrotikCred; isValidator?: boolean }) {
+export default function TenantDetailClient({ tenant: initial, mikrotikCreds, isValidator = false }: { tenant: Tenant; mikrotikCreds: MikrotikCred[]; isValidator?: boolean }) {
   const router = useRouter();
   const [tenant, setTenant] = useState(initial);
   const [chatCount, setChatCount] = useState(initial.chatCount);
   const [voiceUsed, setVoiceUsed] = useState(initial.voiceSecondsUsed);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
-  const [showPass, setShowPass] = useState(false);
+  const [showPassId, setShowPassId] = useState<string | null>(null);
+  const [maxRoutersInput, setMaxRoutersInput] = useState<string>(String(initial.maxRouters));
 
   const showMsg = (type: "ok" | "err", text: string) => {
     setMessage({ type, text });
@@ -150,6 +154,28 @@ export default function TenantDetailClient({ tenant: initial, mikrotikCred, isVa
     } else {
       const data = await res.json().catch(() => null);
       showMsg("err", data?.error || "Gagal menyimpan limit voice");
+    }
+  };
+
+  const handleSaveMaxRouters = async () => {
+    const n = parseInt(maxRoutersInput, 10);
+    if (!Number.isFinite(n) || n < 1 || n > 5) {
+      showMsg("err", "Kuota router harus 1 - 5");
+      return;
+    }
+    setLoading(true);
+    const res = await fetch(`/api/admin/tenants/${tenant.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ maxRouters: n }),
+    });
+    setLoading(false);
+    if (res.ok) {
+      setTenant((t) => ({ ...t, maxRouters: n }));
+      showMsg("ok", `Kuota router diset ke ${n}`);
+    } else {
+      const data = await res.json().catch(() => null);
+      showMsg("err", data?.error || "Gagal menyimpan kuota router");
     }
   };
 
@@ -323,47 +349,73 @@ export default function TenantDetailClient({ tenant: initial, mikrotikCred, isVa
       </div>
       )}
 
-      {/* Kredensial MikroTik */}
+      {/* Kuota Router */}
+      {!isValidator && (
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 p-5 shadow-sm space-y-3">
+        <div>
+          <h2 className="text-sm font-semibold text-gray-400 dark:text-white/50 uppercase tracking-wider">Kuota Router</h2>
+          <p className="text-xs text-gray-400 dark:text-white/30 mt-1">
+            Jumlah router yang boleh ditambahkan tenant ini (default 1, maksimal 5). Tenant tidak bisa nambah router sendiri di luar kuota - mereka harus minta admin.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 items-center">
+          <input
+            type="number"
+            min={1} max={5}
+            value={maxRoutersInput}
+            onChange={(e) => setMaxRoutersInput(e.target.value)}
+            className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 w-20"
+          />
+          <span className="text-sm text-gray-400 dark:text-white/40">router</span>
+          <button
+            onClick={handleSaveMaxRouters}
+            disabled={loading}
+            className="ml-auto px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition disabled:opacity-50"
+          >
+            Simpan
+          </button>
+        </div>
+        <p className="text-xs text-gray-500 dark:text-white/40">
+          Kuota saat ini: <strong className="text-gray-900 dark:text-white">{tenant.maxRouters}</strong> router (sudah dipakai: {mikrotikCreds.length})
+        </p>
+      </div>
+      )}
+
+      {/* Kredensial MikroTik - list semua router tenant */}
       {!isValidator && (
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden shadow-sm">
-        <div className="px-5 py-3 border-b border-gray-50 dark:border-white/5 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-400 dark:text-white/50 uppercase tracking-wider">Kredensial MikroTik</h2>
-          {mikrotikCred && (
-            <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${mikrotikCred.connected ? "text-green-600 dark:text-green-400" : "text-gray-400 dark:text-white/30"}`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${mikrotikCred.connected ? "bg-green-500" : "bg-gray-300 dark:bg-white/20"}`} />
-              {mikrotikCred.connected ? "Terhubung" : "Belum terhubung"}
-            </span>
-          )}
+        <div className="px-5 py-3 border-b border-gray-50 dark:border-white/5">
+          <h2 className="text-sm font-semibold text-gray-400 dark:text-white/50 uppercase tracking-wider">Kredensial MikroTik ({mikrotikCreds.length})</h2>
         </div>
-        {mikrotikCred ? (
-          <dl className="divide-y divide-gray-50 dark:divide-white/5">
-            <div className="px-5 py-3 flex items-center gap-4">
-              <dt className="text-sm text-gray-400 dark:text-white/40 w-36 shrink-0">Host</dt>
-              <dd className="text-sm text-gray-900 dark:text-white font-mono">{mikrotikCred.host}</dd>
-            </div>
-            <div className="px-5 py-3 flex items-center gap-4">
-              <dt className="text-sm text-gray-400 dark:text-white/40 w-36 shrink-0">Port</dt>
-              <dd className="text-sm text-gray-900 dark:text-white font-mono">{mikrotikCred.port}</dd>
-            </div>
-            <div className="px-5 py-3 flex items-center gap-4">
-              <dt className="text-sm text-gray-400 dark:text-white/40 w-36 shrink-0">Username</dt>
-              <dd className="text-sm text-gray-900 dark:text-white font-mono">{mikrotikCred.sshUser}</dd>
-            </div>
-            <div className="px-5 py-3 flex items-center gap-4">
-              <dt className="text-sm text-gray-400 dark:text-white/40 w-36 shrink-0">Password</dt>
-              <dd className="text-sm text-gray-900 dark:text-white font-mono flex items-center gap-2">
-                {showPass ? mikrotikCred.sshPass : "••••••••"}
-                <button
-                  onClick={() => setShowPass((v) => !v)}
-                  className="text-xs text-blue-500 hover:text-blue-600 transition"
-                >
-                  {showPass ? "Sembunyikan" : "Tampilkan"}
-                </button>
-              </dd>
-            </div>
-          </dl>
+        {mikrotikCreds.length === 0 ? (
+          <p className="px-5 py-4 text-sm text-gray-400 dark:text-white/30">Belum ada router yang disimpan tenant ini.</p>
         ) : (
-          <p className="px-5 py-4 text-sm text-gray-400 dark:text-white/30">Belum ada kredensial MikroTik yang disimpan.</p>
+          <div className="divide-y divide-gray-50 dark:divide-white/5">
+            {mikrotikCreds.map((cred) => (
+              <div key={cred.id} className="px-5 py-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{cred.name}</h3>
+                  <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${cred.connected ? "text-green-600 dark:text-green-400" : "text-gray-400 dark:text-white/30"}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${cred.connected ? "bg-green-500" : "bg-gray-300 dark:bg-white/20"}`} />
+                    {cred.connected ? "Terhubung" : "Belum terhubung"}
+                  </span>
+                </div>
+                <dl className="text-xs space-y-1">
+                  <div className="flex gap-3"><dt className="text-gray-400 dark:text-white/40 w-20">Host</dt><dd className="font-mono text-gray-700 dark:text-white/80">{cred.host}:{cred.port}</dd></div>
+                  <div className="flex gap-3"><dt className="text-gray-400 dark:text-white/40 w-20">Username</dt><dd className="font-mono text-gray-700 dark:text-white/80">{cred.sshUser}</dd></div>
+                  <div className="flex gap-3 items-center">
+                    <dt className="text-gray-400 dark:text-white/40 w-20">Password</dt>
+                    <dd className="font-mono text-gray-700 dark:text-white/80 flex items-center gap-2">
+                      {showPassId === cred.id ? cred.sshPass : "••••••••"}
+                      <button onClick={() => setShowPassId(showPassId === cred.id ? null : cred.id)} className="text-blue-500 hover:text-blue-600 transition">
+                        {showPassId === cred.id ? "Sembunyikan" : "Tampilkan"}
+                      </button>
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            ))}
+          </div>
         )}
       </div>
       )}
