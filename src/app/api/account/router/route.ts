@@ -41,8 +41,8 @@ export async function POST(req: NextRequest) {
 
   await prisma.mikrotikCredential.upsert({
     where: { userId: auth.userId },
-    update: { host: String(host).trim(), port: portNum, sshUser: String(sshUser).trim(), sshPass: String(sshPass), connected: false },
-    create: { userId: auth.userId, host: String(host).trim(), port: portNum, sshUser: String(sshUser).trim(), sshPass: String(sshPass), connected: false },
+    update: { host: String(host).trim(), port: portNum, sshUser: String(sshUser).trim(), sshPass: String(sshPass).trim(), connected: false },
+    create: { userId: auth.userId, host: String(host).trim(), port: portNum, sshUser: String(sshUser).trim(), sshPass: String(sshPass).trim(), connected: false },
   });
 
   return NextResponse.json({ ok: true });

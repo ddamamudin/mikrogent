@@ -90,16 +90,20 @@ export async function POST(req: NextRequest) {
   const user = await prisma.user.findUnique({ where: { id: userId, role: "USER" }, select: { name: true, email: true } });
   if (!user) return NextResponse.json({ error: "Tenant tidak ditemukan" }, { status: 404 });
 
+  const cleanHost = String(host).trim();
+  const cleanUser = String(sshUser).trim();
+  const cleanPass = String(sshPass).trim();
+
   await prisma.mikrotikCredential.upsert({
     where: { userId },
-    update: { host, port: portNum, sshUser, sshPass, connected: false },
-    create: { userId, host, port: portNum, sshUser, sshPass, connected: false },
+    update: { host: cleanHost, port: portNum, sshUser: cleanUser, sshPass: cleanPass, connected: false },
+    create: { userId, host: cleanHost, port: portNum, sshUser: cleanUser, sshPass: cleanPass, connected: false },
   });
 
   await logAdmin({
     adminId: admin.id, adminName: admin.name,
     action: "router_create",
-    details: `${user.name} (${user.email}) → ${host}:${portNum} as ${sshUser}`,
+    details: `${user.name} (${user.email}) → ${cleanHost}:${portNum} as ${cleanUser}`,
   });
 
   return NextResponse.json({ ok: true });
