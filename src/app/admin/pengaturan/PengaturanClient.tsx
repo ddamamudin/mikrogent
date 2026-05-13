@@ -4,6 +4,7 @@ import { useState } from "react";
 
 type Config = {
   adminSetupEnabled: boolean;
+  registrationEnabled: boolean;
   showBrandField: boolean;
   llmProvider: string;
   claudeApiKey: string | null;
@@ -53,6 +54,7 @@ const OPENAI_VOICES = [
 
 export default function PengaturanClient({ config: initial, admin }: { config: Config; admin: Admin }) {
   const [setupEnabled, setSetupEnabled] = useState(initial.adminSetupEnabled);
+  const [registrationEnabled, setRegistrationEnabled] = useState(initial.registrationEnabled);
   const [showBrand, setShowBrand] = useState(initial.showBrandField);
   const [configLoading, setConfigLoading] = useState(false);
 
@@ -100,6 +102,18 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
     });
     setConfigLoading(false);
     if (res.ok) { setSetupEnabled(val); showMsg("ok", `Halaman setup admin ${val ? "diaktifkan" : "dinonaktifkan"}`); }
+    else showMsg("err", "Gagal menyimpan pengaturan");
+  };
+
+  const handleToggleRegistration = async (val: boolean) => {
+    setConfigLoading(true);
+    const res = await fetch("/api/admin/config", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ registrationEnabled: val }),
+    });
+    setConfigLoading(false);
+    if (res.ok) { setRegistrationEnabled(val); showMsg("ok", `Halaman daftar ${val ? "diaktifkan" : "dinonaktifkan"}`); }
     else showMsg("err", "Gagal menyimpan pengaturan");
   };
 
@@ -269,6 +283,17 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
             <button onClick={() => handleToggleSetup(!setupEnabled)} disabled={configLoading}
               className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${setupEnabled ? "bg-blue-600" : "bg-gray-200 dark:bg-white/10"}`}>
               <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${setupEnabled ? "translate-x-6" : "translate-x-1"}`} />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between border-t border-gray-100 dark:border-white/5 pt-4">
+            <div className="pr-4">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">Halaman daftar tenant</p>
+              <p className="text-xs text-gray-400 dark:text-white/30 mt-0.5">Matikan kalau gak mau ada pendaftaran user baru — admin bikinin manual via /admin/setup atau impersonate</p>
+            </div>
+            <button onClick={() => handleToggleRegistration(!registrationEnabled)} disabled={configLoading}
+              className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${registrationEnabled ? "bg-blue-600" : "bg-gray-200 dark:bg-white/10"}`}>
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${registrationEnabled ? "translate-x-6" : "translate-x-1"}`} />
             </button>
           </div>
 

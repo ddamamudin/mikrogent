@@ -42,6 +42,17 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json(config);
   }
 
+  if (typeof body.registrationEnabled === "boolean") {
+    const config = await prisma.appConfig.upsert({
+      where: { id: "singleton" },
+      update: { registrationEnabled: body.registrationEnabled },
+      create: { id: "singleton", registrationEnabled: body.registrationEnabled },
+    });
+    await logAdmin({ adminId: admin.id, adminName: admin.name, action: "set_registration_enabled", details: String(body.registrationEnabled) });
+    RT.configUpdated().catch(() => {});
+    return NextResponse.json(config);
+  }
+
   if (typeof body.showBrandField === "boolean") {
     const config = await prisma.appConfig.upsert({
       where: { id: "singleton" },

@@ -48,6 +48,7 @@ model EmailToken {
 model AppConfig {
   id                  String  @id @default("singleton")
   adminSetupEnabled   Boolean @default(true)
+  registrationEnabled Boolean @default(true)
   showBrandField      Boolean @default(true)
   claudeApiKey        String?
   openaiApiKey        String?

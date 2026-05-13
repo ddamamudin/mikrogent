@@ -28,6 +28,16 @@ async function resolveUniqueBrand(base: string): Promise<string> {
 }
 
 export async function POST(req: NextRequest) {
+  // Gate: kalau admin matiin halaman daftar dari /admin/pengaturan, tolak request
+  // (jaga-jaga kalau bot bypass UI dan POST langsung)
+  const gateConfig = await prisma.appConfig.findUnique({
+    where: { id: "singleton" },
+    select: { registrationEnabled: true },
+  });
+  if (gateConfig && !gateConfig.registrationEnabled) {
+    return NextResponse.json({ error: "Pendaftaran sedang dinonaktifkan" }, { status: 403 });
+  }
+
   const ip = getClientIp(req);
   const rl = await rateLimit({ key: "register", ip, limit: 5, windowMs: 60 * 60 * 1000 });
   if (!rl.ok) {

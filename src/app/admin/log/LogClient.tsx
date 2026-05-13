@@ -22,6 +22,7 @@ const ACTION_LABELS: Record<string, string> = {
   set_chat_limit: "Set Limit Chat",
   update_agent_config: "Update Konfigurasi Agent",
   set_admin_setup_enabled: "Toggle Admin Setup",
+  set_registration_enabled: "Toggle Halaman Daftar",
   set_show_brand_field: "Toggle Field Brand",
   router_create: "Tambah Router",
   router_update: "Edit Router",

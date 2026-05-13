@@ -19,6 +19,7 @@ export default async function PengaturanPage() {
 
   const defaults = {
     adminSetupEnabled: true,
+    registrationEnabled: true,
     showBrandField: true,
     llmProvider: "anthropic" as const,
     claudeApiKey: null,
