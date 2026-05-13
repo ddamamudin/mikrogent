@@ -326,13 +326,13 @@ export default function RouterListClient() {
       {/* Modal Add/Edit */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setModalOpen(false)}>
-          <div onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-900 rounded-xl w-full max-w-md shadow-xl">
-            <div className="px-5 py-4 border-b border-gray-100 dark:border-white/5">
+          <div onClick={(e) => e.stopPropagation()} className="bg-white dark:bg-slate-900 rounded-xl w-full max-w-md shadow-xl flex flex-col max-h-[90vh]">
+            <div className="px-5 py-4 border-b border-gray-100 dark:border-white/5 shrink-0">
               <h2 className="text-base font-semibold text-gray-900 dark:text-white">
                 {modalMode === "add" ? "Tambah Router" : "Edit Router"}
               </h2>
             </div>
-            <form onSubmit={handleSubmit} className="px-5 py-4 space-y-3">
+            <form onSubmit={handleSubmit} className="px-5 py-4 space-y-3 overflow-y-auto">
               {modalError && (
                 <div className="bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-sm rounded-lg px-3 py-2 border border-red-200 dark:border-red-500/20">
                   {modalError}
@@ -341,7 +341,10 @@ export default function RouterListClient() {
 
               {modalMode === "add" ? (
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500 dark:text-white/50">Tenant ({available.length} kandidat)</label>
+                  <label className="text-xs font-medium text-gray-500 dark:text-white/50">Tenant ({available.length} masih ada slot)</label>
+                  <p className="text-[11px] text-gray-400 dark:text-white/30 -mt-0.5">
+                    Cuma tenant tervalidasi yang slot kuota router-nya belum penuh. Naikkin kuota dulu via <strong>Tenant &gt; Detail &gt; Kuota Router</strong> kalau yang dicari gak muncul.
+                  </p>
                   {(() => {
                     const q = tenantSearch.trim().toLowerCase();
                     const filtered = q
