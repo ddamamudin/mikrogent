@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 import { NextRequest } from "next/server";
 import { cookies } from "next/headers";
+import { randomUUID } from "crypto";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import type Anthropic from "@anthropic-ai/sdk";
@@ -70,13 +71,6 @@ export async function POST(req: NextRequest) {
 
   const today = getTodayString();
   const effectiveLimit = userRecord.dailyChatLimit ?? config.dailyChatLimit ?? 50;
-  const dailyCount = await prisma.agentDailyCount.findUnique({ where: { userId } });
-  if (dailyCount && dailyCount.date === today && dailyCount.count >= effectiveLimit) {
-    return new Response(
-      sseRaw({ type: "error", error: `Batas chat harian (${effectiveLimit}) telah tercapai` }),
-      { status: 429, headers: { "Content-Type": "text/event-stream" } },
-    );
-  }
 
   type AttachmentIn = { name: string; data: string; mimeType: string };
 
@@ -178,6 +172,28 @@ export async function POST(req: NextRequest) {
     activeCredentialId,
   };
 
+  // Atomic reserve: increment count by 1 (or reset to 1 kalau date beda) HANYA kalau belum lewat limit.
+  // Pakai INSERT ... ON CONFLICT DO UPDATE WHERE supaya race-safe — concurrent request gak bisa bypass limit.
+  // Kalau runner gagal, kita decrement balik di catch block biar failed run gak charge user.
+  const reserved = await prisma.$queryRaw<{ count: number }[]>`
+    INSERT INTO "AgentDailyCount" ("id", "userId", "date", "count", "voiceSeconds")
+    VALUES (${randomUUID()}, ${userId}, ${today}, 1, 0)
+    ON CONFLICT ("userId") DO UPDATE
+    SET
+      "count" = CASE WHEN "AgentDailyCount"."date" = EXCLUDED."date" THEN "AgentDailyCount"."count" + 1 ELSE 1 END,
+      "date" = EXCLUDED."date"
+    WHERE
+      "AgentDailyCount"."date" <> EXCLUDED."date"
+      OR "AgentDailyCount"."count" < ${effectiveLimit}
+    RETURNING "count"
+  `;
+  if (reserved.length === 0) {
+    return new Response(
+      sseRaw({ type: "error", error: `Batas chat harian (${effectiveLimit}) telah tercapai` }),
+      { status: 429, headers: { "Content-Type": "text/event-stream" } },
+    );
+  }
+
   const stream = new ReadableStream({
     async start(controller) {
       const ping = setInterval(() => {
@@ -194,15 +210,18 @@ export async function POST(req: NextRequest) {
         } else {
           await runAnthropic({ ...runnerOpts, emit });
         }
-
-        await prisma.agentDailyCount.upsert({
-          where: { userId },
-          update: { count: dailyCount?.date === today ? { increment: 1 } : 1, date: today },
-          create: { userId, count: 1, date: today },
-        });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         console.error("[agent/chat] stream error:", msg, e);
+        // Rollback reservasi — runner gagal, jangan charge user
+        try {
+          await prisma.agentDailyCount.updateMany({
+            where: { userId, date: today, count: { gt: 0 } },
+            data: { count: { decrement: 1 } },
+          });
+        } catch (rollbackErr) {
+          console.error("[agent/chat] rollback decrement gagal:", rollbackErr);
+        }
         emit({ type: "error", error: msg });
       } finally {
         clearInterval(ping);
