@@ -244,9 +244,9 @@ export default function RouterListClient() {
                     </td>
                     <td className="px-4 py-3 font-mono text-gray-700 dark:text-white/80">
                       {r.cred ? (
-                        <div className="flex items-start gap-2 max-w-[240px]">
-                          <span className="flex-1 min-w-0 break-all">{showPassId === r.cred.id ? r.cred.sshPass : "••••••••"}</span>
-                          <button onClick={() => setShowPassId(showPassId === r.cred!.id ? null : r.cred!.id)} className="text-xs text-blue-500 hover:text-blue-600 transition shrink-0">
+                        <div className="flex items-center gap-2">
+                          <span>{showPassId === r.cred.id ? r.cred.sshPass : "••••••••"}</span>
+                          <button onClick={() => setShowPassId(showPassId === r.cred!.id ? null : r.cred!.id)} className="text-xs text-blue-500 hover:text-blue-600 transition">
                             {showPassId === r.cred.id ? "Sembunyikan" : "Tampilkan"}
                           </button>
                         </div>

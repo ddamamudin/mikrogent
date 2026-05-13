@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { decryptSshPass } from "@/lib/crypto";
 import RouterClient from "./RouterClient";
 
 export default async function DashboardRouterPage() {
@@ -22,5 +23,6 @@ export default async function DashboardRouterPage() {
     }),
   ]);
 
-  return <RouterClient initialRouters={routers} maxRouters={user?.maxRouters ?? 1} />;
+  const decrypted = routers.map((r) => ({ ...r, sshPass: decryptSshPass(r.sshPass) }));
+  return <RouterClient initialRouters={decrypted} maxRouters={user?.maxRouters ?? 1} />;
 }

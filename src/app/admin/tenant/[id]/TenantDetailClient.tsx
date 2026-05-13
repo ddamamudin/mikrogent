@@ -403,11 +403,11 @@ export default function TenantDetailClient({ tenant: initial, mikrotikCreds, isV
                 <dl className="text-xs space-y-1">
                   <div className="flex gap-3"><dt className="text-gray-400 dark:text-white/40 w-20">Host</dt><dd className="font-mono text-gray-700 dark:text-white/80">{cred.host}:{cred.port}</dd></div>
                   <div className="flex gap-3"><dt className="text-gray-400 dark:text-white/40 w-20">Username</dt><dd className="font-mono text-gray-700 dark:text-white/80">{cred.sshUser}</dd></div>
-                  <div className="flex gap-3 items-start">
-                    <dt className="text-gray-400 dark:text-white/40 w-20 shrink-0">Password</dt>
-                    <dd className="font-mono text-gray-700 dark:text-white/80 flex items-start gap-2 flex-1 min-w-0">
-                      <span className="flex-1 min-w-0 break-all">{showPassId === cred.id ? cred.sshPass : "••••••••"}</span>
-                      <button onClick={() => setShowPassId(showPassId === cred.id ? null : cred.id)} className="text-blue-500 hover:text-blue-600 transition shrink-0">
+                  <div className="flex gap-3 items-center">
+                    <dt className="text-gray-400 dark:text-white/40 w-20">Password</dt>
+                    <dd className="font-mono text-gray-700 dark:text-white/80 flex items-center gap-2">
+                      {showPassId === cred.id ? cred.sshPass : "••••••••"}
+                      <button onClick={() => setShowPassId(showPassId === cred.id ? null : cred.id)} className="text-blue-500 hover:text-blue-600 transition">
                         {showPassId === cred.id ? "Sembunyikan" : "Tampilkan"}
                       </button>
                     </dd>
