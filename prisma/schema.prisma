@@ -140,3 +140,17 @@ model AdminLog {
   @@index([createdAt])
   @@index([adminId])
 }
+
+// Rate limit bucket per (action, ip). Atomic INSERT ... ON CONFLICT untuk race-safe counter.
+// Persisten lewat restart PM2 / crash. Bucket expired di-reuse otomatis saat resetAt < NOW().
+model RateLimitBucket {
+  id        String   @id @default(cuid())
+  action    String   // mis. "login", "register", "forgot"
+  ip        String
+  count     Int
+  resetAt   DateTime
+  updatedAt DateTime @updatedAt
+
+  @@unique([action, ip])
+  @@index([resetAt])
+}

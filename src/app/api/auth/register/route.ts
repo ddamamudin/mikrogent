@@ -27,7 +27,7 @@ async function resolveUniqueBrand(base: string): Promise<string> {
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
-  const rl = rateLimit({ key: "register", ip, limit: 5, windowMs: 60 * 60 * 1000 });
+  const rl = await rateLimit({ key: "register", ip, limit: 5, windowMs: 60 * 60 * 1000 });
   if (!rl.ok) {
     return NextResponse.json(
       { error: `Terlalu banyak permintaan. Coba lagi dalam ${Math.ceil(rl.resetIn / 60000)} menit.` },

@@ -8,7 +8,7 @@ import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
-  const rl = rateLimit({ key: "login", ip, limit: 10, windowMs: 15 * 60 * 1000 });
+  const rl = await rateLimit({ key: "login", ip, limit: 10, windowMs: 15 * 60 * 1000 });
   if (!rl.ok) {
     return NextResponse.json(
       { error: `Terlalu banyak percobaan login. Coba lagi dalam ${Math.ceil(rl.resetIn / 60000)} menit.` },
