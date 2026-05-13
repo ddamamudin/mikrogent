@@ -86,7 +86,7 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
-  const [notifReady, setNotifReady] = useState(false);
+  const [notifPerm, setNotifPerm] = useState<"unsupported" | "default" | "granted" | "denied">("unsupported");
   const seenIdsRef = useRef<Set<string> | null>(null); // null = belum init
 
   const showMsg = (type: "ok" | "err", text: string) => {
@@ -136,19 +136,31 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
 
   // Cek permission notifikasi
   useEffect(() => {
-    if (typeof Notification !== "undefined") {
-      setNotifReady(Notification.permission === "granted");
-    }
+    if (typeof Notification === "undefined") return;
+    setNotifPerm(Notification.permission);
   }, []);
 
   const enableNotif = async () => {
-    if (typeof Notification === "undefined") return;
+    if (typeof Notification === "undefined") {
+      showMsg("err", "Browser ini gak support notifikasi");
+      return;
+    }
+    if (Notification.permission === "denied") {
+      // Browser udah kunci, requestPermission() bakal langsung return "denied"
+      // tanpa munculin prompt. User harus reset manual lewat lock icon di address bar.
+      showMsg("err", "Notif diblokir oleh browser. Buka 🔒 di address bar → Site settings → Notifications → Allow, lalu refresh.");
+      return;
+    }
     const perm = await Notification.requestPermission();
-    setNotifReady(perm === "granted");
+    setNotifPerm(perm);
     if (perm === "granted") {
-      // test ding biar user tau audio juga jalan
       playDing();
       showNotif("Notifikasi aktif", "Kamu akan dapat alert saat ada user baru daftar.");
+      showMsg("ok", "Notifikasi browser berhasil diaktifkan");
+    } else if (perm === "denied") {
+      showMsg("err", "Izin notifikasi ditolak. Buka 🔒 di address bar untuk reset.");
+    } else {
+      showMsg("err", "Prompt notifikasi ditutup tanpa pilihan. Klik lagi untuk coba.");
     }
   };
 
@@ -280,7 +292,19 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Tenant</h1>
           <p className="text-sm text-gray-500 dark:text-white/40 mt-0.5">{total} tenant terdaftar</p>
         </div>
-        {!notifReady && (
+        {notifPerm === "granted" && (
+          <span
+            className="text-xs px-3 py-1.5 rounded-lg bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400 font-medium flex items-center gap-1.5"
+            title="Notifikasi browser aktif"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            Notifikasi Aktif
+          </span>
+        )}
+        {notifPerm === "default" && (
           <button
             onClick={enableNotif}
             className="text-xs px-3 py-1.5 rounded-lg bg-blue-100 dark:bg-blue-500/10 hover:bg-blue-200 dark:hover:bg-blue-500/20 text-blue-700 dark:text-blue-400 font-medium transition flex items-center gap-1.5"
@@ -291,6 +315,22 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
               <path d="M13.73 21a2 2 0 0 1-3.46 0" />
             </svg>
             Aktifkan Notifikasi
+          </button>
+        )}
+        {notifPerm === "denied" && (
+          <button
+            onClick={enableNotif}
+            className="text-xs px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-500/10 hover:bg-red-200 dark:hover:bg-red-500/20 text-red-700 dark:text-red-400 font-medium transition flex items-center gap-1.5"
+            title="Notifikasi diblokir browser. Klik untuk lihat cara reset."
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              <path d="M18.63 13A17.89 17.89 0 0 1 18 8" />
+              <path d="M6.26 6.26A5.86 5.86 0 0 0 6 8c0 7-3 9-3 9h14" />
+              <path d="M18 8a6 6 0 0 0-9.33-5" />
+              <line x1="1" y1="1" x2="23" y2="23" />
+            </svg>
+            Notif Diblokir
           </button>
         )}
       </div>
