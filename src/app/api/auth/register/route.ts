@@ -7,6 +7,7 @@ import { sendVerificationEmail } from "@/lib/mailer";
 import { notifyNewUser } from "@/lib/fonnte";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { RT } from "@/lib/realtime/events";
+import { notifyAdmins } from "@/lib/notifications";
 
 function emailToBrand(email: string): string {
   return email.split("@")[0]
@@ -100,6 +101,15 @@ export async function POST(req: NextRequest) {
 
   // Push realtime ke halaman admin/tenant — gak blocking respons
   RT.tenantUpserted(user.id).catch(() => {});
+
+  // Bell notif ke semua admin
+  notifyAdmins({
+    type: "user_registered",
+    title: "Tenant baru daftar",
+    body: `${name} (${email})`,
+    link: `/admin/tenant/${user.id}`,
+    meta: { tenantId: user.id },
+  }).catch(() => {});
 
   // Fire-and-forget WA notif ke admin - gak blocking respons
   notifyNewUser({ name, email, brand, noWa }).catch(() => {});

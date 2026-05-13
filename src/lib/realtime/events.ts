@@ -5,6 +5,7 @@ export const TOPIC = {
   adminRouter: "admin:router",
   adminLog: "admin:log",
   adminConfig: "admin:config",
+  adminInbox: "admin:inbox",
   user: (userId: string) => `user:${userId}`,
 } as const;
 
@@ -43,4 +44,13 @@ export const RT = {
     publish({ topic: TOPIC.user(userId), event: "user.router_changed", data: null }),
   userMaxRoutersChanged: (userId: string) =>
     publish({ topic: TOPIC.user(userId), event: "user.max_routers_changed", data: null }),
+  // Push ke channel admin spesifik — bell counter naik per recipient
+  adminNotif: (adminUserId: string) =>
+    publish({ topic: TOPIC.user(adminUserId), event: "notif.created", data: null }),
+  // Inbox feedback events — admin:inbox broadcast ke semua admin
+  feedbackChanged: () =>
+    publish({ topic: TOPIC.adminInbox, event: "feedback.changed", data: null }),
+  // Notif user saat admin reply / resolve feedback
+  userFeedbackUpdated: (userId: string) =>
+    publish({ topic: TOPIC.user(userId), event: "user.feedback_updated", data: null }),
 };

@@ -30,6 +30,8 @@ model User {
   mikrotikCredentials MikrotikCredential[]
   agentDailyCount     AgentDailyCount?
   agentChatSession    AgentChatSession?
+  notifications       Notification[]
+  feedbacks           Feedback[]
 }
 
 model EmailToken {
@@ -174,4 +176,55 @@ model RateLimitBucket {
 
   @@unique([action, ip])
   @@index([resetAt])
+}
+
+// Notif per-recipient. Untuk event admin-wide (user_registered, dll) di-fan-out:
+// 1 row per admin yang aktif (jadi read state independen per admin).
+// Untuk event user-personal (feedback_replied) di-target ke userId-nya langsung.
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String    // recipient (admin id atau user id)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String    // "user_registered" | "user_email_verified" | "feedback_received" | "feedback_replied" | "feedback_resolved"
+  title     String
+  body      String?
+  link      String?   // URL untuk navigasi saat di-klik
+  meta      Json?     // konteks tambahan (tenantId, feedbackId, dll)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+}
+
+// Feedback thread = parent record. Status OPEN/RESOLVED. messages = isi thread-nya.
+model Feedback {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject   String
+  status    String    @default("OPEN")  // OPEN | RESOLVED
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  messages  FeedbackMessage[]
+
+  @@index([userId])
+  @@index([status, updatedAt])
+}
+
+// Pesan dalam thread feedback. fromRole bedain user vs admin sender.
+// readByUser / readByAdmin track unread counter per-side.
+model FeedbackMessage {
+  id          String   @id @default(cuid())
+  feedbackId  String
+  feedback    Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  fromRole    String   // "USER" | "ADMIN"
+  fromId      String   // userId atau adminId pengirim
+  fromName    String   // snapshot nama (gak ke-update kalau user rename)
+  body        String
+  readByUser  Boolean  @default(false)
+  readByAdmin Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([feedbackId, createdAt])
 }

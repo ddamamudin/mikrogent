@@ -3,6 +3,7 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { usePathname } from "next/navigation";
 import { InstallButton } from "@/components/InstallButton";
+import MasukanSidebarLink from "@/components/MasukanSidebarLink";
 
 const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
 
@@ -235,7 +236,8 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
               )}
             </nav>
 
-            <div className="px-3 py-3 border-t border-gray-200 dark:border-white/10 space-y-2">
+            <div className="px-3 py-3 border-t border-gray-200 dark:border-white/10 space-y-1">
+              <MasukanSidebarLink />
               <button
                 onClick={handleLogout}
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-500 dark:text-white/60 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition"

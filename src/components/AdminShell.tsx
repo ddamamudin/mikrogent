@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { InstallButton } from "@/components/InstallButton";
+import NotificationBell from "@/components/NotificationBell";
+import InboxDropdown from "@/components/InboxDropdown";
 import type { SessionPayload } from "@/lib/session";
 
 
@@ -119,7 +121,9 @@ export default function AdminShell({
           <img src="/mikroplay-logo-text.png" alt="Mikroplay" className="h-7 w-auto" />
           <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400">Admin</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
+          <InboxDropdown />
+          <NotificationBell />
           <InstallButton />
           <button
             onClick={handleLogout}
