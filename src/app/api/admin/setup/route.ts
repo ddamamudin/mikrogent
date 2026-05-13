@@ -22,8 +22,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Email sudah terdaftar" }, { status: 400 });
 
   const hashed = await bcrypt.hash(password, 12);
-  const admin = await prisma.user.create({
-    data: { name, email, password: hashed, role: "ADMIN", emailVerified: true },
+  const admin = await prisma.$transaction(async (tx) => {
+    const created = await tx.user.create({
+      data: { name, email, password: hashed, role: "ADMIN", emailVerified: true },
+    });
+    await tx.appConfig.update({
+      where: { id: "singleton" },
+      data: { adminSetupEnabled: false },
+    });
+    return created;
   });
 
   const cookieStore = await cookies();

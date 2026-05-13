@@ -1,6 +1,16 @@
 import crypto from "crypto";
 
-const SECRET = process.env.NEXTAUTH_SECRET || "dev-secret-change-in-production-xxxxx32";
+if (!process.env.NEXTAUTH_SECRET) {
+  throw new Error("NEXTAUTH_SECRET wajib di-set di environment. Tidak ada default value untuk alasan keamanan.");
+}
+const SECRET = process.env.NEXTAUTH_SECRET;
+
+function safeEqual(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ab.length !== bb.length) return false;
+  return crypto.timingSafeEqual(ab, bb);
+}
 
 // 30 hari session, perpanjang otomatis kalau sisa < 15 hari (sliding renewal)
 export const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
@@ -29,7 +39,7 @@ export function verifySession(token: string): SessionPayload | null {
     const payload = token.slice(0, dot);
     const sig     = token.slice(dot + 1);
     const expected = crypto.createHmac("sha256", SECRET).update(payload).digest("base64url");
-    if (sig !== expected) return null;
+    if (!safeEqual(sig, expected)) return null;
     const data = JSON.parse(Buffer.from(payload, "base64url").toString());
     if (!data.exp || data.exp < Date.now()) return null;
     return {
@@ -104,7 +114,7 @@ export function verifyImpersonatorToken(token: string | undefined): Impersonator
     const payload = token.slice(0, dot);
     const sig = token.slice(dot + 1);
     const expected = crypto.createHmac("sha256", SECRET).update(payload).digest("base64url");
-    if (sig !== expected) return null;
+    if (!safeEqual(sig, expected)) return null;
     const data = JSON.parse(Buffer.from(payload, "base64url").toString());
     if (!data.exp || data.exp < Date.now()) return null;
     return data as ImpersonatorPayload;
