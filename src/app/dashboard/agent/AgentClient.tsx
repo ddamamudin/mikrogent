@@ -129,7 +129,12 @@ export default function AgentClient({ firstName, hasAnyConnected, totalRouters, 
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = Math.min(el.scrollHeight, 160) + "px";
+    // Empty: biarin natural (browser default rows=1 + min-h class). Set explicit
+    // height cuma kalau ada konten, supaya kondisi kosong gak ke-pump
+    // sama scrollHeight + padding default browser.
+    if (el.value) {
+      el.style.height = Math.min(el.scrollHeight, 160) + "px";
+    }
   }
 
   // Auto-resize tiap kali `input` state berubah — handle case dictation /
