@@ -31,7 +31,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const password = decryptSshPass(cred.sshPass);
   const sshCfg = { host: cred.host, port: cred.port, username: cred.sshUser, password };
 
-  // Step 1: enable service via SSH
+  // Step 1: enable service via SSH + ambil port aktual yang ke-set di RouterOS
   const enableRes = await enableRouterosApiService(sshCfg);
   if (!enableRes.ok) {
     return NextResponse.json(
@@ -40,20 +40,27 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     );
   }
 
-  // Step 2: verify dengan connect API
+  // Step 2: verify dengan connect API pakai port aktual dari RouterOS
+  const actualPort = enableRes.port;
   const testRes = await testRouterosApi({
     host: cred.host,
-    apiPort: cred.apiPort,
+    apiPort: actualPort,
     username: cred.sshUser,
     password,
   });
 
   if (!testRes.ok) {
+    // Tetep update apiPort biar user gak harus enable ulang setelah firewall di-fix
+    await prisma.mikrotikCredential.update({
+      where: { id },
+      data: { apiPort: actualPort },
+    });
     return NextResponse.json(
       {
         error:
-          `Service API udah aktif di router, tapi gak bisa connect dari Mikroplay (port ${cred.apiPort}). ` +
-          `Cek firewall / port forwarding. Detail: ${testRes.error ?? "unknown"}`,
+          `Service API udah aktif di router (port ${actualPort}), tapi gak bisa connect dari Mikroplay. ` +
+          `Kemungkinan firewall input chain MikroTik block port ${actualPort} dari IP server, ` +
+          `atau NAT/port-forward di modem ISP belum di-set. Detail: ${testRes.error ?? "(timeout)"}`,
       },
       { status: 400 },
     );
@@ -61,7 +68,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   await prisma.mikrotikCredential.update({
     where: { id },
-    data: { apiEnabled: true },
+    data: { apiEnabled: true, apiPort: actualPort },
   });
 
   RT.userRouterChanged(user.id).catch(() => {});

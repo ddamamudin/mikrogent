@@ -192,37 +192,43 @@ export async function withRouterosApi<T>(
 // Aktifkan RouterOS API service via SSH. Idempotent: cek state dulu sebelum
 // ngubah supaya gak generate change event ke router yang udah on.
 // Set address restriction kalau MIKROPLAY_SERVER_IP di-env.
+// Return juga `port` aktual yang ke-set di /ip service api (bisa beda dari
+// default 8728 kalau user udah ganti). Caller wajib update DB pakai port ini.
 export async function enableRouterosApiService(
   sshCfg: MikrotikConfig,
-): Promise<{ ok: boolean; alreadyEnabled: boolean; addressRestricted: boolean; raw: string; error?: string }> {
+): Promise<{ ok: boolean; alreadyEnabled: boolean; addressRestricted: boolean; port: number; raw: string; error?: string }> {
   const restrictIp = process.env.MIKROPLAY_SERVER_IP?.trim();
   const restrictCidr = restrictIp ? `${restrictIp}/32` : "";
 
-  // 1. Cek state sekarang
-  let printOut: string;
+  // 1. Ambil state pakai :put dari script RouterOS — output bersih,
+  //    1 baris per query, gak perlu parsing kolom.
+  let disabledStr: string;
+  let portStr: string;
   try {
-    printOut = await executeMikrotikCommand(
-      "/ip service print where name=api",
+    disabledStr = (await executeMikrotikCommand(
+      ":put [/ip service get [find name=api] disabled]",
       sshCfg,
-    );
+    )).trim();
+    portStr = (await executeMikrotikCommand(
+      ":put [/ip service get [find name=api] port]",
+      sshCfg,
+    )).trim();
   } catch (e) {
     return {
       ok: false,
       alreadyEnabled: false,
       addressRestricted: false,
+      port: 8728,
       raw: "",
       error: e instanceof Error ? e.message : String(e),
     };
   }
 
-  // RouterOS print output: kalau `X` di kolom flags = disabled.
-  // Sederhana: cek apakah ada token "X" di line yang mengandung "api ".
-  const lines = printOut.split(/\r?\n/);
-  const apiLine = lines.find((l) => /\bapi\b/.test(l) && !/api-ssl/.test(l)) ?? "";
-  const isDisabled = /^\s*\d+\s+[A-Z]*X/.test(apiLine);
-  const alreadyEnabled = !isDisabled && apiLine.length > 0;
+  const isDisabled = disabledStr === "true";
+  const portNum = parseInt(portStr, 10) || 8728;
+  const alreadyEnabled = !isDisabled;
 
-  // 2. Bangun command set: enable + (optional) address restriction.
+  // 2. Enable + (opsional) address restriction. Kalau udah on, skip enable.
   const cmds: string[] = [];
   if (isDisabled) cmds.push("/ip service set [find name=api] disabled=no");
   if (restrictCidr) cmds.push(`/ip service set [find name=api] address=${restrictCidr}`);
@@ -236,37 +242,48 @@ export async function enableRouterosApiService(
         ok: false,
         alreadyEnabled,
         addressRestricted: false,
-        raw: printOut + cmdOutput,
+        port: portNum,
+        raw: cmdOutput,
         error: e instanceof Error ? e.message : String(e),
       };
     }
   }
 
-  // 3. Verify ulang
-  let verifyOut = "";
-  try {
-    verifyOut = await executeMikrotikCommand(
-      "/ip service print where name=api",
-      sshCfg,
-    );
-  } catch (e) {
-    return {
-      ok: false,
-      alreadyEnabled,
-      addressRestricted: false,
-      raw: printOut + cmdOutput,
-      error: e instanceof Error ? e.message : String(e),
-    };
+  // 3. Verify ulang (cuma kalau tadi disabled — kalau udah on, skip)
+  if (isDisabled) {
+    try {
+      const verifyDisabled = (await executeMikrotikCommand(
+        ":put [/ip service get [find name=api] disabled]",
+        sshCfg,
+      )).trim();
+      if (verifyDisabled === "true") {
+        return {
+          ok: false,
+          alreadyEnabled,
+          addressRestricted: !!restrictCidr,
+          port: portNum,
+          raw: cmdOutput,
+          error: "Service tetap disabled setelah set disabled=no — kemungkinan user gak punya policy api atau RouterOS reject",
+        };
+      }
+    } catch (e) {
+      return {
+        ok: false,
+        alreadyEnabled,
+        addressRestricted: !!restrictCidr,
+        port: portNum,
+        raw: cmdOutput,
+        error: e instanceof Error ? e.message : String(e),
+      };
+    }
   }
 
-  const verifyLine = verifyOut.split(/\r?\n/).find((l) => /\bapi\b/.test(l) && !/api-ssl/.test(l)) ?? "";
-  const stillDisabled = /^\s*\d+\s+[A-Z]*X/.test(verifyLine);
-
   return {
-    ok: !stillDisabled,
+    ok: true,
     alreadyEnabled,
     addressRestricted: !!restrictCidr,
-    raw: printOut + cmdOutput + "\n=== verify ===\n" + verifyOut,
+    port: portNum,
+    raw: cmdOutput,
   };
 }
 

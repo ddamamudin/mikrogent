@@ -107,24 +107,25 @@ async function processOne(row) {
   const tag = `${row.name} (${row.host}:${row.port})`;
   const password = decrypt(row.sshPass);
   const sshCfg = { host: row.host, port: row.port, username: row.sshUser, password };
-  const apiCfg = { host: row.host, apiPort: row.apiPort, username: row.sshUser, password };
 
-  // Fast path: kalau API udah reachable, flip flag aja
-  const initialTest = await testApi(apiCfg);
+  // Fast path: kalau API udah reachable di port yang ke-save di DB, flip flag aja
+  const initialTest = await testApi({ host: row.host, apiPort: row.apiPort, username: row.sshUser, password });
   if (initialTest.ok) {
-    return { tag, status: "already-on", identity: initialTest.identity };
+    return { tag, status: "already-on", identity: initialTest.identity, port: row.apiPort };
   }
 
-  // Cek state via SSH
-  let printOut;
+  // Query state + port aktual via SSH (pakai :put — output 1 baris bersih)
+  let disabledStr;
+  let portStr;
   try {
-    printOut = await execSsh(sshCfg, "/ip service print where name=api");
+    disabledStr = (await execSsh(sshCfg, ":put [/ip service get [find name=api] disabled]")).trim();
+    portStr = (await execSsh(sshCfg, ":put [/ip service get [find name=api] port]")).trim();
   } catch (e) {
     return { tag, status: "ssh-fail", error: e.message ?? String(e) };
   }
 
-  const apiLine = printOut.split(/\r?\n/).find((l) => /\bapi\b/.test(l) && !/api-ssl/.test(l)) ?? "";
-  const isDisabled = /^\s*\d+\s+[A-Z]*X/.test(apiLine);
+  const isDisabled = disabledStr === "true";
+  const actualPort = parseInt(portStr, 10) || 8728;
 
   const restrictIp = process.env.MIKROPLAY_SERVER_IP?.trim();
   const restrictCidr = restrictIp ? `${restrictIp}/32` : "";
@@ -137,16 +138,16 @@ async function processOne(row) {
     try {
       await execSsh(sshCfg, cmd);
     } catch (e) {
-      return { tag, status: "ssh-fail", error: `cmd "${cmd}": ${e.message ?? String(e)}` };
+      return { tag, status: "ssh-fail", error: `cmd "${cmd}": ${e.message ?? String(e)}`, port: actualPort };
     }
   }
 
-  // Verify via API
-  const finalTest = await testApi(apiCfg);
+  // Verify via API pakai port aktual
+  const finalTest = await testApi({ host: row.host, apiPort: actualPort, username: row.sshUser, password });
   if (!finalTest.ok) {
-    return { tag, status: "api-unreachable", error: finalTest.error };
+    return { tag, status: "api-unreachable", error: finalTest.error || "(timeout)", port: actualPort };
   }
-  return { tag, status: "enabled", identity: finalTest.identity };
+  return { tag, status: "enabled", identity: finalTest.identity, port: actualPort };
 }
 
 async function main() {
@@ -177,15 +178,24 @@ async function main() {
       }
       const res = await processOne(row);
       if (res.status === "enabled" || res.status === "already-on") {
-        await db.query(`UPDATE "MikrotikCredential" SET "apiEnabled" = true WHERE id = $1`, [row.id]);
-        console.log(`${prefix} ${res.tag} — ${res.status} ✓ (identity: ${res.identity ?? "?"})`);
+        await db.query(
+          `UPDATE "MikrotikCredential" SET "apiEnabled" = true, "apiPort" = $2 WHERE id = $1`,
+          [row.id, res.port],
+        );
+        const portNote = res.port !== row.apiPort ? ` [port diubah ${row.apiPort}→${res.port}]` : "";
+        console.log(`${prefix} ${res.tag} — ${res.status} ✓ (identity: ${res.identity ?? "?"}, port: ${res.port})${portNote}`);
         if (res.status === "enabled") counts.enabled++;
         else counts.alreadyOn++;
       } else if (res.status === "ssh-fail") {
         console.log(`${prefix} ${res.tag} — SSH gagal: ${res.error}`);
         counts.sshFail++;
       } else if (res.status === "api-unreachable") {
-        console.log(`${prefix} ${res.tag} — API tetep gak reachable: ${res.error}`);
+        // Tetep update apiPort biar gak hardcode 8728 di DB
+        if (res.port) {
+          await db.query(`UPDATE "MikrotikCredential" SET "apiPort" = $2 WHERE id = $1`, [row.id, res.port]);
+        }
+        const portNote = res.port && res.port !== row.apiPort ? ` [port di router: ${res.port}, di-save ke DB]` : "";
+        console.log(`${prefix} ${res.tag} — API gak reachable di port ${res.port ?? row.apiPort}: ${res.error}${portNote}`);
         counts.apiUnreachable++;
       }
     }
