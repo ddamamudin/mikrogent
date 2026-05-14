@@ -184,8 +184,9 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
   const [activeId, setActiveId] = useState<string | null>(initialRouters[0]?.id ?? null);
   const [menu, setMenu] = useState<MenuKey>("status");
   const [pickerOpen, setPickerOpen] = useState(false);
-  // Default closed (sama pattern dengan sidebar utama dashboard).
-  // Open via hamburger → overlay slide-in, gak nge-geser content.
+  // Default closed. Sub-sidebar Monitor slide-down dari bawah hamburger
+  // (bukan dari kiri ala sidebar utama). Z-index sengaja di-rendahin (z-10)
+  // supaya sidebar utama dashboard (z-30) tetep di atas saat keduanya open.
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const refetch = useCallback(async () => {
@@ -230,13 +231,15 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
 
   return (
     <div className="space-y-3">
-      {/* Sub-header Monitor: hamburger toggle sidebar + breadcrumb mini */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm px-3 py-2 flex items-center gap-3">
+      {/* Sub-header Monitor — sticky top supaya tetep nempel di atas saat
+          scroll konten. z-10 lebih rendah dari sidebar utama dashboard (z-30)
+          supaya sidebar utama tetep di atas saat dibuka. */}
+      <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm px-3 py-2 flex items-center gap-3">
         <button
           onClick={() => setSidebarOpen((o) => !o)}
           aria-label="Toggle menu Monitor"
           title={sidebarOpen ? "Tutup menu" : "Buka menu"}
-          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition text-gray-700 dark:text-white/70"
+          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition text-gray-700 dark:text-white/70 shrink-0"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="3" y1="6" x2="21" y2="6"/>
@@ -244,21 +247,138 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
             <line x1="3" y1="18" x2="21" y2="18"/>
           </svg>
         </button>
-        <div className="flex items-center gap-2 text-sm min-w-0">
-          <span className="font-semibold text-gray-900 dark:text-white">Monitor</span>
-          <span className="text-gray-300 dark:text-white/20">/</span>
+        <div className="flex items-center gap-2 text-sm min-w-0 flex-1">
+          <span className="font-semibold text-gray-900 dark:text-white shrink-0">Monitor</span>
+          <span className="text-gray-300 dark:text-white/20 shrink-0">/</span>
           {active && (
             <>
-              <span className="text-gray-700 dark:text-white/70 truncate flex items-center gap-1.5">
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${active.apiEnabled ? "bg-indigo-500" : "bg-gray-400"}`} />
-                {active.name}
-              </span>
-              <span className="text-gray-300 dark:text-white/20 hidden sm:inline">/</span>
+              {/* Router picker — klik nama router buka dropdown list */}
+              <div className="relative min-w-0">
+                <button
+                  onClick={() => setPickerOpen((o) => !o)}
+                  className="flex items-center gap-1.5 max-w-full text-gray-700 dark:text-white/70 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-md px-1.5 -mx-1.5 py-0.5 transition"
+                  title="Ganti router"
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${active.apiEnabled ? "bg-indigo-500" : "bg-gray-400"}`} />
+                  <span className="truncate font-medium">{active.name}</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 text-gray-400 dark:text-white/40 transition-transform ${pickerOpen ? "rotate-180" : ""}`}>
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </button>
+                {pickerOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setPickerOpen(false)} aria-hidden="true" />
+                    <div className="absolute top-full left-0 mt-2 w-64 z-20 bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden">
+                      <p className="px-3 py-2 text-[10px] uppercase tracking-wider text-gray-400 dark:text-white/30 font-semibold border-b border-gray-100 dark:border-white/5">
+                        {routers.length} router
+                      </p>
+                      <div className="max-h-72 overflow-y-auto py-1">
+                        {routers.map((r) => {
+                          const isA = r.id === activeId;
+                          return (
+                            <button
+                              key={r.id}
+                              onClick={() => { setActiveId(r.id); setPickerOpen(false); }}
+                              className={`w-full text-left px-3 py-2 transition flex items-start gap-2 ${
+                                isA
+                                  ? "bg-blue-50 dark:bg-blue-500/10"
+                                  : "hover:bg-gray-50 dark:hover:bg-white/5"
+                              }`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${r.apiEnabled ? "bg-indigo-500" : "bg-gray-400"}`} />
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm font-medium truncate ${
+                                  isA ? "text-blue-700 dark:text-blue-300" : "text-gray-900 dark:text-white"
+                                }`}>{r.name}</p>
+                                <p className="text-[11px] font-mono text-gray-400 dark:text-white/30 truncate">{r.host}</p>
+                              </div>
+                              {isA && (
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500 dark:text-blue-400 shrink-0 mt-1">
+                                  <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+              <span className="text-gray-300 dark:text-white/20 hidden sm:inline shrink-0">/</span>
             </>
           )}
           <span className="text-gray-500 dark:text-white/50 truncate hidden sm:inline">{activeMenuLabel}</span>
         </div>
+
+        {/* Sub-sidebar Monitor — slide-down dari atas (dari bawah hamburger).
+            Anak sub-header card supaya posisinya nempel ke hamburger button.
+            Z-10 lebih rendah dari sidebar utama dashboard (z-30). */}
+        <aside
+          className={`absolute top-full left-3 mt-2 w-56 z-10 origin-top transition-all duration-200 ${
+            sidebarOpen
+              ? "opacity-100 translate-y-0 scale-100"
+              : "opacity-0 -translate-y-2 scale-95 pointer-events-none"
+          }`}
+        >
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 shadow-xl overflow-hidden max-h-[calc(100vh-8rem)] overflow-y-auto">
+            <nav className="p-2 flex flex-col">
+              {SECTIONS.map((sec) => (
+                <div key={sec.label} className="mb-1">
+                  <p className="px-2 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-white/30">
+                    {sec.label}
+                  </p>
+                  {sec.items.map((it) => {
+                    const isOn = menu === it.key;
+                    return (
+                      <button
+                        key={`${sec.label}-${it.key}`}
+                        onClick={() => { setMenu(it.key); setSidebarOpen(false); }}
+                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                          isOn
+                            ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                            : "text-gray-600 dark:text-white/70 hover:bg-gray-100 dark:hover:bg-white/5"
+                        }`}
+                      >
+                        <span className="shrink-0">{it.icon}</span>
+                        <span className="text-left flex-1 truncate">{it.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+
+              {SOON_SECTIONS.map((sec) => (
+                <div key={sec.label} className="mb-1 mt-2 border-t border-gray-100 dark:border-white/5 pt-2">
+                  <p className="px-2 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-white/30">
+                    {sec.label}
+                  </p>
+                  {sec.items.map((it, idx) => (
+                    <div
+                      key={`soon-${sec.label}-${idx}`}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-300 dark:text-white/20 cursor-not-allowed select-none"
+                      title="Belum tersedia, masih dalam pengembangan"
+                    >
+                      <span className="shrink-0">{it.icon}</span>
+                      <span className="text-left flex-1 truncate">{it.label}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </nav>
+          </div>
+        </aside>
       </div>
+
+      {/* Backdrop sub-sidebar — z-[5] di bawah sub-header sticky (z-10) tapi
+          tetep di atas content. Click di luar sidebar untuk close. */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+          className="fixed inset-0 top-14 z-[5] bg-black/20"
+        />
+      )}
 
       {active && !active.apiEnabled && (
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-amber-200 dark:border-amber-500/30 px-5 py-8 text-center space-y-2 shadow-sm">
@@ -273,159 +393,26 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
       )}
 
       {active && active.apiEnabled && (
-        <div className="relative">
-          {/* Backdrop saat sidebar open — click outside untuk close. Sama
-              pattern kayak sidebar utama dashboard. */}
-          {sidebarOpen && (
-            <div
-              onClick={() => setSidebarOpen(false)}
-              aria-hidden="true"
-              className="absolute inset-0 z-20 bg-black/20"
-            />
-          )}
-
-          {/* Sub-sidebar floating overlay — slide-in dari kiri, gak nge-geser
-              content. Default closed; toggle pakai hamburger di sub-header. */}
-          <aside
-            className={`absolute top-0 left-0 w-56 z-30 space-y-2 transition-transform duration-200 ${
-              sidebarOpen ? "translate-x-0" : "-translate-x-[120%]"
-            }`}
-          >
-            {/* Picker card terpisah biar dropdown bisa nge-overlay nav card di bawahnya
-                tanpa kena clip overflow-hidden. */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm">
-              <div className="relative">
-                <button
-                  onClick={() => setPickerOpen((o) => !o)}
-                  className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/5 transition flex items-start gap-2 rounded-xl"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-white/30 font-semibold">Router aktif</p>
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate mt-0.5 flex items-center gap-1.5">
-                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${active.apiEnabled ? "bg-indigo-500" : "bg-gray-400"}`} />
-                      {active.name}
-                    </p>
-                    <p className="text-[11px] font-mono text-gray-400 dark:text-white/30 truncate">{active.host}</p>
-                  </div>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`text-gray-400 dark:text-white/30 shrink-0 mt-1 transition-transform ${pickerOpen ? "rotate-180" : ""}`}>
-                    <polyline points="6 9 12 15 18 9"/>
-                  </svg>
-                </button>
-                {pickerOpen && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setPickerOpen(false)} aria-hidden="true" />
-                    <div className="absolute top-full left-0 right-0 mt-1 z-20 bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden">
-                      <p className="px-3 py-2 text-[10px] uppercase tracking-wider text-gray-400 dark:text-white/30 font-semibold border-b border-gray-100 dark:border-white/5">
-                        {routers.length} router
-                      </p>
-                      <div className="max-h-72 overflow-y-auto py-1">
-                        {routers.map((r) => {
-                          const isActive = r.id === activeId;
-                          return (
-                            <button
-                              key={r.id}
-                              onClick={() => { setActiveId(r.id); setPickerOpen(false); }}
-                              className={`w-full text-left px-3 py-2 transition flex items-start gap-2 ${
-                                isActive
-                                  ? "bg-blue-50 dark:bg-blue-500/10"
-                                  : "hover:bg-gray-50 dark:hover:bg-white/5"
-                              }`}
-                            >
-                              <span className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${r.apiEnabled ? "bg-indigo-500" : "bg-gray-400"}`} />
-                              <div className="flex-1 min-w-0">
-                                <p className={`text-sm font-medium truncate ${
-                                  isActive ? "text-blue-700 dark:text-blue-300" : "text-gray-900 dark:text-white"
-                                }`}>{r.name}</p>
-                                <p className="text-[11px] font-mono text-gray-400 dark:text-white/30 truncate">{r.host}</p>
-                              </div>
-                              {isActive && (
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500 dark:text-blue-400 shrink-0 mt-1">
-                                  <polyline points="20 6 9 17 4 12"/>
-                                </svg>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Nav card terpisah dari picker */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden">
-              <nav className="p-2 flex flex-col">
-                {SECTIONS.map((sec) => (
-                  <div key={sec.label} className="mb-1">
-                    <p className="px-2 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-white/30">
-                      {sec.label}
-                    </p>
-                    {sec.items.map((it) => {
-                      const isOn = menu === it.key;
-                      return (
-                        <button
-                          key={`${sec.label}-${it.key}`}
-                          onClick={() => { setMenu(it.key); setSidebarOpen(false); }}
-                          className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition ${
-                            isOn
-                              ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                              : "text-gray-600 dark:text-white/70 hover:bg-gray-100 dark:hover:bg-white/5"
-                          }`}
-                        >
-                          <span className="shrink-0">{it.icon}</span>
-                          <span className="text-left flex-1 truncate">{it.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                ))}
-
-                {/* Coming soon section — visual placeholder buat Tier 2/3 */}
-                {SOON_SECTIONS.map((sec) => (
-                  <div key={sec.label} className="mb-1 mt-2 border-t border-gray-100 dark:border-white/5 pt-2">
-                    <p className="px-2 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-white/30">
-                      {sec.label}
-                    </p>
-                    {sec.items.map((it, idx) => (
-                      <div
-                        key={`soon-${sec.label}-${idx}`}
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-300 dark:text-white/20 cursor-not-allowed select-none"
-                        title="Belum tersedia, masih dalam pengembangan"
-                      >
-                        <span className="shrink-0">{it.icon}</span>
-                        <span className="text-left flex-1 truncate">{it.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </nav>
-            </div>
-          </aside>
-
-          {/* Content area — selalu full width, gak nge-geser saat sidebar
-              di-toggle (overlay behavior). */}
-          <div className="w-full min-w-0">
-            {menu === "status" && <RouterStatus key={`status-${active.id}`} routerId={active.id} routerName={active.name} />}
-            {menu === "users" && <HotspotUserPanel key={`users-${active.id}`} routerId={active.id} />}
-            {menu === "profiles" && <HotspotProfilePanel key={`profiles-${active.id}`} routerId={active.id} />}
-            {menu === "active" && <HotspotActivePanel key={`active-${active.id}`} routerId={active.id} />}
-            {menu === "hosts" && <HostsPanel key={`hosts-${active.id}`} routerId={active.id} />}
-            {menu === "bindings" && <IpBindingPanel key={`bindings-${active.id}`} routerId={active.id} />}
-            {menu === "leases" && <DhcpLeasePanel key={`leases-${active.id}`} routerId={active.id} />}
-            {menu === "cookies" && <CookiePanel key={`cookies-${active.id}`} routerId={active.id} />}
-            {menu === "voucher" && <VoucherPanel key={`voucher-${active.id}`} routerId={active.id} />}
-            {menu === "ppp-secrets" && <PppSecretPanel key={`ppp-secrets-${active.id}`} routerId={active.id} />}
-            {menu === "ppp-profiles" && <PppProfilePanel key={`ppp-profiles-${active.id}`} routerId={active.id} />}
-            {menu === "ppp-active" && <PppActivePanel key={`ppp-active-${active.id}`} routerId={active.id} />}
-            {menu === "arp" && <ArpPanel key={`arp-${active.id}`} routerId={active.id} />}
-            {menu === "ip-addresses" && <IpAddressPanel key={`ip-addresses-${active.id}`} routerId={active.id} />}
-            {menu === "scheduler" && <SchedulerPanel key={`scheduler-${active.id}`} routerId={active.id} />}
-            {menu === "log" && <HotspotLogPanel key={`log-${active.id}`} routerId={active.id} />}
-            {menu === "quick-print" && <QuickPrintPanel key={`quick-print-${active.id}`} routerId={active.id} routerName={active.name} />}
-            {menu === "traffic" && <TrafficMonitorPanel key={`traffic-${active.id}`} routerId={active.id} />}
-            {menu === "system" && <SystemPanel key={`system-${active.id}`} routerId={active.id} routerName={active.name} />}
-          </div>
+        <div className="w-full min-w-0">
+          {menu === "status" && <RouterStatus key={`status-${active.id}`} routerId={active.id} routerName={active.name} />}
+          {menu === "users" && <HotspotUserPanel key={`users-${active.id}`} routerId={active.id} />}
+          {menu === "profiles" && <HotspotProfilePanel key={`profiles-${active.id}`} routerId={active.id} />}
+          {menu === "active" && <HotspotActivePanel key={`active-${active.id}`} routerId={active.id} />}
+          {menu === "hosts" && <HostsPanel key={`hosts-${active.id}`} routerId={active.id} />}
+          {menu === "bindings" && <IpBindingPanel key={`bindings-${active.id}`} routerId={active.id} />}
+          {menu === "leases" && <DhcpLeasePanel key={`leases-${active.id}`} routerId={active.id} />}
+          {menu === "cookies" && <CookiePanel key={`cookies-${active.id}`} routerId={active.id} />}
+          {menu === "voucher" && <VoucherPanel key={`voucher-${active.id}`} routerId={active.id} />}
+          {menu === "ppp-secrets" && <PppSecretPanel key={`ppp-secrets-${active.id}`} routerId={active.id} />}
+          {menu === "ppp-profiles" && <PppProfilePanel key={`ppp-profiles-${active.id}`} routerId={active.id} />}
+          {menu === "ppp-active" && <PppActivePanel key={`ppp-active-${active.id}`} routerId={active.id} />}
+          {menu === "arp" && <ArpPanel key={`arp-${active.id}`} routerId={active.id} />}
+          {menu === "ip-addresses" && <IpAddressPanel key={`ip-addresses-${active.id}`} routerId={active.id} />}
+          {menu === "scheduler" && <SchedulerPanel key={`scheduler-${active.id}`} routerId={active.id} />}
+          {menu === "log" && <HotspotLogPanel key={`log-${active.id}`} routerId={active.id} />}
+          {menu === "quick-print" && <QuickPrintPanel key={`quick-print-${active.id}`} routerId={active.id} routerName={active.name} />}
+          {menu === "traffic" && <TrafficMonitorPanel key={`traffic-${active.id}`} routerId={active.id} />}
+          {menu === "system" && <SystemPanel key={`system-${active.id}`} routerId={active.id} routerName={active.name} />}
         </div>
       )}
     </div>
