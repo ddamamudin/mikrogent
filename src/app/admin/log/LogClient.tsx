@@ -115,38 +115,61 @@ export default function LogClient() {
         ) : logs.length === 0 ? (
           <div className="p-8 text-center text-sm text-gray-400 dark:text-white/30">Belum ada aktivitas</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 dark:border-white/5">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide">Waktu</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide">Admin</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide">Aktivitas</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide">Detail</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-white/5">
-                {logs.map((l) => (
-                  <tr key={l.id} className="hover:bg-gray-50 dark:hover:bg-white/2 transition">
-                    <td className="px-4 py-3 text-gray-500 dark:text-white/50 whitespace-nowrap text-xs">
-                      {new Date(l.createdAt).toLocaleString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                    </td>
-                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">
-                      {l.adminName}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${colorOf(l.action)}`}>
-                        {labelOf(l.action)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-white/60 text-xs">
-                      {l.details ?? "-"}
-                    </td>
+          <>
+            {/* Desktop: table */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 dark:border-white/5">
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide">Waktu</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide">Admin</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide">Aktivitas</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide">Detail</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-50 dark:divide-white/5">
+                  {logs.map((l) => (
+                    <tr key={l.id} className="hover:bg-gray-50 dark:hover:bg-white/2 transition">
+                      <td className="px-4 py-3 text-gray-500 dark:text-white/50 whitespace-nowrap text-xs">
+                        {new Date(l.createdAt).toLocaleString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </td>
+                      <td className="px-4 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap">
+                        {l.adminName}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${colorOf(l.action)}`}>
+                          {labelOf(l.action)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600 dark:text-white/60 text-xs break-words max-w-md">
+                        {l.details ?? "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile: stacked cards */}
+            <ul className="lg:hidden divide-y divide-gray-50 dark:divide-white/5">
+              {logs.map((l) => (
+                <li key={l.id} className="px-4 py-3 space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${colorOf(l.action)}`}>
+                      {labelOf(l.action)}
+                    </span>
+                    <span className="text-[11px] text-gray-400 dark:text-white/30 whitespace-nowrap shrink-0">
+                      {new Date(l.createdAt).toLocaleString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                  <p className="text-xs font-medium text-gray-900 dark:text-white">{l.adminName}</p>
+                  {l.details && (
+                    <p className="text-xs text-gray-500 dark:text-white/50 break-words">{l.details}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </div>
 

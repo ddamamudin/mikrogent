@@ -221,7 +221,9 @@ export default function RouterListClient() {
         ) : rows.length === 0 ? (
           <div className="p-8 text-center text-sm text-gray-400 dark:text-white/30">Tidak ada data</div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            {/* Desktop: table */}
+            <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 dark:border-white/5">
@@ -318,7 +320,101 @@ export default function RouterListClient() {
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+
+            {/* Mobile: stacked cards */}
+            <ul className="lg:hidden divide-y divide-gray-50 dark:divide-white/5">
+              {rows.map((r) => (
+                <li key={r.cred?.id ?? r.userId} className="px-4 py-4 space-y-3">
+                  {/* Tenant header */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-gray-900 dark:text-white truncate">{r.userName}</p>
+                      <p className="text-xs text-gray-400 dark:text-white/40 truncate">{r.userEmail}</p>
+                      <p className="text-[10px] text-gray-400 dark:text-white/30 mt-0.5">{r.routerCount}/{r.maxRouters} router</p>
+                    </div>
+                    {!r.cred ? (
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-white/40 shrink-0 whitespace-nowrap">
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400" /> Belum Onboarding
+                      </span>
+                    ) : r.cred.connected ? (
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400 shrink-0 whitespace-nowrap">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500" /> Terhubung
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 shrink-0 whitespace-nowrap">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Putus
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Router credential detail */}
+                  {r.cred ? (
+                    <dl className="bg-gray-50 dark:bg-white/5 rounded-lg p-3 text-xs space-y-1.5">
+                      <div className="flex gap-2">
+                        <dt className="text-gray-400 dark:text-white/40 w-20 shrink-0">Router</dt>
+                        <dd className="font-medium text-gray-900 dark:text-white break-all">{r.cred.name}</dd>
+                      </div>
+                      <div className="flex gap-2">
+                        <dt className="text-gray-400 dark:text-white/40 w-20 shrink-0">Host</dt>
+                        <dd className="font-mono text-gray-700 dark:text-white/80 break-all">{r.cred.host}:{r.cred.port}</dd>
+                      </div>
+                      <div className="flex gap-2">
+                        <dt className="text-gray-400 dark:text-white/40 w-20 shrink-0">User</dt>
+                        <dd className="font-mono text-gray-700 dark:text-white/80 break-all">{r.cred.sshUser}</dd>
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <dt className="text-gray-400 dark:text-white/40 w-20 shrink-0">Password</dt>
+                        <dd className="font-mono text-gray-700 dark:text-white/80 flex items-center gap-2 flex-wrap min-w-0">
+                          <span className="break-all">{showPassId === r.cred.id ? r.cred.sshPass : "••••••••"}</span>
+                          <button onClick={() => setShowPassId(showPassId === r.cred!.id ? null : r.cred!.id)} className="text-[11px] text-blue-500 hover:text-blue-600 transition shrink-0">
+                            {showPassId === r.cred.id ? "Sembunyikan" : "Tampilkan"}
+                          </button>
+                        </dd>
+                      </div>
+                    </dl>
+                  ) : (
+                    <p className="text-xs text-gray-400 dark:text-white/30 italic">Belum ada router</p>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => handleImpersonate(r)}
+                      disabled={actionLoading === r.userId}
+                      className="text-xs px-3 py-1.5 rounded-lg bg-purple-100 dark:bg-purple-500/10 hover:bg-purple-200 dark:hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 transition disabled:opacity-50 font-medium"
+                    >
+                      Impersonate
+                    </button>
+                    {r.cred && (
+                      <>
+                        <button
+                          onClick={() => handleVerify(r)}
+                          disabled={actionLoading === r.cred.id}
+                          className="text-xs px-3 py-1.5 rounded-lg bg-blue-100 dark:bg-blue-500/10 hover:bg-blue-200 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 transition disabled:opacity-50"
+                        >
+                          {actionLoading === r.cred.id ? "..." : "Tes Koneksi"}
+                        </button>
+                        <button
+                          onClick={() => openEdit(r)}
+                          className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/60 transition"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(r)}
+                          disabled={actionLoading === r.cred.id}
+                          className="text-xs px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-500/10 hover:bg-red-200 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 transition disabled:opacity-50"
+                        >
+                          Hapus
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </div>
 
