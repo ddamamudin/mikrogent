@@ -1,86 +1,142 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { InstallButton } from "@/components/InstallButton";
 import NotificationBell from "@/components/NotificationBell";
 import InboxDropdown from "@/components/InboxDropdown";
 import type { SessionPayload } from "@/lib/session";
 
-
-const NAV = [
+const NAV_GROUPS = [
   {
-    href: "/admin/dashboard",
-    label: "Dashboard",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
-        <rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
-      </svg>
-    ),
+    label: "Operasional",
+    items: [
+      {
+        href: "/admin/dashboard",
+        label: "Dashboard",
+        icon: (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
+          </svg>
+        ),
+      },
+      {
+        href: "/admin/tenant",
+        label: "Tenant",
+        icon: (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+        ),
+      },
+    ],
   },
   {
-    href: "/admin/tenant",
-    label: "Tenant",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/router",
-    label: "Router",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="14" width="20" height="8" rx="2" />
-        <line x1="6" y1="18" x2="6.01" y2="18" />
-        <line x1="10" y1="18" x2="10.01" y2="18" />
-        <path d="M6 10V6a6 6 0 0 1 12 0v4" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/log",
-    label: "Log Aktivitas",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-        <line x1="16" y1="13" x2="8" y2="13" />
-        <line x1="16" y1="17" x2="8" y2="17" />
-      </svg>
-    ),
-  },
-  {
-    href: "/admin/pengaturan",
-    label: "Pengaturan",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="3" />
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-      </svg>
-    ),
+    label: "Sistem",
+    items: [
+      {
+        href: "/admin/router",
+        label: "Router",
+        icon: (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="14" width="20" height="8" rx="2" />
+            <line x1="6" y1="18" x2="6.01" y2="18" />
+            <line x1="10" y1="18" x2="10.01" y2="18" />
+            <path d="M6 10V6a6 6 0 0 1 12 0v4" />
+          </svg>
+        ),
+      },
+      {
+        href: "/admin/log",
+        label: "Log Aktivitas",
+        icon: (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+          </svg>
+        ),
+      },
+      {
+        href: "/admin/pengaturan",
+        label: "Pengaturan",
+        icon: (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        ),
+      },
+    ],
   },
 ];
 
 const PUBLIC_PATHS = ["/admin/masuk", "/admin/setup"];
 
+const PAGE_TITLES: Record<string, string> = {
+  "/admin/dashboard": "Dashboard",
+  "/admin/tenant": "Tenant",
+  "/admin/router": "Router",
+  "/admin/log": "Log Aktivitas",
+  "/admin/pengaturan": "Pengaturan",
+  "/admin/inbox": "Inbox",
+};
+
+function getPageTitle(pathname: string): string {
+  let best = "";
+  for (const key of Object.keys(PAGE_TITLES)) {
+    if (pathname === key || pathname.startsWith(key + "/")) {
+      if (key.length > best.length) best = key;
+    }
+  }
+  return PAGE_TITLES[best] ?? "Admin";
+}
+
+function getInitials(name: string | undefined): string {
+  if (!name) return "S";
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
 export default function AdminShell({
   session,
+  adminName,
+  adminEmail,
   children,
 }: {
   session: SessionPayload | null;
+  adminName?: string;
+  adminEmail?: string;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  // Mobile: default closed (state false). Desktop (lg+): selalu open via Tailwind `lg:*`
-  // class - state ini cuma ngontrol show/hide di mobile, jadi tetap aman buat SSR
-  // hydration (selalu mulai false).
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("admin:sidebarCollapsed");
+    if (stored === "1") setCollapsed(true);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("admin:sidebarCollapsed", collapsed ? "1" : "0");
+  }, [collapsed]);
+
+  useEffect(() => {
+    setMobileOpen(false);
+    setProfileOpen(false);
+  }, [pathname]);
 
   const isPublicPage = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
@@ -89,19 +145,30 @@ export default function AdminShell({
     window.location.href = "/admin/masuk";
   };
 
+  const toggleSidebar = () => {
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      setMobileOpen((o) => !o);
+    } else {
+      setCollapsed((c) => !c);
+    }
+  };
+
   if (isPublicPage || !session || session.role !== "ADMIN") {
     return <>{children}</>;
   }
 
+  const pageTitle = getPageTitle(pathname);
+  const initials = getInitials(adminName);
+
   return (
     <div className="h-dvh flex flex-col bg-gray-100 dark:bg-slate-950 text-gray-900 dark:text-white">
-      {/* Header - sticky di top, selalu visible */}
-      <header className="sticky top-0 h-14 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-white/10 flex items-center justify-between px-4 shrink-0 z-30">
-        <div className="flex items-center gap-3">
-          {/* Toggle hanya untuk mobile - di desktop sidebar selalu open */}
+      <header className="sticky top-0 h-14 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-white/10 flex items-center justify-between px-3 sm:px-4 shrink-0 z-40">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
-            onClick={() => setSidebarOpen((o) => !o)}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition text-gray-500 dark:text-white/60 hover:text-gray-900 dark:hover:text-white lg:hidden"
+            onClick={toggleSidebar}
+            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition text-gray-500 dark:text-white/60 hover:text-gray-900 dark:hover:text-white shrink-0"
+            title={collapsed ? "Buka sidebar" : "Tutup sidebar"}
+            aria-label="Toggle sidebar"
           >
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
               <rect y="2" width="18" height="2" rx="1" fill="currentColor" />
@@ -110,56 +177,142 @@ export default function AdminShell({
             </svg>
           </button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/mikroplay-logo-text.png" alt="Mikroplay" className="h-7 w-auto" />
-          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400">Admin</span>
+          <img src="/mikroplay-logo-text.png" alt="Mikroplay" className="h-7 w-auto hidden sm:block shrink-0" />
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 hidden sm:inline shrink-0 uppercase tracking-wider">Superadmin</span>
+          <div className="h-5 w-px bg-gray-200 dark:bg-white/10 hidden sm:block mx-1 shrink-0" />
+          <h1 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white truncate">{pageTitle}</h1>
         </div>
-        <div className="flex items-center gap-1 sm:gap-2">
+        <div className="flex items-center gap-1 shrink-0">
           <InboxDropdown />
           <NotificationBell />
           <InstallButton />
-          <button
-            onClick={handleLogout}
-            className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-400 dark:text-white/50 hover:text-red-600 dark:hover:text-red-400 transition"
-            title="Keluar"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-          </button>
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar - mobile: state-controlled, desktop: selalu open via lg:w-56 */}
-        <aside className={`${sidebarOpen ? "w-56" : "w-0"} lg:w-56 transition-all duration-200 overflow-hidden shrink-0 bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-white/10 flex flex-col`}>
-          <nav className="flex-1 py-4 px-2 space-y-1">
-            {NAV.map(({ href, label, icon }) => {
-              const active = pathname === href || (href !== "/admin/dashboard" && pathname.startsWith(href));
-              return (
-                <a
-                  key={href}
-                  href={href}
-                  className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition ${
-                    active
-                      ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
-                      : "text-gray-600 dark:text-white/70 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
-                  }`}
-                >
-                  {icon}
-                  <span>{label}</span>
-                </a>
-              );
-            })}
+      <div className="flex flex-1 overflow-hidden relative">
+        {mobileOpen && (
+          <button
+            onClick={() => setMobileOpen(false)}
+            aria-label="Tutup menu"
+            className="fixed inset-0 top-14 bg-black/40 z-20 lg:hidden"
+          />
+        )}
+
+        <aside
+          className={`fixed lg:relative top-14 lg:top-0 left-0 bottom-0 lg:bottom-auto z-30 lg:z-auto ${
+            mobileOpen ? "translate-x-0" : "-translate-x-full"
+          } lg:translate-x-0 ${
+            collapsed ? "lg:w-16" : "lg:w-60"
+          } w-60 shrink-0 transition-all duration-200 bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-white/10 flex flex-col`}
+        >
+          <nav className="flex-1 py-4 px-2 space-y-4 overflow-y-auto">
+            {NAV_GROUPS.map((group) => (
+              <div key={group.label} className="space-y-1">
+                {!collapsed && (
+                  <p className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-gray-400 dark:text-white/30 font-semibold">
+                    {group.label}
+                  </p>
+                )}
+                {collapsed && <div className="border-t border-gray-100 dark:border-white/5 mx-2 mb-1" />}
+                {group.items.map(({ href, label, icon }) => {
+                  const active =
+                    pathname === href || (href !== "/admin/dashboard" && pathname.startsWith(href));
+                  return (
+                    <a
+                      key={href}
+                      href={href}
+                      title={collapsed ? label : undefined}
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                        active
+                          ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
+                          : "text-gray-600 dark:text-white/70 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+                      } ${collapsed ? "justify-center" : ""}`}
+                    >
+                      <span className="shrink-0">{icon}</span>
+                      {!collapsed && <span className="truncate">{label}</span>}
+                    </a>
+                  );
+                })}
+              </div>
+            ))}
           </nav>
-          <div className="px-3 py-3 border-t border-gray-200 dark:border-white/10">
-            <p className="text-xs text-gray-400 dark:text-white/30">Super Admin</p>
+
+          {/* Profile footer */}
+          <div className="border-t border-gray-200 dark:border-white/10 p-2 relative">
+            {profileOpen && !collapsed && (
+              <>
+                <button
+                  onClick={() => setProfileOpen(false)}
+                  className="fixed inset-0 z-0"
+                  aria-label="Tutup menu profil"
+                />
+                <div className="absolute bottom-full left-2 right-2 mb-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg shadow-lg py-1 z-10">
+                  <a
+                    href="/admin/pengaturan"
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-white/80 hover:bg-gray-100 dark:hover:bg-white/5 transition"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="3" />
+                      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg>
+                    Pengaturan akun
+                  </a>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    Keluar
+                  </button>
+                </div>
+              </>
+            )}
+            <button
+              onClick={() => (collapsed ? handleLogout() : setProfileOpen((o) => !o))}
+              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition ${
+                collapsed ? "justify-center" : ""
+              }`}
+              title={collapsed ? `${adminName ?? "Admin"} — Klik untuk keluar` : undefined}
+            >
+              <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white text-xs font-semibold flex items-center justify-center shrink-0">
+                {initials}
+              </span>
+              {!collapsed && (
+                <>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">
+                      {adminName ?? "Admin"}
+                    </p>
+                    <p className="text-[10px] text-gray-400 dark:text-white/40 truncate">
+                      {adminEmail ?? ""}
+                    </p>
+                  </div>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={`text-gray-400 dark:text-white/30 shrink-0 transition-transform ${
+                      profileOpen ? "rotate-180" : ""
+                    }`}
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </>
+              )}
+            </button>
           </div>
         </aside>
 
-        {/* Main Content */}
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6">{children}</main>
       </div>
     </div>
   );
