@@ -261,7 +261,7 @@ export default function RouterClient({
   const activeRouter = activeCredentialId ? routers.find((r) => r.id === activeCredentialId && r.connected) : null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-w-7xl">
       {renderHeader()}
 
       {routers.length > 0 && (
@@ -294,6 +294,10 @@ export default function RouterClient({
           Belum ada router. Klik <strong>Tambah Router</strong> untuk mulai onboarding.
         </div>
       )}
+
+      {/* Router cards: 1 kolom di mobile, 2 kolom di desktop biar maksimal
+          pakai ruang kanan-kiri tapi tiap card tetep cukup lebar buat detail. */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
 
       {/* Existing routers */}
       {routers.map((r) => {
@@ -457,6 +461,8 @@ export default function RouterClient({
           </div>
         </div>
       )}
+
+      </div>{/* /grid router cards */}
 
       {!canAddMore && !pending && (
         <p className="text-xs text-gray-400 dark:text-white/30 text-center py-2">

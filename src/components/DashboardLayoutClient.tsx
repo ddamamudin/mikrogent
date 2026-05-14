@@ -75,8 +75,9 @@ export function useAgentSidebar() {
 }
 
 // Routes yang butuh kanvas lebar (tabel, grid multi-card, dashboard).
-// Sisanya default max-w-lg buat halaman form.
-const WIDE_PATHS = ["/dashboard/router/monitor"];
+// Sisanya default max-w-lg buat halaman form (Profil, Password, dll).
+// "/dashboard/router" match juga subroute "/dashboard/router/monitor".
+const WIDE_PATHS = ["/dashboard/router"];
 
 export default function DashboardLayoutClient({ user, showBrandField, children }: { user: User; showBrandField: boolean; children: React.ReactNode }) {
   const pathname = usePathname();
