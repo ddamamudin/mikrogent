@@ -63,12 +63,27 @@ export default function RouterStatus({ routerId, routerName }: { routerId: strin
 
   useEffect(() => {
     let cancelled = false;
-    const tick = () => { if (!cancelled) void fetchStatus(); };
+    // Skip fetch saat tab gak visible — hemat request + RouterOS load.
+    // Tab inactive bisa berjam-jam, sayang kalau tetep ping tiap 5 detik.
+    const tick = () => {
+      if (cancelled) return;
+      if (document.visibilityState === "hidden") return;
+      void fetchStatus();
+    };
     // Defer first tick ke microtask supaya effect body gak nge-trigger setState
     // synchronously (rule: react-hooks/set-state-in-effect).
     queueMicrotask(tick);
     const t = setInterval(tick, 5000);
-    return () => { cancelled = true; clearInterval(t); };
+    // Pas tab balik visible, fetch langsung biar data fresh tanpa nunggu interval.
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") tick();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [fetchStatus]);
 
   if (loading && !data) {
@@ -181,7 +196,7 @@ export default function RouterStatus({ routerId, routerName }: { routerId: strin
       </div>
 
       <p className="text-xs text-gray-400 dark:text-white/30 text-right">
-        Update otomatis tiap 5 detik · {new Date(data.fetchedAt).toLocaleTimeString("id-ID")}
+        Update tiap 5 detik (pause saat tab gak aktif) · {new Date(data.fetchedAt).toLocaleTimeString("id-ID")}
       </p>
     </div>
   );
