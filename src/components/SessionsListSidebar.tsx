@@ -28,7 +28,9 @@ export default function SessionsListSidebar() {
   const [renaming, setRenaming] = useState(false);
   const renameInputRef = useRef<HTMLInputElement>(null);
 
-  const isAgentPage = pathname === "/dashboard/agent";
+  // Histori chat selalu tampil di sidebar dashboard (Router, Monitor, Agent),
+  // bukan cuma di /dashboard/agent. UX-nya selaras ChatGPT/Claude — list selalu
+  // kelihatan, user bisa hop ke sesi lama dari mana aja.
 
   // createPortal butuh document — render-nya cuma di client setelah mount
   useEffect(() => {
@@ -81,9 +83,8 @@ export default function SessionsListSidebar() {
   }, []);
 
   useEffect(() => {
-    if (!isAgentPage) return;
     fetchSessions();
-  }, [isAgentPage, fetchSessions, currentSessionId, pathname]);
+  }, [fetchSessions, currentSessionId, pathname]);
 
   // Focus input saat rename modal kebuka
   useEffect(() => {
@@ -135,7 +136,6 @@ export default function SessionsListSidebar() {
     }
   };
 
-  if (!isAgentPage) return null;
   if (sessions.length === 0) return null;
 
   return (

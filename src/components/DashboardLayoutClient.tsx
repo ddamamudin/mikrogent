@@ -151,23 +151,32 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
           <aside className={`${sidebarBase} ${sidebarPos}`}>
             {/* Top nav (fixed, gak ikut scroll) */}
             <nav className="py-4 px-2 space-y-1 shrink-0">
-              {NAV.map(({ href, label, icon }) => {
-                const active = pathname === href || pathname.startsWith(`${href}/`);
-                return (
-                  <a
-                    key={href}
-                    href={href}
-                    className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition ${
-                      active
-                        ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
-                        : "text-gray-600 dark:text-white/70 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
-                    }`}
-                  >
-                    <span className="shrink-0">{icon}</span>
-                    <span>{label}</span>
-                  </a>
-                );
-              })}
+              {(() => {
+                // Pilih item paling spesifik (href terpanjang) yang match pathname.
+                // Cegah Router (/dashboard/router) ke-aktif saat user lagi di
+                // Monitor (/dashboard/router/monitor).
+                const activeHref = NAV
+                  .map(({ href }) => href)
+                  .filter((h) => pathname === h || pathname.startsWith(`${h}/`))
+                  .reduce((longest, current) => (current.length > longest.length ? current : longest), "");
+                return NAV.map(({ href, label, icon }) => {
+                  const active = href === activeHref;
+                  return (
+                    <a
+                      key={href}
+                      href={href}
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                        active
+                          ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
+                          : "text-gray-600 dark:text-white/70 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+                      }`}
+                    >
+                      <span className="shrink-0">{icon}</span>
+                      <span>{label}</span>
+                    </a>
+                  );
+                });
+              })()}
 
               {showBrandField && user.brand && (
                 <a
