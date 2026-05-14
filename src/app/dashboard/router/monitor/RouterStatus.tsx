@@ -204,7 +204,7 @@ export default function RouterStatus({ routerId, routerName }: { routerId: strin
         </div>
       </div>
 
-      <p className="text-[11px] text-gray-400 dark:text-white/30 text-right">
+      <p className="text-[11px] text-gray-400 dark:text-white/30 text-center">
         Update tiap 5 detik (pause saat tab gak aktif)
       </p>
     </div>

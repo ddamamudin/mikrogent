@@ -238,9 +238,6 @@ export default function TrafficMonitorPanel({ routerId }: { routerId: string }) 
               </ResponsiveContainer>
             )}
           </div>
-          <p className="text-[11px] text-gray-400 dark:text-white/30 mt-2 text-center">
-            Window {WINDOW_SIZE} sampel terakhir &middot; refresh tiap {POLL_MS / 1000}s &middot; pakai <code>/interface/monitor-traffic once</code> ala Mikhmon
-          </p>
         </div>
       </div>
     </div>
