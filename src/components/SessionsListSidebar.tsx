@@ -160,7 +160,7 @@ export default function SessionsListSidebar() {
   return (
     <>
       {/* Section header sticky — full-width separator kayak Masukan/Profil footer */}
-      <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-white/10 px-3 pt-3 pb-1 flex items-center justify-between gap-2">
+      <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-white/10 pl-3 pr-3.5 pt-3 pb-1 flex items-center justify-between gap-2">
         <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-white/30 font-semibold">
           Histori ({sessions.length}/20)
         </p>
