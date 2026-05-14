@@ -45,8 +45,18 @@ export async function withCredentialApi<T>(
     timeoutMs: options?.timeoutMs ?? 8000,
   };
 
+  // Outer hard timeout: kalau withRouterosApi gak return (connect hang,
+  // write hang, atau close hang), kita potong di sini supaya endpoint
+  // pasti balas 502 JSON sebelum Nginx 60s timeout default (yang nyebabin
+  // user dapet HTML 502 page yang gak bisa di-parse).
+  const hardTimeout = apiCfg.timeoutMs * 3 + 5000;
   try {
-    const data = await withRouterosApi(apiCfg, handler);
+    const data = await Promise.race([
+      withRouterosApi(apiCfg, handler),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`RouterOS API gak respond dalam ${hardTimeout}ms — router mungkin offline / API service belum aktif / firewall block`)), hardTimeout),
+      ),
+    ]);
     return NextResponse.json({ ok: true, data });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
