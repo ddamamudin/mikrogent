@@ -25,17 +25,13 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       const val = String(fields.parentQueue ?? "");
       args.push(`=parent-queue=${val === "none" ? "none" : val}`);
     }
-    // Rebuild on-login kalau salah satu field meta diubah, ATAU saat rename
-    // (karena $record block di on-login hardcode profileName — wajib refresh
-    // supaya log transaksi catat nama profile yang baru).
-    const metaChanged = fields.expmode !== undefined || fields.validity !== undefined || fields.price !== undefined || fields.sprice !== undefined || fields.lockUser !== undefined || fields.name !== undefined;
-    if (metaChanged) {
-      // Ambil existing buat fallback field yang gak diubah
+    // Rebuild on-login kalau salah satu field meta diubah
+    if (fields.expmode !== undefined || fields.validity !== undefined || fields.price !== undefined || fields.sprice !== undefined || fields.lockUser !== undefined) {
+      // Ambil dulu existing buat fallback
       const existing = await api.write("/ip/hotspot/user/profile/print", [`?.id=${decodedMtid}`]);
       const e = (existing[0] ?? {}) as Record<string, unknown>;
       const onLoginNow = String(e["on-login"] ?? "");
       const m = onLoginNow.match(/"(,[^"]*,)"/);
-      const curName = String(e.name ?? "");
       let cur = { expmode: "0", price: "0", validity: "", sprice: "0", lockUser: false };
       if (m) {
         const parts = m[1].split(",");
@@ -53,7 +49,6 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
         price: Number(fields.price ?? cur.price),
         sprice: Number(fields.sprice ?? cur.sprice),
         lockUser: fields.lockUser !== undefined ? !!fields.lockUser : cur.lockUser,
-        profileName: String(fields.name ?? curName),
       });
       args.push(`=on-login=${onLogin}`);
     }

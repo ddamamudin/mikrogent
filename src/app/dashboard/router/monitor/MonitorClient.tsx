@@ -20,7 +20,6 @@ import IpAddressPanel from "./panels/IpAddressPanel";
 import SchedulerPanel from "./panels/SchedulerPanel";
 import HotspotLogPanel from "./panels/HotspotLogPanel";
 import QuickPrintPanel from "./panels/QuickPrintPanel";
-import SellingReportPanel from "./panels/SellingReportPanel";
 
 type RouterTab = {
   id: string;
@@ -39,7 +38,6 @@ type MenuKey =
   | "ppp-secrets" | "ppp-profiles" | "ppp-active"
   | "arp" | "ip-addresses"
   | "scheduler" | "log" | "quick-print"
-  | "selling-report"
   | "system";
 
 type MenuItem = { key: MenuKey; label: string; icon: React.ReactNode };
@@ -105,15 +103,6 @@ const SECTIONS: MenuSection[] = [
     ],
   },
   {
-    label: "REPORT",
-    items: [
-      {
-        key: "selling-report", label: "Selling Report",
-        icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
-      },
-    ],
-  },
-  {
     label: "LOG",
     items: [
       {
@@ -172,6 +161,7 @@ const SOON_SECTIONS: MenuSection[] = [
     label: "SEGERA",
     items: [
       { key: "users", label: "Traffic Monitor", icon: <SoonIcon /> },
+      { key: "users", label: "Report Selling", icon: <SoonIcon /> },
     ],
   },
 ];
@@ -428,7 +418,6 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
             {menu === "scheduler" && <SchedulerPanel key={`scheduler-${active.id}`} routerId={active.id} />}
             {menu === "log" && <HotspotLogPanel key={`log-${active.id}`} routerId={active.id} />}
             {menu === "quick-print" && <QuickPrintPanel key={`quick-print-${active.id}`} routerId={active.id} routerName={active.name} />}
-            {menu === "selling-report" && <SellingReportPanel key={`selling-report-${active.id}`} routerId={active.id} />}
             {menu === "system" && <SystemPanel key={`system-${active.id}`} routerId={active.id} routerName={active.name} />}
           </div>
         </div>

@@ -22,11 +22,9 @@ type Draft = Omit<Profile, "id">;
 const inputClass = "w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500";
 
 const EXPMODES = [
-  { value: "remc", label: "Hapus saat expired + track revenue ⭐ (rekomendasi)" },
-  { value: "ntfc", label: "Notify + track revenue" },
-  { value: "rem", label: "Hapus saat expired (tanpa track revenue)" },
-  { value: "ntf", label: "Notify (tanpa track revenue)" },
-  { value: "0", label: "No expire (tanpa track revenue)" },
+  { value: "0", label: "No expire" },
+  { value: "rem", label: "Hapus setelah expired" },
+  { value: "ntf", label: "Notify (limit-uptime 1s)" },
 ];
 
 function emptyDraft(): Draft {
@@ -36,7 +34,7 @@ function emptyDraft(): Draft {
     rateLimit: "",
     addressPool: "",
     parentQueue: "",
-    expmode: "remc",
+    expmode: "0",
     price: "0",
     validity: "",
     sprice: "0",
@@ -257,16 +255,11 @@ function ProfileModal({ title, draft, onChange, pools, onCancel, onSubmit, busy,
             <label className="text-xs text-gray-500 dark:text-white/40">Validity</label>
             <input value={draft.validity} onChange={(e) => onChange({ ...draft, validity: e.target.value })} className={inputClass} placeholder="1d, 12h, 30m" />
           </div>
-          <div className="col-span-2">
-            <label className="text-xs text-gray-500 dark:text-white/40">Expmode (kompatibel Mikhmon v3)</label>
+          <div>
+            <label className="text-xs text-gray-500 dark:text-white/40">Expmode</label>
             <select value={draft.expmode} onChange={(e) => onChange({ ...draft, expmode: e.target.value })} className={inputClass}>
               {EXPMODES.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
             </select>
-            {(draft.expmode === "remc" || draft.expmode === "ntfc") ? (
-              <p className="text-[11px] text-green-600 dark:text-green-400 mt-1">✓ Voucher pakai profile ini akan masuk Report Selling saat pelanggan login pertama kali.</p>
-            ) : (
-              <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">⚠ Voucher pakai profile ini <strong>tidak</strong> masuk Report Selling. Ganti ke <strong>remc</strong> / <strong>ntfc</strong> kalau mau track revenue.</p>
-            )}
           </div>
           <div>
             <label className="text-xs text-gray-500 dark:text-white/40">Harga Modal</label>

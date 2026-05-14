@@ -2,47 +2,16 @@ export const dynamic = "force-dynamic";
 import { NextRequest } from "next/server";
 import { withCredentialApi } from "@/lib/router-api-auth";
 
-// Format on-login script kompatibel dengan Mikhmon v3:
-// - Meta `,{expmode},{price},{validity},{sprice},,{lockflag},` bisa di-decode kembali
-// - Untuk expmode "remc"/"ntfc": inject block `$record` Mikhmon yang nge-log
-//   transaksi ke /system/script ?comment=mikhmon. Inilah yang dibaca Mikhmon
-//   selling.php DAN Mikroplay Report Selling — supaya sync 2 arah.
-// expmode: "0" no expire | "rem" hapus | "ntf" notify | "remc" hapus+track | "ntfc" notify+track
-//
-// CATATAN: kita SENGAJA gak adopt expiry mechanism full Mikhmon (temporary
-// scheduler + bg-service per profile) supaya gak nge-spam scheduler RouterOS.
-// Expiry tetap kerja via limit-uptime (di-set per user saat generate voucher).
-// Konsekuensi: Mikhmon UI saat lihat profile bikinan Mikroplay mungkin gak
-// tampilin "expiry date" di comment user — tapi revenue tracking tetep jalan.
-export function buildOnLogin(opts: {
-  expmode: string;
-  validity: string;
-  price: number;
-  sprice: number;
-  lockUser: boolean;
-  profileName: string;
-}): string {
-  const lockBlock = opts.lockUser
+// Format on-login script ala mikhmon supaya metadata (validity/price/lock)
+// bisa di-decode pas generate voucher. Field di-comma-separated.
+// expmode: "rem" hapus, "ntf" notify (limit-uptime=1s), "0" no expire
+export function buildOnLogin(opts: { expmode: string; validity: string; price: number; sprice: number; lockUser: boolean }): string {
+  const lock = opts.lockUser
     ? '; [:local mac $"mac-address"; /ip hotspot user set mac-address=$mac [find where name=$user]]'
     : "";
-  const lockFlag = opts.lockUser ? "Enable" : "";
-
-  // Meta format Mikhmon-compatible. Lockflag = "Enable" / "" / "noexp" (untuk expmode 0).
-  // Mikhmon: expmode 0 → `,,${price},,,noexp,${lock},` ; lainnya → `,${expmode},${price},${validity},${sprice},,${lock},`
-  const meta = opts.expmode === "0"
-    ? `,,${opts.price},,,noexp,${lockFlag},`
-    : `,${opts.expmode},${opts.price},${opts.validity},${opts.sprice},,${lockFlag},`;
-
-  // Record block: trigger saat user login pertama kali. RouterOS jalanin script
-  // ini → bikin entry baru di /system/script dengan name format `-|-` separator.
-  // Variable RouterOS literal ($date, $time, $user, $address, $mac, $comment, $month, $year)
-  // di-resolve runtime. Variable JS (price, validity, profileName) di-hardcode sekarang.
-  const trackRevenue = opts.expmode === "remc" || opts.expmode === "ntfc";
-  const recordBlock = trackRevenue
-    ? `; :local mac $"mac-address"; :local time [/system clock get time ]; /system script add name="$date-|-$time-|-$user-|-${opts.price}-|-$address-|-$mac-|-${opts.validity}-|-${opts.profileName}-|-$comment" owner="$month$year" source="$date" comment="mikhmon"`
-    : "";
-
-  return `:put ("${meta}")${recordBlock}${lockBlock};`;
+  // Format yang dibaca mikhmon/voucher generator: ",expmode,price,validity,sprice,,lockflag,"
+  const meta = `,${opts.expmode},${opts.price},${opts.validity},${opts.sprice},,${opts.lockUser ? "Enable" : ""},`;
+  return `:put ("${meta}")${lock};`;
 }
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -92,7 +61,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       price: Number(price ?? 0),
       sprice: Number(sprice ?? 0),
       lockUser: !!lockUser,
-      profileName: String(name),
     });
     const args: string[] = [
       `=name=${name}`,
