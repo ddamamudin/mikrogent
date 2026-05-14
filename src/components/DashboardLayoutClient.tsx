@@ -141,7 +141,7 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
             <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
               {NAV.map(({ href, label, icon }) => {
                 const active = pathname === href || pathname.startsWith(`${href}/`);
-                const item = (
+                return (
                   <a
                     key={href}
                     href={href}
@@ -155,18 +155,12 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
                     <span>{label}</span>
                   </a>
                 );
-                if (href === "/dashboard/agent") {
-                  return (
-                    <div key={href}>
-                      {item}
-                      <Suspense fallback={null}>
-                        <SessionsListSidebar />
-                      </Suspense>
-                    </div>
-                  );
-                }
-                return item;
               })}
+
+              {/* Histori chat di bawah nav items (cuma muncul saat di /dashboard/agent) */}
+              <Suspense fallback={null}>
+                <SessionsListSidebar />
+              </Suspense>
 
               {showBrandField && user.brand && (
                 <a

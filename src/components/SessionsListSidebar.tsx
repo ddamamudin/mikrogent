@@ -70,7 +70,7 @@ export default function SessionsListSidebar() {
   return (
     <>
       <div className="mt-2 px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-gray-400 dark:text-white/30 font-semibold">
-        Chat ({sessions.length}/10)
+        Histori ({sessions.length}/10)
       </div>
       <div className="space-y-0.5">
         {sessions.map((s) => {
