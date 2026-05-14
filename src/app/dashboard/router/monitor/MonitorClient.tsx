@@ -20,6 +20,7 @@ import IpAddressPanel from "./panels/IpAddressPanel";
 import SchedulerPanel from "./panels/SchedulerPanel";
 import HotspotLogPanel from "./panels/HotspotLogPanel";
 import QuickPrintPanel from "./panels/QuickPrintPanel";
+import TrafficMonitorPanel from "./panels/TrafficMonitorPanel";
 
 type RouterTab = {
   id: string;
@@ -38,6 +39,7 @@ type MenuKey =
   | "ppp-secrets" | "ppp-profiles" | "ppp-active"
   | "arp" | "ip-addresses"
   | "scheduler" | "log" | "quick-print"
+  | "traffic"
   | "system";
 
 type MenuItem = { key: MenuKey; label: string; icon: React.ReactNode };
@@ -53,6 +55,10 @@ const SECTIONS: MenuSection[] = [
       {
         key: "status", label: "Status Router",
         icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12h4l3 9 6-18 3 9h4"/></svg>,
+      },
+      {
+        key: "traffic", label: "Traffic Monitor",
+        icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
       },
     ],
   },
@@ -160,7 +166,6 @@ const SOON_SECTIONS: MenuSection[] = [
   {
     label: "SEGERA",
     items: [
-      { key: "users", label: "Traffic Monitor", icon: <SoonIcon /> },
       { key: "users", label: "Report Selling", icon: <SoonIcon /> },
     ],
   },
@@ -418,6 +423,7 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
             {menu === "scheduler" && <SchedulerPanel key={`scheduler-${active.id}`} routerId={active.id} />}
             {menu === "log" && <HotspotLogPanel key={`log-${active.id}`} routerId={active.id} />}
             {menu === "quick-print" && <QuickPrintPanel key={`quick-print-${active.id}`} routerId={active.id} routerName={active.name} />}
+            {menu === "traffic" && <TrafficMonitorPanel key={`traffic-${active.id}`} routerId={active.id} />}
             {menu === "system" && <SystemPanel key={`system-${active.id}`} routerId={active.id} routerName={active.name} />}
           </div>
         </div>
