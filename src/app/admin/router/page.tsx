@@ -8,7 +8,7 @@ import RouterListClient from "./RouterListClient";
 export default async function AdminRouterPage() {
   const cookieStore = await cookies();
   const session = getSessionFromCookie(cookieStore.get("session")?.value);
-  if (!session || session.role !== "ADMIN") redirect("/admin/masuk");
+  if (!session || session.role !== "ADMIN") redirect("/masuk");
   const admin = await prisma.user.findUnique({ where: { id: session.userId }, select: { adminLevel: true } });
   if (admin?.adminLevel !== "SUPER") redirect("/admin/tenant");
   return <RouterListClient />;

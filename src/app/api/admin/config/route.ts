@@ -17,7 +17,7 @@ async function requireAdmin() {
 export async function GET() {
   if (!await requireAdmin()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const config = await prisma.appConfig.findUnique({ where: { id: "singleton" } });
-  return NextResponse.json(config ?? { adminSetupEnabled: true });
+  return NextResponse.json(config ?? {});
 }
 
 export async function PATCH(req: NextRequest) {
@@ -25,18 +25,6 @@ export async function PATCH(req: NextRequest) {
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
-
-  if (typeof body.adminSetupEnabled === "boolean") {
-    const config = await prisma.appConfig.upsert({
-      where: { id: "singleton" },
-      update: { adminSetupEnabled: body.adminSetupEnabled },
-      create: { id: "singleton", adminSetupEnabled: body.adminSetupEnabled },
-    });
-    await logAdmin({ adminId: admin.id, adminName: admin.name, action: "set_admin_setup_enabled", details: String(body.adminSetupEnabled) });
-    RT.configUpdated().catch(() => {});
-    RT.publicConfigChanged().catch(() => {});
-    return NextResponse.json(config);
-  }
 
   if (typeof body.registrationEnabled === "boolean") {
     const config = await prisma.appConfig.upsert({

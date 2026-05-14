@@ -8,7 +8,7 @@ import PengaturanClient from "./PengaturanClient";
 export default async function PengaturanPage() {
   const cookieStore = await cookies();
   const session = getSessionFromCookie(cookieStore.get("session")?.value);
-  if (!session || session.role !== "ADMIN") redirect("/admin/masuk");
+  if (!session || session.role !== "ADMIN") redirect("/masuk");
 
   const config = await prisma.appConfig.findUnique({ where: { id: "singleton" } });
   const admin = await prisma.user.findUnique({
@@ -17,7 +17,6 @@ export default async function PengaturanPage() {
   });
 
   const defaults = {
-    adminSetupEnabled: true,
     registrationEnabled: true,
     showBrandField: true,
     llmProvider: "openai" as const,

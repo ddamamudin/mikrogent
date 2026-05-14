@@ -7,6 +7,6 @@ import InboxListClient from "./InboxListClient";
 export default async function AdminInboxPage() {
   const cookieStore = await cookies();
   const session = getSessionFromCookie(cookieStore.get("session")?.value);
-  if (!session || session.role !== "ADMIN") redirect("/admin/masuk");
+  if (!session || session.role !== "ADMIN") redirect("/masuk");
   return <InboxListClient />;
 }

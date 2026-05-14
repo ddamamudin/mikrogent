@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
 import { createSession, sessionCookieOptions } from "@/lib/session";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { logAdmin } from "@/lib/admin-log";
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req);
@@ -23,14 +24,26 @@ export async function POST(req: NextRequest) {
   if (!user || !(await bcrypt.compare(password, user.password)))
     return NextResponse.json({ error: "Email atau password salah" }, { status: 401 });
 
-  if (!user.emailVerified)
-    return NextResponse.json({ error: "Email belum dikonfirmasi. Cek inbox Anda." }, { status: 403 });
-
   if (user.status === "SUSPENDED")
     return NextResponse.json({ error: "Akun Anda telah disuspend" }, { status: 403 });
 
-  const cookieStore = await cookies();
-  cookieStore.set("session", createSession(user.id, user.brand, user.role as "USER" | "ADMIN"), sessionCookieOptions());
+  const isAdmin = user.role === "ADMIN";
 
-  return NextResponse.json({ ok: true });
+  // Admin di-bypass cek emailVerified (di-set true saat akun dibuat manual).
+  // User biasa wajib verif email dulu.
+  if (!isAdmin && !user.emailVerified)
+    return NextResponse.json({ error: "Email belum dikonfirmasi. Cek inbox Anda." }, { status: 403 });
+
+  const cookieStore = await cookies();
+  cookieStore.set(
+    "session",
+    createSession(user.id, user.brand, isAdmin ? "ADMIN" : "USER"),
+    sessionCookieOptions(),
+  );
+
+  if (isAdmin) {
+    await logAdmin({ adminId: user.id, adminName: user.name, action: "login" });
+  }
+
+  return NextResponse.json({ ok: true, role: user.role });
 }

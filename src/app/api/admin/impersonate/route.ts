@@ -73,7 +73,7 @@ export async function DELETE() {
     // Admin asli sudah ngga ada / bukan admin lagi → tetap clear cookie supaya gak stuck
     cookieStore.set("impersonator", "", { ...sessionCookieOptions(), maxAge: 0 });
     cookieStore.set("session", "", { ...sessionCookieOptions(), maxAge: 0 });
-    return NextResponse.json({ ok: true, redirect: "/admin/masuk" });
+    return NextResponse.json({ ok: true, redirect: "/masuk" });
   }
 
   cookieStore.set("session", createSession(admin.id, null, "ADMIN"), sessionCookieOptions());

@@ -22,8 +22,9 @@ export default function LoginPage() {
       setLoading(false);
       return setError(data.error || "Email atau password salah");
     }
-    // Full page navigation supaya cookie session terbawa + RSC fresh render
-    window.location.href = "/dashboard";
+    // Full page navigation supaya cookie session terbawa + RSC fresh render.
+    // Admin diarahkan ke admin dashboard, user biasa ke dashboard mereka.
+    window.location.href = data.role === "ADMIN" ? "/admin/dashboard" : "/dashboard";
   };
 
   const inputClass = "w-full bg-gray-100 rounded-xl px-4 py-3.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-gray-200 transition text-[15px]";

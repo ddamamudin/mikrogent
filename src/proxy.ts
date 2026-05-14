@@ -41,11 +41,11 @@ export function proxy(req: NextRequest) {
     return maybeRenewSession(req, NextResponse.rewrite(url));
   }
 
-  // Guard /admin/** - redirect ke /admin/masuk jika tidak ada session
-  if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/masuk") && !pathname.startsWith("/admin/setup")) {
+  // Guard /admin/** - redirect ke /masuk jika tidak ada session
+  if (pathname.startsWith("/admin")) {
     const session = req.cookies.get("session")?.value;
     if (!session) {
-      return NextResponse.redirect(new URL("/admin/masuk", req.url));
+      return NextResponse.redirect(new URL("/masuk", req.url));
     }
   }
 

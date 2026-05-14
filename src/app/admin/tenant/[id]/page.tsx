@@ -9,7 +9,7 @@ import TenantDetailClient from "./TenantDetailClient";
 export default async function TenantDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const cookieStore = await cookies();
   const session = getSessionFromCookie(cookieStore.get("session")?.value);
-  if (!session || session.role !== "ADMIN") redirect("/admin/masuk");
+  if (!session || session.role !== "ADMIN") redirect("/masuk");
 
   const { id } = await params;
   const today = new Date().toISOString().slice(0, 10);

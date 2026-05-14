@@ -8,7 +8,7 @@ import AdminDashboardClient from "./AdminDashboardClient";
 export default async function AdminDashboardPage() {
   const cookieStore = await cookies();
   const session = getSessionFromCookie(cookieStore.get("session")?.value);
-  if (!session || session.role !== "ADMIN") redirect("/admin/masuk");
+  if (!session || session.role !== "ADMIN") redirect("/masuk");
 
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);

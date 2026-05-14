@@ -76,8 +76,6 @@ const NAV_GROUPS = [
   },
 ];
 
-const PUBLIC_PATHS = ["/admin/masuk", "/admin/setup"];
-
 const PAGE_TITLES: Record<string, string> = {
   "/admin/dashboard": "Dashboard",
   "/admin/tenant": "Tenant",
@@ -138,11 +136,9 @@ export default function AdminShell({
     setProfileOpen(false);
   }, [pathname]);
 
-  const isPublicPage = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
-
   const handleLogout = async () => {
-    await fetch("/api/admin/auth/logout", { method: "POST" });
-    window.location.href = "/admin/masuk";
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/masuk";
   };
 
   const toggleSidebar = () => {
@@ -153,7 +149,7 @@ export default function AdminShell({
     }
   };
 
-  if (isPublicPage || !session || session.role !== "ADMIN") {
+  if (!session || session.role !== "ADMIN") {
     return <>{children}</>;
   }
 

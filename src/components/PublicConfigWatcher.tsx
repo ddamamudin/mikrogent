@@ -5,12 +5,11 @@ import { useRouter } from "next/navigation";
 
 /**
  * Subscribe ke topic public:config (gak butuh login). Saat admin toggle
- * registrationEnabled / adminSetupEnabled, server fire event "config.changed"
- * → router.refresh() trigger RSC re-render dengan config baru, halaman
- * auto-update tanpa F5.
+ * registrationEnabled, server fire event "config.changed" → router.refresh()
+ * trigger RSC re-render dengan config baru, halaman auto-update tanpa F5.
  *
  * Mount di Server Component yang renderingnya bergantung config publik
- * (mis. /daftar, /admin/setup).
+ * (mis. /daftar).
  */
 export default function PublicConfigWatcher() {
   const router = useRouter();
