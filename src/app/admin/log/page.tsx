@@ -8,5 +8,8 @@ export default async function AdminLogPage() {
   const cookieStore = await cookies();
   const session = getSessionFromCookie(cookieStore.get("session")?.value);
   if (!session || session.role !== "ADMIN") redirect("/masuk");
+  const { prisma } = await import("@/lib/prisma");
+  const admin = await prisma.user.findUnique({ where: { id: session.userId }, select: { adminLevel: true } });
+  if (admin?.adminLevel === "OPERATOR") redirect("/admin/tenant");
   return <LogClient />;
 }

@@ -10,6 +10,26 @@ export default async function AdminDashboardPage() {
   const session = getSessionFromCookie(cookieStore.get("session")?.value);
   if (!session || session.role !== "ADMIN") redirect("/masuk");
 
+  const viewer = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { adminLevel: true },
+  });
+  const viewerLevel = (viewer?.adminLevel as "SUPER" | "ADMIN" | "OPERATOR" | null) ?? "SUPER";
+
+  // Tentukan adminLevel mana yang harus disembunyikan dari feed aktivitas.
+  // SUPER: lihat semua.
+  // ADMIN: gak nampak aktivitas SUPER.
+  // OPERATOR: gak nampak aktivitas SUPER & ADMIN.
+  let hiddenLogLevels: Array<"SUPER" | "ADMIN"> = [];
+  if (viewerLevel === "ADMIN") hiddenLogLevels = ["SUPER"];
+  else if (viewerLevel === "OPERATOR") hiddenLogLevels = ["SUPER", "ADMIN"];
+  const hiddenAdminIds = hiddenLogLevels.length > 0
+    ? (await prisma.user.findMany({
+        where: { role: "ADMIN", adminLevel: { in: hiddenLogLevels } },
+        select: { id: true },
+      })).map((u) => u.id)
+    : [];
+
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const today = now.toISOString().slice(0, 10);
@@ -55,6 +75,7 @@ export default async function AdminDashboardPage() {
       },
     }),
     prisma.adminLog.findMany({
+      where: hiddenAdminIds.length > 0 ? { adminId: { notIn: hiddenAdminIds } } : undefined,
       orderBy: { createdAt: "desc" },
       take: 6,
       select: { id: true, adminName: true, action: true, details: true, createdAt: true },

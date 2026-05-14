@@ -10,6 +10,8 @@ export default async function AdminRouterPage() {
   const session = getSessionFromCookie(cookieStore.get("session")?.value);
   if (!session || session.role !== "ADMIN") redirect("/masuk");
   const admin = await prisma.user.findUnique({ where: { id: session.userId }, select: { adminLevel: true } });
-  if (admin?.adminLevel !== "SUPER") redirect("/admin/tenant");
-  return <RouterListClient />;
+  const level = (admin?.adminLevel as "SUPER" | "ADMIN" | "OPERATOR" | null) ?? "SUPER";
+  // Operator gak punya akses ke halaman Router sama sekali.
+  if (level === "OPERATOR") redirect("/admin/tenant");
+  return <RouterListClient adminLevel={level} />;
 }

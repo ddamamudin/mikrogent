@@ -11,6 +11,12 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
   const session = getSessionFromCookie(cookieStore.get("session")?.value);
   if (!session || session.role !== "ADMIN") redirect("/masuk");
 
+  const adminViewer = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { adminLevel: true },
+  });
+  if (adminViewer?.adminLevel === "OPERATOR") redirect("/admin/tenant");
+
   const { id } = await params;
   const today = new Date().toISOString().slice(0, 10);
   const [tenant, dailyCount, config, creds] = await Promise.all([

@@ -10,11 +10,16 @@ export default async function PengaturanPage() {
   const session = getSessionFromCookie(cookieStore.get("session")?.value);
   if (!session || session.role !== "ADMIN") redirect("/masuk");
 
-  const config = await prisma.appConfig.findUnique({ where: { id: "singleton" } });
-  const admin = await prisma.user.findUnique({
-    where: { id: session.userId },
-    select: { name: true, email: true },
-  });
+  const [config, admin] = await Promise.all([
+    prisma.appConfig.findUnique({ where: { id: "singleton" } }),
+    prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { name: true, email: true, adminLevel: true },
+    }),
+  ]);
+  // Operator gak punya akses Pengaturan.
+  if (admin?.adminLevel === "OPERATOR") redirect("/admin/tenant");
+  const isSuper = admin?.adminLevel === "SUPER" || admin?.adminLevel == null;
 
   const defaults = {
     registrationEnabled: true,
@@ -38,6 +43,7 @@ export default async function PengaturanPage() {
     <PengaturanClient
       config={config ?? defaults}
       admin={admin ?? { name: "", email: "" }}
+      isSuper={isSuper}
     />
   );
 }

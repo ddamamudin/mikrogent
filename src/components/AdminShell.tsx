@@ -33,6 +33,18 @@ const NAV_GROUPS = [
           </svg>
         ),
       },
+      {
+        href: "/admin/users",
+        label: "Tambah User",
+        icon: (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="8.5" cy="7" r="4" />
+            <line x1="20" y1="8" x2="20" y2="14" />
+            <line x1="23" y1="11" x2="17" y2="11" />
+          </svg>
+        ),
+      },
     ],
   },
   {
@@ -79,10 +91,36 @@ const NAV_GROUPS = [
 const PAGE_TITLES: Record<string, string> = {
   "/admin/dashboard": "Dashboard",
   "/admin/tenant": "Tenant",
+  "/admin/users": "Tambah User",
   "/admin/router": "Router",
   "/admin/log": "Log Aktivitas",
   "/admin/pengaturan": "Pengaturan",
   "/admin/inbox": "Inbox",
+};
+
+type AdminLevel = "SUPER" | "ADMIN" | "OPERATOR";
+
+// Tentukan menu yang dilihat per role.
+// Operator: cuma Dashboard + Tenant.
+// Admin & Super: full menu (Admin gak boleh akses Router page sama sekali? Tidak — boleh view limited, cek diskusi spec).
+function navForLevel(level: AdminLevel) {
+  if (level === "OPERATOR") {
+    return [
+      {
+        label: "Operasional",
+        items: NAV_GROUPS[0].items.filter((i) =>
+          ["/admin/dashboard", "/admin/tenant"].includes(i.href),
+        ),
+      },
+    ];
+  }
+  return NAV_GROUPS;
+}
+
+const ROLE_BADGES: Record<AdminLevel, { label: string; bg: string; text: string }> = {
+  SUPER: { label: "Superadmin", bg: "bg-blue-100 dark:bg-blue-500/20", text: "text-blue-600 dark:text-blue-400" },
+  ADMIN: { label: "Admin", bg: "bg-purple-100 dark:bg-purple-500/20", text: "text-purple-600 dark:text-purple-400" },
+  OPERATOR: { label: "Operator", bg: "bg-green-100 dark:bg-green-500/20", text: "text-green-700 dark:text-green-400" },
 };
 
 function getPageTitle(pathname: string): string {
@@ -110,11 +148,13 @@ export default function AdminShell({
   session,
   adminName,
   adminEmail,
+  adminLevel,
   children,
 }: {
   session: SessionPayload | null;
   adminName?: string;
   adminEmail?: string;
+  adminLevel?: AdminLevel;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -155,6 +195,10 @@ export default function AdminShell({
 
   const pageTitle = getPageTitle(pathname);
   const initials = getInitials(adminName);
+  const level: AdminLevel = adminLevel ?? "SUPER";
+  const navGroups = navForLevel(level);
+  const badge = ROLE_BADGES[level];
+  const isOperator = level === "OPERATOR";
 
   return (
     <div className="h-dvh flex flex-col overflow-hidden bg-gray-100 dark:bg-slate-950 text-gray-900 dark:text-white">
@@ -174,7 +218,7 @@ export default function AdminShell({
           </button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/mikroplay-logo-text.png" alt="Mikroplay" className="h-7 w-auto hidden sm:block shrink-0" />
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 hidden sm:inline shrink-0 uppercase tracking-wider">Superadmin</span>
+          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${badge.bg} ${badge.text} hidden sm:inline shrink-0 uppercase tracking-wider`}>{badge.label}</span>
           <div className="h-5 w-px bg-gray-200 dark:bg-white/10 hidden sm:block mx-1 shrink-0" />
           <h1 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white truncate">{pageTitle}</h1>
         </div>
@@ -202,7 +246,7 @@ export default function AdminShell({
           } w-60 shrink-0 transition-all duration-200 bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-white/10 flex flex-col`}
         >
           <nav className="flex-1 py-4 px-2 space-y-4 overflow-y-auto">
-            {NAV_GROUPS.map((group) => (
+            {navGroups.map((group) => (
               <div key={group.label} className="space-y-1">
                 {!collapsed && (
                   <p className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-gray-400 dark:text-white/30 font-semibold">
@@ -243,16 +287,18 @@ export default function AdminShell({
                   aria-label="Tutup menu profil"
                 />
                 <div className="absolute bottom-full left-2 right-2 mb-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg shadow-lg py-1 z-10">
-                  <a
-                    href="/admin/pengaturan"
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-white/80 hover:bg-gray-100 dark:hover:bg-white/5 transition"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="3" />
-                      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                    </svg>
-                    Pengaturan akun
-                  </a>
+                  {!isOperator && (
+                    <a
+                      href="/admin/pengaturan"
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-white/80 hover:bg-gray-100 dark:hover:bg-white/5 transition"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="3" />
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                      </svg>
+                      Pengaturan akun
+                    </a>
+                  )}
                   <button
                     onClick={handleLogout}
                     className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition"

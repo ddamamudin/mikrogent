@@ -73,7 +73,11 @@ const MIKROTIK_BADGE: Record<Tenant["mikrotikStatus"], { label: string; cls: str
 
 const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
 
-export default function TenantListClient() {
+type AdminLevel = "SUPER" | "ADMIN" | "OPERATOR";
+
+export default function TenantListClient({ adminLevel = "SUPER" }: { adminLevel?: AdminLevel }) {
+  const isOperator = adminLevel === "OPERATOR";
+  const canSeeBrand = adminLevel === "SUPER";
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [total, setTotal] = useState(0);
   const [dailyChatLimit, setDailyChatLimit] = useState(50);
@@ -377,10 +381,14 @@ export default function TenantListClient() {
               <thead>
                 <tr className="border-b border-gray-100 dark:border-white/5">
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide">Nama</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide hidden md:table-cell">Brand</th>
+                  {canSeeBrand && (
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide hidden md:table-cell">Brand</th>
+                  )}
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide hidden sm:table-cell">Status</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide hidden md:table-cell">Router</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide hidden sm:table-cell">Kuota Hari Ini</th>
+                  {!isOperator && (
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide hidden sm:table-cell">Kuota Hari Ini</th>
+                  )}
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide hidden lg:table-cell">Bergabung</th>
                   <th className="px-4 py-3"></th>
                 </tr>
@@ -392,15 +400,17 @@ export default function TenantListClient() {
                       <div className="font-medium text-gray-900 dark:text-white">{t.name}</div>
                       <div className="text-xs text-gray-400 dark:text-white/30">{t.email}</div>
                     </td>
-                    <td className="px-4 py-3 hidden md:table-cell">
-                      {t.brand ? (
-                        <a href={`//${t.brand}.${APP_DOMAIN}`} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                          {t.brand}
-                        </a>
-                      ) : (
-                        <span className="text-gray-300 dark:text-white/20">-</span>
-                      )}
-                    </td>
+                    {canSeeBrand && (
+                      <td className="px-4 py-3 hidden md:table-cell">
+                        {t.brand ? (
+                          <a href={`//${t.brand}.${APP_DOMAIN}`} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                            {t.brand}
+                          </a>
+                        ) : (
+                          <span className="text-gray-300 dark:text-white/20">-</span>
+                        )}
+                      </td>
+                    )}
                     <td className="px-4 py-3 hidden sm:table-cell">
                       <div className="flex flex-col gap-1 items-start">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${t.status === "ACTIVE" ? "bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400" : "bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400"}`}>
@@ -429,6 +439,7 @@ export default function TenantListClient() {
                         );
                       })()}
                     </td>
+                    {!isOperator && (
                     <td className="px-4 py-3 hidden sm:table-cell">
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
@@ -471,14 +482,17 @@ export default function TenantListClient() {
                         )}
                       </div>
                     </td>
+                    )}
                     <td className="px-4 py-3 hidden lg:table-cell text-gray-400 dark:text-white/30 text-xs">
                       {new Date(t.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 justify-end flex-wrap">
-                        <a href={`/admin/tenant/${t.id}`} className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/60 transition">
-                          Detail
-                        </a>
+                        {!isOperator && (
+                          <a href={`/admin/tenant/${t.id}`} className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/60 transition">
+                            Detail
+                          </a>
+                        )}
                         {!t.validated ? (
                           <button
                             onClick={() => handleValidate(t.id, true)}
@@ -488,39 +502,45 @@ export default function TenantListClient() {
                             Validasi
                           </button>
                         ) : (
-                          <button
-                            onClick={() => handleValidate(t.id, false)}
-                            disabled={actionLoading === t.id}
-                            title="Batalkan validasi"
-                            className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-500 dark:text-white/40 transition disabled:opacity-50"
-                          >
-                            Batal Validasi
-                          </button>
+                          !isOperator && (
+                            <button
+                              onClick={() => handleValidate(t.id, false)}
+                              disabled={actionLoading === t.id}
+                              title="Batalkan validasi"
+                              className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-500 dark:text-white/40 transition disabled:opacity-50"
+                            >
+                              Batal Validasi
+                            </button>
+                          )
                         )}
-                        {t.status === "ACTIVE" ? (
-                          <button
-                            onClick={() => handleStatus(t.id, "SUSPENDED")}
-                            disabled={actionLoading === t.id}
-                            className="text-xs px-3 py-1.5 rounded-lg bg-orange-100 dark:bg-orange-500/10 hover:bg-orange-200 dark:hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 transition disabled:opacity-50"
-                          >
-                            Suspend
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleStatus(t.id, "ACTIVE")}
-                            disabled={actionLoading === t.id}
-                            className="text-xs px-3 py-1.5 rounded-lg bg-green-100 dark:bg-green-500/10 hover:bg-green-200 dark:hover:bg-green-500/20 text-green-600 dark:text-green-400 transition disabled:opacity-50"
-                          >
-                            Aktifkan
-                          </button>
+                        {!isOperator && (
+                          <>
+                            {t.status === "ACTIVE" ? (
+                              <button
+                                onClick={() => handleStatus(t.id, "SUSPENDED")}
+                                disabled={actionLoading === t.id}
+                                className="text-xs px-3 py-1.5 rounded-lg bg-orange-100 dark:bg-orange-500/10 hover:bg-orange-200 dark:hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 transition disabled:opacity-50"
+                              >
+                                Suspend
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleStatus(t.id, "ACTIVE")}
+                                disabled={actionLoading === t.id}
+                                className="text-xs px-3 py-1.5 rounded-lg bg-green-100 dark:bg-green-500/10 hover:bg-green-200 dark:hover:bg-green-500/20 text-green-600 dark:text-green-400 transition disabled:opacity-50"
+                              >
+                                Aktifkan
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDelete(t.id, t.name)}
+                              disabled={actionLoading === t.id}
+                              className="text-xs px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-500/10 hover:bg-red-200 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 transition disabled:opacity-50"
+                            >
+                              Hapus
+                            </button>
+                          </>
                         )}
-                        <button
-                          onClick={() => handleDelete(t.id, t.name)}
-                          disabled={actionLoading === t.id}
-                          className="text-xs px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-500/10 hover:bg-red-200 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 transition disabled:opacity-50"
-                        >
-                          Hapus
-                        </button>
                       </div>
                     </td>
                   </tr>

@@ -123,6 +123,8 @@ enum Role {
 
 enum AdminLevel {
   SUPER
+  ADMIN
+  OPERATOR
 }
 
 enum TokenType {

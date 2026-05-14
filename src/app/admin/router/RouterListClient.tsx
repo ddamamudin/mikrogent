@@ -26,7 +26,11 @@ type Row = {
 
 type AvailableTenant = { id: string; name: string; email: string; brand: string | null; maxRouters: number; routerCount: number };
 
-export default function RouterListClient() {
+type AdminLevel = "SUPER" | "ADMIN" | "OPERATOR";
+
+export default function RouterListClient({ adminLevel = "SUPER" }: { adminLevel?: AdminLevel }) {
+  const isSuper = adminLevel === "SUPER";
+  const canSeeCreds = isSuper; // ADMIN gak boleh lihat user/pass SSH
   const [rows, setRows] = useState<Row[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -185,12 +189,14 @@ export default function RouterListClient() {
               : `${total} router tersimpan${filter ? " (sesuai filter)" : ""}`}
           </p>
         </div>
-        <button
-          onClick={openAdd}
-          className="text-sm px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium transition"
-        >
-          + Tambah Router
-        </button>
+        {isSuper && (
+          <button
+            onClick={openAdd}
+            className="text-sm px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium transition"
+          >
+            + Tambah Router
+          </button>
+        )}
       </div>
 
       {message && (
@@ -230,8 +236,12 @@ export default function RouterListClient() {
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide">Tenant</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide">Router</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide">Host:Port</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide">Username</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide">Password</th>
+                  {canSeeCreds && (
+                    <>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide">Username</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide">Password</th>
+                    </>
+                  )}
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 dark:text-white/40 uppercase tracking-wide">Status</th>
                   <th className="px-4 py-3"></th>
                 </tr>
@@ -250,19 +260,23 @@ export default function RouterListClient() {
                     <td className="px-4 py-3 font-mono text-gray-700 dark:text-white/80">
                       {r.cred ? `${r.cred.host}:${r.cred.port}` : <span className="text-gray-300 dark:text-white/20">-</span>}
                     </td>
-                    <td className="px-4 py-3 font-mono text-gray-700 dark:text-white/80">
-                      {r.cred?.sshUser ?? <span className="text-gray-300 dark:text-white/20">-</span>}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-gray-700 dark:text-white/80">
-                      {r.cred ? (
-                        <div className="flex items-center gap-2">
-                          <span>{showPassId === r.cred.id ? r.cred.sshPass : "••••••••"}</span>
-                          <button onClick={() => setShowPassId(showPassId === r.cred!.id ? null : r.cred!.id)} className="text-xs text-blue-500 hover:text-blue-600 transition">
-                            {showPassId === r.cred.id ? "Sembunyikan" : "Tampilkan"}
-                          </button>
-                        </div>
-                      ) : <span className="text-gray-300 dark:text-white/20">-</span>}
-                    </td>
+                    {canSeeCreds && (
+                      <>
+                        <td className="px-4 py-3 font-mono text-gray-700 dark:text-white/80">
+                          {r.cred?.sshUser ?? <span className="text-gray-300 dark:text-white/20">-</span>}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-gray-700 dark:text-white/80">
+                          {r.cred ? (
+                            <div className="flex items-center gap-2">
+                              <span>{showPassId === r.cred.id ? r.cred.sshPass : "••••••••"}</span>
+                              <button onClick={() => setShowPassId(showPassId === r.cred!.id ? null : r.cred!.id)} className="text-xs text-blue-500 hover:text-blue-600 transition">
+                                {showPassId === r.cred.id ? "Sembunyikan" : "Tampilkan"}
+                              </button>
+                            </div>
+                          ) : <span className="text-gray-300 dark:text-white/20">-</span>}
+                        </td>
+                      </>
+                    )}
                     <td className="px-4 py-3">
                       {!r.cred ? (
                         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-white/40">
@@ -280,14 +294,16 @@ export default function RouterListClient() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 justify-end flex-wrap">
-                        <button
-                          onClick={() => handleImpersonate(r)}
-                          disabled={actionLoading === r.userId}
-                          title="Login sebagai user ini untuk cek tampilan & dashboard mereka"
-                          className="text-xs px-3 py-1.5 rounded-lg bg-purple-100 dark:bg-purple-500/10 hover:bg-purple-200 dark:hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 transition disabled:opacity-50 font-medium"
-                        >
-                          Impersonate
-                        </button>
+                        {isSuper && (
+                          <button
+                            onClick={() => handleImpersonate(r)}
+                            disabled={actionLoading === r.userId}
+                            title="Login sebagai user ini untuk cek tampilan & dashboard mereka"
+                            className="text-xs px-3 py-1.5 rounded-lg bg-purple-100 dark:bg-purple-500/10 hover:bg-purple-200 dark:hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 transition disabled:opacity-50 font-medium"
+                          >
+                            Impersonate
+                          </button>
+                        )}
                         {r.cred ? (
                           <>
                             <button
@@ -297,19 +313,23 @@ export default function RouterListClient() {
                             >
                               {actionLoading === r.cred.id ? "..." : "Tes Koneksi"}
                             </button>
-                            <button
-                              onClick={() => openEdit(r)}
-                              className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/60 transition"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDelete(r)}
-                              disabled={actionLoading === r.cred.id}
-                              className="text-xs px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-500/10 hover:bg-red-200 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 transition disabled:opacity-50"
-                            >
-                              Hapus
-                            </button>
+                            {isSuper && (
+                              <>
+                                <button
+                                  onClick={() => openEdit(r)}
+                                  className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/60 transition"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(r)}
+                                  disabled={actionLoading === r.cred.id}
+                                  className="text-xs px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-500/10 hover:bg-red-200 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 transition disabled:opacity-50"
+                                >
+                                  Hapus
+                                </button>
+                              </>
+                            )}
                           </>
                         ) : (
                           <span className="text-xs text-gray-300 dark:text-white/20">- belum ada router -</span>
@@ -359,19 +379,23 @@ export default function RouterListClient() {
                         <dt className="text-gray-400 dark:text-white/40 w-20 shrink-0">Host</dt>
                         <dd className="font-mono text-gray-700 dark:text-white/80 break-all">{r.cred.host}:{r.cred.port}</dd>
                       </div>
-                      <div className="flex gap-2">
-                        <dt className="text-gray-400 dark:text-white/40 w-20 shrink-0">User</dt>
-                        <dd className="font-mono text-gray-700 dark:text-white/80 break-all">{r.cred.sshUser}</dd>
-                      </div>
-                      <div className="flex gap-2 items-center">
-                        <dt className="text-gray-400 dark:text-white/40 w-20 shrink-0">Password</dt>
-                        <dd className="font-mono text-gray-700 dark:text-white/80 flex items-center gap-2 flex-wrap min-w-0">
-                          <span className="break-all">{showPassId === r.cred.id ? r.cred.sshPass : "••••••••"}</span>
-                          <button onClick={() => setShowPassId(showPassId === r.cred!.id ? null : r.cred!.id)} className="text-[11px] text-blue-500 hover:text-blue-600 transition shrink-0">
-                            {showPassId === r.cred.id ? "Sembunyikan" : "Tampilkan"}
-                          </button>
-                        </dd>
-                      </div>
+                      {canSeeCreds && (
+                        <>
+                          <div className="flex gap-2">
+                            <dt className="text-gray-400 dark:text-white/40 w-20 shrink-0">User</dt>
+                            <dd className="font-mono text-gray-700 dark:text-white/80 break-all">{r.cred.sshUser}</dd>
+                          </div>
+                          <div className="flex gap-2 items-center">
+                            <dt className="text-gray-400 dark:text-white/40 w-20 shrink-0">Password</dt>
+                            <dd className="font-mono text-gray-700 dark:text-white/80 flex items-center gap-2 flex-wrap min-w-0">
+                              <span className="break-all">{showPassId === r.cred.id ? r.cred.sshPass : "••••••••"}</span>
+                              <button onClick={() => setShowPassId(showPassId === r.cred!.id ? null : r.cred!.id)} className="text-[11px] text-blue-500 hover:text-blue-600 transition shrink-0">
+                                {showPassId === r.cred.id ? "Sembunyikan" : "Tampilkan"}
+                              </button>
+                            </dd>
+                          </div>
+                        </>
+                      )}
                     </dl>
                   ) : (
                     <p className="text-xs text-gray-400 dark:text-white/30 italic">Belum ada router</p>
@@ -379,13 +403,15 @@ export default function RouterListClient() {
 
                   {/* Actions */}
                   <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => handleImpersonate(r)}
-                      disabled={actionLoading === r.userId}
-                      className="text-xs px-3 py-1.5 rounded-lg bg-purple-100 dark:bg-purple-500/10 hover:bg-purple-200 dark:hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 transition disabled:opacity-50 font-medium"
-                    >
-                      Impersonate
-                    </button>
+                    {isSuper && (
+                      <button
+                        onClick={() => handleImpersonate(r)}
+                        disabled={actionLoading === r.userId}
+                        className="text-xs px-3 py-1.5 rounded-lg bg-purple-100 dark:bg-purple-500/10 hover:bg-purple-200 dark:hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 transition disabled:opacity-50 font-medium"
+                      >
+                        Impersonate
+                      </button>
+                    )}
                     {r.cred && (
                       <>
                         <button
@@ -395,6 +421,8 @@ export default function RouterListClient() {
                         >
                           {actionLoading === r.cred.id ? "..." : "Tes Koneksi"}
                         </button>
+                        {isSuper && (
+                          <>
                         <button
                           onClick={() => openEdit(r)}
                           className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/60 transition"
@@ -408,6 +436,8 @@ export default function RouterListClient() {
                         >
                           Hapus
                         </button>
+                          </>
+                        )}
                       </>
                     )}
                   </div>

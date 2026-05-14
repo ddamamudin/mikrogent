@@ -24,7 +24,16 @@ export async function PATCH(req: NextRequest) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  // OPERATOR gak boleh apa-apa di config. ADMIN boleh semua kecuali toggle Field brand.
+  if (admin.adminLevel === "OPERATOR") {
+    return NextResponse.json({ error: "Akses ditolak" }, { status: 403 });
+  }
+
   const body = await req.json();
+
+  if (typeof body.showBrandField === "boolean" && admin.adminLevel !== "SUPER") {
+    return NextResponse.json({ error: "Toggle field brand cuma boleh diubah superadmin" }, { status: 403 });
+  }
 
   if (typeof body.registrationEnabled === "boolean") {
     const config = await prisma.appConfig.upsert({

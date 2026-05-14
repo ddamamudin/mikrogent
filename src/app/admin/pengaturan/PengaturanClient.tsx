@@ -51,7 +51,7 @@ const OPENAI_VOICES = [
   { id: "cedar", label: "Cedar (cowok modern)" },
 ];
 
-export default function PengaturanClient({ config: initial, admin }: { config: Config; admin: Admin }) {
+export default function PengaturanClient({ config: initial, admin, isSuper = true }: { config: Config; admin: Admin; isSuper?: boolean }) {
   const [registrationEnabled, setRegistrationEnabled] = useState(initial.registrationEnabled);
   const [showBrand, setShowBrand] = useState(initial.showBrandField);
   const [configLoading, setConfigLoading] = useState(false);
@@ -269,16 +269,18 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
             </button>
           </div>
 
-          <div className="flex items-center justify-between border-t border-gray-100 dark:border-white/5 pt-4">
-            <div className="pr-4">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Field brand saat daftar</p>
-              <p className="text-xs text-gray-400 dark:text-white/30 mt-0.5">Matikan jika aplikasi belum pakai fitur subdomain</p>
+          {isSuper && (
+            <div className="flex items-center justify-between border-t border-gray-100 dark:border-white/5 pt-4">
+              <div className="pr-4">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">Field brand saat daftar</p>
+                <p className="text-xs text-gray-400 dark:text-white/30 mt-0.5">Matikan jika aplikasi belum pakai fitur subdomain</p>
+              </div>
+              <button onClick={() => handleToggleShowBrand(!showBrand)} disabled={configLoading}
+                className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${showBrand ? "bg-blue-600" : "bg-gray-200 dark:bg-white/10"}`}>
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showBrand ? "translate-x-6" : "translate-x-1"}`} />
+              </button>
             </div>
-            <button onClick={() => handleToggleShowBrand(!showBrand)} disabled={configLoading}
-              className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${showBrand ? "bg-blue-600" : "bg-gray-200 dark:bg-white/10"}`}>
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showBrand ? "translate-x-6" : "translate-x-1"}`} />
-            </button>
-          </div>
+          )}
 
           <p className="text-xs text-gray-400 dark:text-white/30 italic">Toggle di sini auto-save, gak perlu klik tombol simpan.</p>
         </div>
