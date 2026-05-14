@@ -213,7 +213,7 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
               return (
                 <>
                   {/* Top nav (fixed, gak ikut scroll) */}
-                  <nav className="py-4 px-2 space-y-1 shrink-0">
+                  <nav className="py-2 px-2 space-y-1 shrink-0">
                     {AGENT_NAV.map(renderItem)}
 
                     {showBrandField && user.brand && (
