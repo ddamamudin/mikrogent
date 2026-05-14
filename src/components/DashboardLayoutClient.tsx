@@ -74,6 +74,16 @@ export function useAgentSidebar() {
   return useContext(AgentSidebarCtx);
 }
 
+// Context buat ngasih akses ke sidebar utama dashboard dari page yang
+// bikin layout-nya sendiri (mis. Monitor page yang ganti header utama).
+// Tombol "kembali" di Monitor header pakai ini buat buka sidebar nav utama.
+export const DashboardSidebarCtx = createContext<{ setOpen: (open: boolean) => void; toggle: () => void }>(
+  { setOpen: () => {}, toggle: () => {} },
+);
+export function useDashboardSidebar() {
+  return useContext(DashboardSidebarCtx);
+}
+
 // Routes yang butuh kanvas lebar (tabel, grid multi-card, dashboard).
 // Sisanya default max-w-lg buat halaman form (Profil, Password, dll).
 // "/dashboard/router" match juga subroute "/dashboard/router/monitor".
@@ -82,6 +92,9 @@ const WIDE_PATHS = ["/dashboard/router"];
 export default function DashboardLayoutClient({ user, showBrandField, children }: { user: User; showBrandField: boolean; children: React.ReactNode }) {
   const pathname = usePathname();
   const isAgentPage = pathname === "/dashboard/agent";
+  // Monitor page handle layout-nya sendiri (header + body scroll).
+  // Main header & padding di-hide supaya Monitor bisa full-screen take over.
+  const isMonitorPage = pathname === "/dashboard/router/monitor";
   const isWidePage = WIDE_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [agentState, setAgentState] = useState<AgentSidebarState | null>(null);
@@ -101,10 +114,17 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
   const sidebarBase = "bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-white/10 flex flex-col w-56";
   const sidebarPos = `fixed top-14 bottom-0 left-0 z-30 transition-transform duration-200 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`;
 
+  const dashboardSidebarCtxValue = {
+    setOpen: setSidebarOpen,
+    toggle: () => setSidebarOpen((o) => !o),
+  };
+
   return (
+    <DashboardSidebarCtx.Provider value={dashboardSidebarCtxValue}>
     <AgentSidebarCtx.Provider value={{ state: agentState, setState: setAgentState }}>
       <div className={`fixed inset-0 flex flex-col ${isAgentPage ? "bg-white" : "bg-gray-100"} dark:bg-slate-950 text-gray-900 dark:text-white`}>
-        {/* Header */}
+        {/* Header — di-hide di Monitor karena Monitor render header sendiri */}
+        {!isMonitorPage && (
         <header className="h-14 bg-white dark:bg-slate-900 flex items-center justify-between px-4 shrink-0 z-40">
           <div className="flex items-center gap-3">
             <button
@@ -141,14 +161,16 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
             )}
           </div>
         </header>
+        )}
 
         {/* Body */}
         <div className="flex-1 min-h-0 relative">
-          {/* Backdrop saat sidebar terbuka */}
+          {/* Backdrop saat sidebar terbuka. Top offset 0 di Monitor (gak ada
+              main header), top-14 di page lain (di bawah main header). */}
           {sidebarOpen && (
             <div
               onClick={() => setSidebarOpen(false)}
-              className="fixed inset-0 top-14 z-20 bg-black/30"
+              className={`fixed inset-0 ${isMonitorPage ? "top-14" : "top-14"} z-20 bg-black/30`}
               aria-hidden="true"
             />
           )}
@@ -282,11 +304,14 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
           </aside>
 
           {/* Main Content. Default container max-w-lg cocok buat halaman form
-              (Profil, Password, Router list, dll). Tapi page yang butuh tabel
-              lebar/multi-card (Monitor) di-opt-in via WIDE_PATHS supaya pakai
-              max-w-7xl seperti pattern admin. */}
-          <main className={`h-full ${isAgentPage ? "" : "overflow-y-auto p-6"}`}>
-            {isAgentPage ? children : (
+              (Profil, Password, Router list, dll). Page yang butuh tabel lebar
+              opt-in via WIDE_PATHS jadi max-w-7xl. Page yang handle layout
+              sendiri (Agent, Monitor) skip padding & wrapper — render children
+              langsung biar full control. */}
+          <main className={`h-full ${
+            isAgentPage || isMonitorPage ? "" : "overflow-y-auto p-6"
+          }`}>
+            {(isAgentPage || isMonitorPage) ? children : (
               <div className={`${isWidePage ? "max-w-7xl" : "max-w-lg"} mx-auto`}>
                 {children}
               </div>
@@ -295,5 +320,6 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
         </div>
       </div>
     </AgentSidebarCtx.Provider>
+    </DashboardSidebarCtx.Provider>
   );
 }

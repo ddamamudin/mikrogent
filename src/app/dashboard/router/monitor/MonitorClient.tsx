@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useDashboardSidebar } from "@/components/DashboardLayoutClient";
 import RouterStatus from "./RouterStatus";
 import HotspotUserPanel from "./panels/HotspotUserPanel";
 import HotspotProfilePanel from "./panels/HotspotProfilePanel";
@@ -180,13 +181,14 @@ function SoonIcon() {
 }
 
 export default function MonitorClient({ initialRouters }: { initialRouters: RouterTab[] }) {
+  const dashSidebar = useDashboardSidebar();
   const [routers, setRouters] = useState<RouterTab[]>(initialRouters);
   const [activeId, setActiveId] = useState<string | null>(initialRouters[0]?.id ?? null);
   const [menu, setMenu] = useState<MenuKey>("status");
   const [pickerOpen, setPickerOpen] = useState(false);
-  // Default closed. Sub-sidebar Monitor slide-down dari bawah hamburger
-  // (bukan dari kiri ala sidebar utama). Z-index sengaja di-rendahin (z-10)
-  // supaya sidebar utama dashboard (z-30) tetep di atas saat keduanya open.
+  // Sub-sidebar Monitor — dropdown style, anchor di bawah hamburger.
+  // Z-index sengaja di-rendahin (z-10) supaya sidebar utama dashboard (z-30)
+  // tetep di atas saat keduanya open.
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const refetch = useCallback(async () => {
@@ -216,31 +218,35 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
   }, [refetch]);
 
   const active = routers.find((r) => r.id === activeId) ?? null;
-
-  if (routers.length === 0) {
-    return (
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 px-5 py-8 text-center text-sm text-gray-500 dark:text-white/40 shadow-sm">
-        Belum ada router. Tambahkan di <Link href="/dashboard/router" className="text-blue-500 hover:underline">halaman Router</Link> dulu.
-      </div>
-    );
-  }
+  const noRouter = routers.length === 0;
 
   // Cari label menu aktif buat tampil di header (mirip "page title" mini)
   const activeMenuLabel =
     SECTIONS.flatMap((s) => s.items).find((i) => i.key === menu)?.label ?? "Status Router";
 
   return (
-    <div className="space-y-3">
-      {/* Sub-header wrapper — sticky full-width breakout dari padding main (p-6).
-          Bg-nya match main bg (gray-100 / slate-950) supaya content yang scroll
-          di belakang sub-header card gak bocor lewat sela rounded-xl edge atau
-          padding atas. Card-nya rounded preserve, wrapper-nya yang full edge. */}
-      <div className="sticky top-0 z-10 -mx-6 -mt-6 px-6 pt-6 bg-gray-100 dark:bg-slate-950">
-      <div className="relative bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm px-3 py-2 flex items-center gap-3">
+    <div className="h-full flex flex-col bg-gray-100 dark:bg-slate-950">
+      {/* Monitor header — full-width, replace main dashboard header.
+          h-14 z-40 sama persis ukuran & z-index dengan main header default,
+          jadi sidebar utama (aside fixed top-14 z-30) tetep cocok posisinya. */}
+      <header className="relative h-14 bg-white dark:bg-slate-900 flex items-center px-3 gap-1 shrink-0 z-40 border-b border-gray-200 dark:border-white/10">
+        {/* Tombol "kembali" → buka sidebar utama dashboard (Replay Agent, Router, dll) */}
+        <button
+          onClick={() => dashSidebar.toggle()}
+          aria-label="Buka menu utama"
+          title="Buka menu utama"
+          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition text-gray-500 dark:text-white/60 hover:text-gray-900 dark:hover:text-white shrink-0"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+
+        {/* Hamburger Monitor sub-sidebar */}
         <button
           onClick={() => setSidebarOpen((o) => !o)}
           aria-label="Toggle menu Monitor"
-          title={sidebarOpen ? "Tutup menu" : "Buka menu"}
+          title={sidebarOpen ? "Tutup menu Monitor" : "Buka menu Monitor"}
           className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition text-gray-700 dark:text-white/70 shrink-0"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -316,17 +322,19 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
           )}
           <span className="text-gray-500 dark:text-white/50 truncate hidden sm:inline">{activeMenuLabel}</span>
         </div>
+      </header>
 
-        {/* Sub-sidebar Monitor — slide-down dari atas (dari bawah hamburger).
-            Anak sub-header card supaya posisinya nempel ke hamburger button.
-            Z-10 lebih rendah dari sidebar utama dashboard (z-30). */}
-        <aside
-          className={`absolute top-full left-3 mt-2 w-56 z-10 origin-top transition-all duration-200 ${
-            sidebarOpen
-              ? "opacity-100 translate-y-0 scale-100"
-              : "opacity-0 -translate-y-2 scale-95 pointer-events-none"
-          }`}
-        >
+      {/* Sub-sidebar Monitor — fixed top-14 (di bawah Monitor header h-14),
+          slide-down animasi. Z-10 < sidebar utama z-30 supaya sidebar utama
+          tetep di atas saat keduanya open. Posisi di luar header supaya gak
+          ke-trap di header stacking context z-40. */}
+      <aside
+        className={`fixed top-14 left-3 mt-2 w-56 z-10 origin-top transition-all duration-200 ${
+          sidebarOpen
+            ? "opacity-100 translate-y-0 scale-100"
+            : "opacity-0 -translate-y-2 scale-95 pointer-events-none"
+        }`}
+      >
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 shadow-xl overflow-hidden max-h-[calc(100vh-8rem)] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <nav className="p-2 flex flex-col">
               {SECTIONS.map((sec) => (
@@ -374,11 +382,10 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
             </nav>
           </div>
         </aside>
-      </div>
-      </div>
 
-      {/* Backdrop sub-sidebar — z-[5] di bawah sub-header sticky (z-10) tapi
-          tetep di atas content. Click di luar sidebar untuk close. */}
+      {/* Backdrop sub-sidebar Monitor — fixed di bawah header (top-14).
+          z-[5] di bawah backdrop main sidebar (z-20) supaya main sidebar
+          punya prioritas saat keduanya open. */}
       {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
@@ -387,41 +394,52 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
         />
       )}
 
-      {active && !active.apiEnabled && (
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-amber-200 dark:border-amber-500/30 px-5 py-8 text-center space-y-2 shadow-sm">
-          <p className="text-sm text-gray-700 dark:text-white/70">
-            <strong>{active.name}</strong> belum mengaktifkan RouterOS API.
-          </p>
-          <p className="text-xs text-gray-500 dark:text-white/40">
-            Buka <Link href="/dashboard/router" className="text-blue-500 hover:underline">halaman Router</Link>,
-            lalu klik tombol <strong>Aktifkan API</strong> pada router ini.
-          </p>
-        </div>
-      )}
+      {/* Body — scroll independent, padding 6, content max-w-7xl center */}
+      <div className="flex-1 min-h-0 overflow-y-auto p-6">
+        <div className="max-w-7xl mx-auto space-y-3">
+          {noRouter && (
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 px-5 py-8 text-center text-sm text-gray-500 dark:text-white/40 shadow-sm">
+              Belum ada router. Tambahkan di <Link href="/dashboard/router" className="text-blue-500 hover:underline">halaman Router</Link> dulu.
+            </div>
+          )}
 
-      {active && active.apiEnabled && (
-        <div className="w-full min-w-0">
-          {menu === "status" && <RouterStatus key={`status-${active.id}`} routerId={active.id} routerName={active.name} />}
-          {menu === "users" && <HotspotUserPanel key={`users-${active.id}`} routerId={active.id} />}
-          {menu === "profiles" && <HotspotProfilePanel key={`profiles-${active.id}`} routerId={active.id} />}
-          {menu === "active" && <HotspotActivePanel key={`active-${active.id}`} routerId={active.id} />}
-          {menu === "hosts" && <HostsPanel key={`hosts-${active.id}`} routerId={active.id} />}
-          {menu === "bindings" && <IpBindingPanel key={`bindings-${active.id}`} routerId={active.id} />}
-          {menu === "leases" && <DhcpLeasePanel key={`leases-${active.id}`} routerId={active.id} />}
-          {menu === "cookies" && <CookiePanel key={`cookies-${active.id}`} routerId={active.id} />}
-          {menu === "voucher" && <VoucherPanel key={`voucher-${active.id}`} routerId={active.id} />}
-          {menu === "ppp-secrets" && <PppSecretPanel key={`ppp-secrets-${active.id}`} routerId={active.id} />}
-          {menu === "ppp-profiles" && <PppProfilePanel key={`ppp-profiles-${active.id}`} routerId={active.id} />}
-          {menu === "ppp-active" && <PppActivePanel key={`ppp-active-${active.id}`} routerId={active.id} />}
-          {menu === "arp" && <ArpPanel key={`arp-${active.id}`} routerId={active.id} />}
-          {menu === "ip-addresses" && <IpAddressPanel key={`ip-addresses-${active.id}`} routerId={active.id} />}
-          {menu === "scheduler" && <SchedulerPanel key={`scheduler-${active.id}`} routerId={active.id} />}
-          {menu === "log" && <HotspotLogPanel key={`log-${active.id}`} routerId={active.id} />}
-          {menu === "quick-print" && <QuickPrintPanel key={`quick-print-${active.id}`} routerId={active.id} routerName={active.name} />}
-          {menu === "traffic" && <TrafficMonitorPanel key={`traffic-${active.id}`} routerId={active.id} />}
-          {menu === "system" && <SystemPanel key={`system-${active.id}`} routerId={active.id} routerName={active.name} />}
+          {active && !active.apiEnabled && (
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-amber-200 dark:border-amber-500/30 px-5 py-8 text-center space-y-2 shadow-sm">
+              <p className="text-sm text-gray-700 dark:text-white/70">
+                <strong>{active.name}</strong> belum mengaktifkan RouterOS API.
+              </p>
+              <p className="text-xs text-gray-500 dark:text-white/40">
+                Buka <Link href="/dashboard/router" className="text-blue-500 hover:underline">halaman Router</Link>,
+                lalu klik tombol <strong>Aktifkan API</strong> pada router ini.
+              </p>
+            </div>
+          )}
+
+          {active && active.apiEnabled && (
+            <div className="w-full min-w-0">
+              {menu === "status" && <RouterStatus key={`status-${active.id}`} routerId={active.id} routerName={active.name} />}
+              {menu === "users" && <HotspotUserPanel key={`users-${active.id}`} routerId={active.id} />}
+              {menu === "profiles" && <HotspotProfilePanel key={`profiles-${active.id}`} routerId={active.id} />}
+              {menu === "active" && <HotspotActivePanel key={`active-${active.id}`} routerId={active.id} />}
+              {menu === "hosts" && <HostsPanel key={`hosts-${active.id}`} routerId={active.id} />}
+              {menu === "bindings" && <IpBindingPanel key={`bindings-${active.id}`} routerId={active.id} />}
+              {menu === "leases" && <DhcpLeasePanel key={`leases-${active.id}`} routerId={active.id} />}
+              {menu === "cookies" && <CookiePanel key={`cookies-${active.id}`} routerId={active.id} />}
+              {menu === "voucher" && <VoucherPanel key={`voucher-${active.id}`} routerId={active.id} />}
+              {menu === "ppp-secrets" && <PppSecretPanel key={`ppp-secrets-${active.id}`} routerId={active.id} />}
+              {menu === "ppp-profiles" && <PppProfilePanel key={`ppp-profiles-${active.id}`} routerId={active.id} />}
+              {menu === "ppp-active" && <PppActivePanel key={`ppp-active-${active.id}`} routerId={active.id} />}
+              {menu === "arp" && <ArpPanel key={`arp-${active.id}`} routerId={active.id} />}
+              {menu === "ip-addresses" && <IpAddressPanel key={`ip-addresses-${active.id}`} routerId={active.id} />}
+              {menu === "scheduler" && <SchedulerPanel key={`scheduler-${active.id}`} routerId={active.id} />}
+              {menu === "log" && <HotspotLogPanel key={`log-${active.id}`} routerId={active.id} />}
+              {menu === "quick-print" && <QuickPrintPanel key={`quick-print-${active.id}`} routerId={active.id} routerName={active.name} />}
+              {menu === "traffic" && <TrafficMonitorPanel key={`traffic-${active.id}`} routerId={active.id} />}
+              {menu === "system" && <SystemPanel key={`system-${active.id}`} routerId={active.id} routerName={active.name} />}
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
