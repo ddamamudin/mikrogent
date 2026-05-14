@@ -11,6 +11,15 @@ import HostsPanel from "./panels/HostsPanel";
 import IpBindingPanel from "./panels/IpBindingPanel";
 import DhcpLeasePanel from "./panels/DhcpLeasePanel";
 import CookiePanel from "./panels/CookiePanel";
+import SystemPanel from "./panels/SystemPanel";
+import PppProfilePanel from "./panels/PppProfilePanel";
+import PppSecretPanel from "./panels/PppSecretPanel";
+import PppActivePanel from "./panels/PppActivePanel";
+import ArpPanel from "./panels/ArpPanel";
+import IpAddressPanel from "./panels/IpAddressPanel";
+import SchedulerPanel from "./panels/SchedulerPanel";
+import HotspotLogPanel from "./panels/HotspotLogPanel";
+import QuickPrintPanel from "./panels/QuickPrintPanel";
 
 type RouterTab = {
   id: string;
@@ -21,7 +30,15 @@ type RouterTab = {
   connected: boolean;
 };
 
-type MenuKey = "status" | "users" | "profiles" | "active" | "hosts" | "bindings" | "leases" | "cookies" | "voucher";
+type MenuKey =
+  | "status"
+  | "users" | "profiles" | "active"
+  | "hosts" | "bindings" | "leases" | "cookies"
+  | "voucher"
+  | "ppp-secrets" | "ppp-profiles" | "ppp-active"
+  | "arp" | "ip-addresses"
+  | "scheduler" | "log" | "quick-print"
+  | "system";
 
 type MenuItem = { key: MenuKey; label: string; icon: React.ReactNode };
 type MenuSection = { label: string; items: MenuItem[] };
@@ -79,6 +96,62 @@ const SECTIONS: MenuSection[] = [
         key: "voucher", label: "Generate Voucher",
         icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>,
       },
+      {
+        key: "quick-print", label: "Quick Print",
+        icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>,
+      },
+    ],
+  },
+  {
+    label: "LOG",
+    items: [
+      {
+        key: "log", label: "Hotspot Log",
+        icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>,
+      },
+    ],
+  },
+  {
+    label: "PPP",
+    items: [
+      {
+        key: "ppp-secrets", label: "Secrets",
+        icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
+      },
+      {
+        key: "ppp-profiles", label: "Profiles",
+        icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>,
+      },
+      {
+        key: "ppp-active", label: "Active",
+        icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>,
+      },
+    ],
+  },
+  {
+    label: "IP / NETWORK",
+    items: [
+      {
+        key: "ip-addresses", label: "Address List",
+        icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>,
+      },
+      {
+        key: "arp", label: "ARP Table",
+        icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
+      },
+    ],
+  },
+  {
+    label: "SYSTEM",
+    items: [
+      {
+        key: "scheduler", label: "Scheduler",
+        icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
+      },
+      {
+        key: "system", label: "Power",
+        icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>,
+      },
     ],
   },
 ];
@@ -87,12 +160,8 @@ const SOON_SECTIONS: MenuSection[] = [
   {
     label: "SEGERA",
     items: [
-      { key: "users", label: "Quick Print Voucher", icon: <SoonIcon /> },
-      { key: "users", label: "PPP Secret", icon: <SoonIcon /> },
-      { key: "users", label: "PPP Profile", icon: <SoonIcon /> },
-      { key: "users", label: "PPP Active", icon: <SoonIcon /> },
-      { key: "users", label: "Hotspot Log", icon: <SoonIcon /> },
       { key: "users", label: "Report Selling", icon: <SoonIcon /> },
+      { key: "users", label: "Traffic Monitor", icon: <SoonIcon /> },
     ],
   },
 ];
@@ -341,6 +410,15 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
             {menu === "leases" && <DhcpLeasePanel key={`leases-${active.id}`} routerId={active.id} />}
             {menu === "cookies" && <CookiePanel key={`cookies-${active.id}`} routerId={active.id} />}
             {menu === "voucher" && <VoucherPanel key={`voucher-${active.id}`} routerId={active.id} />}
+            {menu === "ppp-secrets" && <PppSecretPanel key={`ppp-secrets-${active.id}`} routerId={active.id} />}
+            {menu === "ppp-profiles" && <PppProfilePanel key={`ppp-profiles-${active.id}`} routerId={active.id} />}
+            {menu === "ppp-active" && <PppActivePanel key={`ppp-active-${active.id}`} routerId={active.id} />}
+            {menu === "arp" && <ArpPanel key={`arp-${active.id}`} routerId={active.id} />}
+            {menu === "ip-addresses" && <IpAddressPanel key={`ip-addresses-${active.id}`} routerId={active.id} />}
+            {menu === "scheduler" && <SchedulerPanel key={`scheduler-${active.id}`} routerId={active.id} />}
+            {menu === "log" && <HotspotLogPanel key={`log-${active.id}`} routerId={active.id} />}
+            {menu === "quick-print" && <QuickPrintPanel key={`quick-print-${active.id}`} routerId={active.id} routerName={active.name} />}
+            {menu === "system" && <SystemPanel key={`system-${active.id}`} routerId={active.id} routerName={active.name} />}
           </div>
         </div>
       )}
