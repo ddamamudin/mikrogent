@@ -52,8 +52,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const profile = sp.get("profile");
   const prefix = sp.get("prefix");
 
+  // Timeout lebih panjang: /system/script bisa berisi ribuan entry kalau
+  // reseller dah lama pakai Mikhmon. Default 8s sering kurang.
   return withCredentialApi(id, async (api) => {
-    const rows = await api.write("/system/script/print", [`?comment=mikhmon`]);
+    const rows = await Promise.race([
+      api.write("/system/script/print", [`?comment=mikhmon`]),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Query /system/script timeout setelah 25s. Coba kurangi rentang tanggal atau jalankan 'Hapus Log Lama'.")), 25000),
+      ),
+    ]) as Array<Record<string, unknown>>;
     const fromDate = from ? new Date(from + "T00:00:00Z") : null;
     const toDate = to ? new Date(to + "T23:59:59Z") : null;
 
@@ -74,7 +81,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const entries: Entry[] = [];
     let unparsable = 0;
 
-    for (const r of rows as Array<Record<string, unknown>>) {
+    for (const r of rows) {
       const name = String(r.name ?? "");
       const parts = name.split("-|-");
       if (parts.length < 9) { unparsable++; continue; }
@@ -164,9 +171,14 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const cutoff = new Date(olderThan + "T00:00:00Z");
 
   return withCredentialApi(id, async (api) => {
-    const rows = await api.write("/system/script/print", [`?comment=mikhmon`]);
+    const rows = await Promise.race([
+      api.write("/system/script/print", [`?comment=mikhmon`]),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Query timeout setelah 25s")), 25000),
+      ),
+    ]) as Array<Record<string, unknown>>;
     const toDelete: string[] = [];
-    for (const r of rows as Array<Record<string, unknown>>) {
+    for (const r of rows) {
       const name = String(r.name ?? "");
       const rawDate = name.split("-|-")[0] ?? "";
       const parsed = parseRouterDate(rawDate);

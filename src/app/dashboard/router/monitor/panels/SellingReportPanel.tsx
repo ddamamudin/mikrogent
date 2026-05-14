@@ -62,19 +62,29 @@ export default function SellingReportPanel({ routerId }: { routerId: string }) {
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
+    // Client-side timeout 30s — kalau server-side hang (node-routeros gak
+    // enforce per-call timeout di write()), kita kasih error daripada user
+    // stuck di "Memuat..." selamanya.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30000);
     try {
       const q = new URLSearchParams();
       if (filter.from) q.set("from", filter.from);
       if (filter.to) q.set("to", filter.to);
       if (filter.profile.trim()) q.set("profile", filter.profile.trim());
       if (filter.prefix.trim()) q.set("prefix", filter.prefix.trim());
-      const res = await fetch(`/api/account/router/${routerId}/hotspot/selling-report?${q}`, { cache: "no-store" });
+      const res = await fetch(`/api/account/router/${routerId}/hotspot/selling-report?${q}`, { cache: "no-store", signal: controller.signal });
       const json = await res.json();
       if (!res.ok) { setError(json?.error ?? "Gagal"); setReport(null); }
       else setReport(json.data as Report);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      if (e instanceof Error && e.name === "AbortError") {
+        setError("Timeout setelah 30 detik. Router mungkin gak balas / `/system/script` terlalu banyak entry. Coba kecilkan rentang tanggal, atau klik 'Hapus Log Lama'.");
+      } else {
+        setError(e instanceof Error ? e.message : String(e));
+      }
     } finally {
+      clearTimeout(timer);
       setLoading(false);
     }
   }, [routerId, filter.from, filter.to, filter.profile, filter.prefix]);
@@ -161,7 +171,7 @@ export default function SellingReportPanel({ routerId }: { routerId: string }) {
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden shadow-sm">
         <div className="px-5 py-3 border-b border-gray-100 dark:border-white/5 flex items-center justify-between flex-wrap gap-2">
           <h2 className="text-sm font-semibold text-gray-700 dark:text-white/80 flex items-center gap-2">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 dark:text-white/40"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 dark:text-white/40"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
             <span>Report Selling</span>
             {report && <span className="text-xs font-normal text-gray-400 dark:text-white/30">({report.summary.count} transaksi)</span>}
           </h2>

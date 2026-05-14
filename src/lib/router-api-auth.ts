@@ -13,6 +13,7 @@ import type { RouterOSAPI } from "node-routeros";
 export async function withCredentialApi<T>(
   credentialId: string,
   handler: (api: RouterOSAPI) => Promise<T>,
+  options?: { timeoutMs?: number },
 ): Promise<NextResponse> {
   const cookieStore = await cookies();
   const session = getSessionFromCookie(cookieStore.get("session")?.value);
@@ -41,7 +42,7 @@ export async function withCredentialApi<T>(
     apiPort: cred.apiPort,
     username: cred.sshUser,
     password: decryptSshPass(cred.sshPass),
-    timeoutMs: 8000,
+    timeoutMs: options?.timeoutMs ?? 8000,
   };
 
   try {
