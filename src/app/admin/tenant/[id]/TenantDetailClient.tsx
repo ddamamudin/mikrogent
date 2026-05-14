@@ -445,7 +445,6 @@ export default function TenantDetailClient({ tenant: initial, mikrotikCreds }: {
           </div>
         )}
       </div>
-      )}
 
       {/* Aksi */}
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 p-5 shadow-sm space-y-3">
