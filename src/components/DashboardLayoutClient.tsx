@@ -8,7 +8,9 @@ import SessionsListSidebar from "@/components/SessionsListSidebar";
 
 const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
 
-const NAV: { href: string; label: string; icon: React.ReactNode }[] = [
+type NavItem = { href: string; label: string; icon: React.ReactNode };
+
+const AGENT_NAV: NavItem[] = [
   {
     href: "/dashboard/agent",
     label: "Replay Agent",
@@ -20,15 +22,18 @@ const NAV: { href: string; label: string; icon: React.ReactNode }[] = [
       </svg>
     ),
   },
+];
+
+const ROUTER_NAV: NavItem[] = [
   {
     href: "/dashboard/router",
     label: "Router",
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="14" width="20" height="8" rx="2" />
-        <line x1="6" y1="18" x2="6.01" y2="18" />
-        <line x1="10" y1="18" x2="10.01" y2="18" />
-        <path d="M6 10V6a6 6 0 0 1 12 0v4" />
+        <rect x="2" y="4" width="20" height="6" rx="2" />
+        <rect x="2" y="14" width="20" height="6" rx="2" />
+        <line x1="6" y1="7" x2="6.01" y2="7" />
+        <line x1="6" y1="17" x2="6.01" y2="17" />
       </svg>
     ),
   },
@@ -44,6 +49,8 @@ const NAV: { href: string; label: string; icon: React.ReactNode }[] = [
     ),
   },
 ];
+
+const NAV: NavItem[] = [...AGENT_NAV, ...ROUTER_NAV];
 
 function getInitials(name: string | undefined): string {
   if (!name) return "U";
@@ -176,68 +183,80 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
 
           {/* Sidebar (overlay, ga menggeser konten) */}
           <aside className={`${sidebarBase} ${sidebarPos}`}>
-            {/* Top nav (fixed, gak ikut scroll) */}
-            <nav className="py-4 px-2 space-y-1 shrink-0">
-              {(() => {
-                // Pilih item paling spesifik (href terpanjang) yang match pathname.
-                // Cegah Router (/dashboard/router) ke-aktif saat user lagi di
-                // Monitor (/dashboard/router/monitor).
-                const activeHref = NAV
-                  .map(({ href }) => href)
-                  .filter((h) => pathname === h || pathname.startsWith(`${h}/`))
-                  .reduce((longest, current) => (current.length > longest.length ? current : longest), "");
-                return NAV.map(({ href, label, icon }) => {
-                  const active = href === activeHref;
-                  return (
-                    <a
-                      key={href}
-                      href={href}
-                      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition ${
-                        active
-                          ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
-                          : "text-gray-600 dark:text-white/70 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
-                      }`}
-                    >
-                      <span className="shrink-0">{icon}</span>
-                      <span>{label}</span>
-                    </a>
-                  );
-                });
-              })()}
+            {(() => {
+              // Pilih item paling spesifik (href terpanjang) yang match pathname.
+              // Cegah Router (/dashboard/router) ke-aktif saat user lagi di
+              // Monitor (/dashboard/router/monitor).
+              const activeHref = NAV
+                .map(({ href }) => href)
+                .filter((h) => pathname === h || pathname.startsWith(`${h}/`))
+                .reduce((longest, current) => (current.length > longest.length ? current : longest), "");
 
-              {showBrandField && user.brand && (
-                <a
-                  href={`//${user.brand}.${APP_DOMAIN}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-white/70 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" />
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                  </svg>
-                  <span>Buka Situs</span>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto opacity-40">
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                    <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
-                  </svg>
-                </a>
-              )}
-            </nav>
+              const renderItem = ({ href, label, icon }: NavItem) => {
+                const active = href === activeHref;
+                return (
+                  <a
+                    key={href}
+                    href={href}
+                    className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                      active
+                        ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
+                        : "text-gray-600 dark:text-white/70 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+                    }`}
+                  >
+                    <span className="shrink-0">{icon}</span>
+                    <span>{label}</span>
+                  </a>
+                );
+              };
 
-            {/* Histori chat (scrollable, scrollbar disembunyikan). NB: gak ada
-                horizontal padding di sini supaya separator histori bisa full-width
-                kayak separator Masukan/Profil. Padding horizontal di-handle per-item
-                di dalam SessionsListSidebar. */}
-            <div className="flex-1 min-h-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <Suspense fallback={null}>
-                <SessionsListSidebar />
-              </Suspense>
-            </div>
+              return (
+                <>
+                  {/* Top nav (fixed, gak ikut scroll) */}
+                  <nav className="py-4 px-2 space-y-1 shrink-0">
+                    {AGENT_NAV.map(renderItem)}
 
-            <div className="px-3 py-2 border-t border-gray-200 dark:border-white/10 space-y-1">
-              <MasukanSidebarLink />
-            </div>
+                    {showBrandField && user.brand && (
+                      <a
+                        href={`//${user.brand}.${APP_DOMAIN}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-white/70 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" />
+                          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                        </svg>
+                        <span>Buka Situs</span>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-auto opacity-40">
+                          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                          <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+                        </svg>
+                      </a>
+                    )}
+                  </nav>
+
+                  {/* Histori chat (scrollable, scrollbar disembunyikan). NB: gak ada
+                      horizontal padding di sini supaya separator histori bisa full-width
+                      kayak separator Masukan/Profil. Padding horizontal di-handle per-item
+                      di dalam SessionsListSidebar. */}
+                  <div className="flex-1 min-h-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <Suspense fallback={null}>
+                      <SessionsListSidebar />
+                    </Suspense>
+                  </div>
+
+                  {/* Menu Router & Monitor (di-pindah ke bawah supaya akses utama tetep Replay Agent + histori chat). */}
+                  <nav className="px-2 py-2 border-t border-gray-200 dark:border-white/10 space-y-1">
+                    {ROUTER_NAV.map(renderItem)}
+                  </nav>
+
+                  <div className="px-3 py-2 border-t border-gray-200 dark:border-white/10 space-y-1">
+                    <MasukanSidebarLink />
+                  </div>
+                </>
+              );
+            })()}
 
             {/* User card footer + popup (style admin) */}
             <div className="border-t border-gray-200 dark:border-white/10 p-2 relative">
