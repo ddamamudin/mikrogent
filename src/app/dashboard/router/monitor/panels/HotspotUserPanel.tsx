@@ -46,7 +46,7 @@ export default function HotspotUserPanel({ routerId }: { routerId: string }) {
   const [profiles, setProfiles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState({ profile: "", search: "" });
+  const [filter, setFilter] = useState({ profile: "", comment: "", search: "" });
   const [busyId, setBusyId] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ id: string; draft: EditDraft } | null>(null);
   const [adding, setAdding] = useState<EditDraft | null>(null);
@@ -101,12 +101,22 @@ export default function HotspotUserPanel({ routerId }: { routerId: string }) {
     return () => { cancelled = true; };
   }, [fetchUsers]);
 
+  // Kumpulin unique comments dari list untuk filter dropdown ala mikhmon.
+  // Comment di mikhmon biasanya format "vc-XXX-MM.DD.YY-extra" (batch tag),
+  // jadi rapih buat di-group.
+  const commentOptions = Array.from(new Set(users.map((u) => u.comment).filter((c) => c.length > 0)))
+    .sort()
+    .map((c) => ({ value: c, count: users.filter((u) => u.comment === c).length }));
+
   const visibleUsers = users.filter((u) => {
-    if (!filter.search.trim()) return true;
-    const q = filter.search.toLowerCase();
-    return u.name.toLowerCase().includes(q) ||
-      u.comment.toLowerCase().includes(q) ||
-      u.macAddress.toLowerCase().includes(q);
+    if (filter.comment && u.comment !== filter.comment) return false;
+    if (filter.search.trim()) {
+      const q = filter.search.toLowerCase();
+      if (!(u.name.toLowerCase().includes(q) ||
+        u.comment.toLowerCase().includes(q) ||
+        u.macAddress.toLowerCase().includes(q))) return false;
+    }
+    return true;
   });
 
   const handleSaveEdit = async () => {
@@ -185,48 +195,72 @@ export default function HotspotUserPanel({ routerId }: { routerId: string }) {
 
   return (
     <div className="space-y-3">
-      {/* Toolbar */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 p-3 shadow-sm flex flex-wrap gap-2 items-center">
-        <select
-          value={filter.profile}
-          onChange={(e) => setFilter((f) => ({ ...f, profile: e.target.value }))}
-          className={`${inputClass} max-w-[180px]`}
-        >
-          <option value="">Semua profile</option>
-          {profiles.map((p) => <option key={p} value={p}>{p}</option>)}
-        </select>
-        <input
-          value={filter.search}
-          onChange={(e) => setFilter((f) => ({ ...f, search: e.target.value }))}
-          placeholder="Cari name / comment / MAC..."
-          className={`${inputClass} flex-1 min-w-[200px]`}
-        />
-        <button
-          onClick={fetchUsers}
-          className="text-xs px-3 py-2 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 text-gray-700 dark:text-white/70 font-medium"
-        >
-          Refresh
-        </button>
-        <button
-          onClick={() => setAdding({ name: "", password: "", profile: profiles[0] ?? "default", comment: "", limitUptime: "", limitBytes: "" })}
-          className="text-xs px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium"
-        >
-          + Tambah User
-        </button>
-      </div>
-
       {message && (
         <div className={`text-sm px-4 py-3 rounded-lg ${message.type === "ok" ? "bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-500/20" : "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/20"}`}>
           {message.text}
         </div>
       )}
 
-      {/* Table panel */}
+      {/* Card panel: header dengan title + inline actions (Add / Generate),
+          lalu toolbar 3-input-group (search | profile | comment) ala mikhmon. */}
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden shadow-sm">
-        <div className="px-5 py-3 border-b border-gray-100 dark:border-white/5 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-white/80">
-            Hotspot User ({visibleUsers.length}{users.length !== visibleUsers.length ? `/${users.length}` : ""})
+        <div className="px-5 py-3 border-b border-gray-100 dark:border-white/5 flex items-center justify-between flex-wrap gap-2">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-white/80 flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 dark:text-white/40"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>Hotspot User</span>
+            <span className="text-xs font-normal text-gray-400 dark:text-white/30">
+              ({visibleUsers.length}{users.length !== visibleUsers.length ? `/${users.length}` : ""})
+            </span>
           </h2>
+          <div className="flex items-center gap-2 text-xs">
+            <button
+              onClick={() => setAdding({ name: "", password: "", profile: profiles[0] ?? "default", comment: "", limitUptime: "", limitBytes: "" })}
+              className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-medium"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Tambah
+            </button>
+            <span className="text-gray-300 dark:text-white/10">|</span>
+            <button
+              onClick={fetchUsers}
+              className="inline-flex items-center gap-1 text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white font-medium"
+              title="Refresh list"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {/* Toolbar 3-input-group */}
+        <div className="px-5 py-3 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <input
+              value={filter.search}
+              onChange={(e) => setFilter((f) => ({ ...f, search: e.target.value }))}
+              placeholder="Cari name / comment / MAC..."
+              className={inputClass}
+            />
+            <select
+              value={filter.profile}
+              onChange={(e) => setFilter((f) => ({ ...f, profile: e.target.value }))}
+              className={inputClass}
+            >
+              <option value="">Semua Profile</option>
+              {profiles.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+            <select
+              value={filter.comment}
+              onChange={(e) => setFilter((f) => ({ ...f, comment: e.target.value }))}
+              className={inputClass}
+              title="Filter berdasarkan comment (biasanya batch voucher)"
+            >
+              <option value="">Semua Comment</option>
+              {commentOptions.map((c) => (
+                <option key={c.value} value={c.value}>{c.value} [{c.count}]</option>
+              ))}
+            </select>
+          </div>
         </div>
         {loading && users.length === 0 ? (
           <p className="px-5 py-8 text-sm text-gray-400 dark:text-white/30 text-center">Memuat...</p>

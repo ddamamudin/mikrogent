@@ -105,13 +105,26 @@ export default function VoucherPanel({ routerId }: { routerId: string }) {
 
   return (
     <div className="space-y-3">
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 p-5 shadow-sm space-y-3">
-        <div>
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Generate Voucher</h2>
-          <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5">
-            Bikin user hotspot massal dengan pola random. Mode <strong>vc</strong> = user &amp; password sama (1 kode di voucher). Mode <strong>up</strong> = user dan password beda.
+      {message && (
+        <div className={`text-sm px-4 py-3 rounded-lg ${message.type === "ok" ? "bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-500/20" : "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/20"}`}>
+          {message.text}
+        </div>
+      )}
+
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden shadow-sm">
+        <div className="px-5 py-3 border-b border-gray-100 dark:border-white/5 flex items-center justify-between flex-wrap gap-2">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-white/80 flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 dark:text-white/40"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+            <span>Generate Voucher</span>
+          </h2>
+        </div>
+        <div className="px-5 py-3 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
+          <p className="text-[11px] text-gray-500 dark:text-white/40">
+            Bikin user hotspot massal pakai pola random. Mode <strong>vc</strong> = user &amp; password sama (1 kode di voucher). Mode <strong>up</strong> = user dan password beda.
           </p>
         </div>
+
+        <div className="p-5 space-y-3">
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
           <div>
@@ -165,13 +178,8 @@ export default function VoucherPanel({ routerId }: { routerId: string }) {
         <button onClick={generate} disabled={busy} className="w-full px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium">
           {busy ? "Generating..." : "Generate"}
         </button>
-      </div>
-
-      {message && (
-        <div className={`text-sm px-4 py-3 rounded-lg ${message.type === "ok" ? "bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-500/20" : "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/20"}`}>
-          {message.text}
         </div>
-      )}
+      </div>
 
       {result && (
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden shadow-sm">

@@ -128,16 +128,6 @@ export default function HotspotProfilePanel({ routerId }: { routerId: string }) 
 
   return (
     <div className="space-y-3">
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 p-3 shadow-sm flex flex-wrap gap-2 items-center justify-between">
-        <p className="text-xs text-gray-500 dark:text-white/40">
-          Profile menentukan validity, harga, bandwidth, dan mode expired tiap voucher.
-        </p>
-        <div className="flex gap-2">
-          <button onClick={fetchData} className="text-xs px-3 py-2 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 text-gray-700 dark:text-white/70 font-medium">Refresh</button>
-          <button onClick={() => setAdding(emptyDraft())} className="text-xs px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium">+ Tambah Profile</button>
-        </div>
-      </div>
-
       {message && (
         <div className={`text-sm px-4 py-3 rounded-lg ${message.type === "ok" ? "bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-500/20" : "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/20"}`}>
           {message.text}
@@ -145,8 +135,28 @@ export default function HotspotProfilePanel({ routerId }: { routerId: string }) 
       )}
 
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden shadow-sm">
-        <div className="px-5 py-3 border-b border-gray-100 dark:border-white/5">
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-white/80">Profile ({profiles.length})</h2>
+        <div className="px-5 py-3 border-b border-gray-100 dark:border-white/5 flex items-center justify-between flex-wrap gap-2">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-white/80 flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 dark:text-white/40"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            <span>User Profile</span>
+            <span className="text-xs font-normal text-gray-400 dark:text-white/30">({profiles.length})</span>
+          </h2>
+          <div className="flex items-center gap-2 text-xs">
+            <button onClick={() => setAdding(emptyDraft())} className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline font-medium">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Tambah Profile
+            </button>
+            <span className="text-gray-300 dark:text-white/10">|</span>
+            <button onClick={fetchData} className="inline-flex items-center gap-1 text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white font-medium" title="Refresh">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+        <div className="px-5 py-2 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
+          <p className="text-[11px] text-gray-500 dark:text-white/40">
+            Profile menentukan <strong>validity, harga, bandwidth, expire mode, lock MAC</strong> tiap voucher. Voucher di-generate berdasarkan profile yang dipilih.
+          </p>
         </div>
         {loading ? (
           <p className="px-5 py-8 text-sm text-gray-400 dark:text-white/30 text-center">Memuat...</p>

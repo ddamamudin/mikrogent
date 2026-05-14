@@ -19,28 +19,72 @@ type RouterTab = {
 
 type MenuKey = "status" | "users" | "profiles" | "active" | "voucher";
 
-const MENU: { key: MenuKey; label: string; icon: React.ReactNode }[] = [
+type MenuItem = { key: MenuKey; label: string; icon: React.ReactNode };
+type MenuSection = { label: string; items: MenuItem[] };
+
+// Sidebar ala mikhmon — grouped by section dengan icon Font-Awesome-ish.
+// Section uppercase kecil di atas, items di bawah. Tier 1 implemented; sisa
+// menu mikhmon (Hosts, IP Bindings, Cookies, Log, System, Report) di-tunda.
+const SECTIONS: MenuSection[] = [
   {
-    key: "status", label: "Status",
-    icon: (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12h4l3 9 6-18 3 9h4"/></svg>),
+    label: "DASHBOARD",
+    items: [
+      {
+        key: "status", label: "Status Router",
+        icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12h4l3 9 6-18 3 9h4"/></svg>,
+      },
+    ],
   },
   {
-    key: "users", label: "Hotspot User",
-    icon: (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>),
+    label: "HOTSPOT",
+    items: [
+      {
+        key: "users", label: "User List",
+        icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+      },
+      {
+        key: "profiles", label: "User Profile",
+        icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>,
+      },
+      {
+        key: "active", label: "User Aktif",
+        icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>,
+      },
+    ],
   },
   {
-    key: "profiles", label: "User Profile",
-    icon: (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>),
-  },
-  {
-    key: "active", label: "Active User",
-    icon: (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>),
-  },
-  {
-    key: "voucher", label: "Generate Voucher",
-    icon: (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>),
+    label: "VOUCHER",
+    items: [
+      {
+        key: "voucher", label: "Generate Voucher",
+        icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>,
+      },
+    ],
   },
 ];
+
+const SOON_SECTIONS: MenuSection[] = [
+  {
+    label: "SEGERA",
+    items: [
+      { key: "users", label: "Hosts", icon: <SoonIcon /> },
+      { key: "users", label: "IP Bindings", icon: <SoonIcon /> },
+      { key: "users", label: "Cookies", icon: <SoonIcon /> },
+      { key: "users", label: "Quick Print", icon: <SoonIcon /> },
+      { key: "users", label: "PPP", icon: <SoonIcon /> },
+      { key: "users", label: "Log", icon: <SoonIcon /> },
+      { key: "users", label: "Report Selling", icon: <SoonIcon /> },
+    ],
+  },
+];
+
+function SoonIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+  );
+}
 
 export default function MonitorClient({ initialRouters }: { initialRouters: RouterTab[] }) {
   const [routers, setRouters] = useState<RouterTab[]>(initialRouters);
@@ -141,27 +185,62 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
 
       {active && active.apiEnabled && (
         <div className="flex flex-col lg:flex-row gap-4">
-          {/* Sub-sidebar in-page */}
-          <aside className="lg:w-52 shrink-0">
-            <nav className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm p-2 flex flex-row lg:flex-col gap-1 overflow-x-auto lg:overflow-visible">
-              {MENU.map((m) => {
-                const isOn = menu === m.key;
-                return (
-                  <button
-                    key={m.key}
-                    onClick={() => setMenu(m.key)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap ${
-                      isOn
-                        ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                        : "text-gray-600 dark:text-white/70 hover:bg-gray-100 dark:hover:bg-white/5"
-                    }`}
-                  >
-                    <span className="shrink-0">{m.icon}</span>
-                    <span>{m.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
+          {/* Sub-sidebar in-page ala mikhmon (sections + items) */}
+          <aside className="lg:w-56 shrink-0">
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden">
+              {/* Header dengan identity router (mirip mikhmon "MikhmonSession" header) */}
+              <div className="px-4 py-3 border-b border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/5">
+                <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-white/30 font-semibold">Router aktif</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white truncate mt-0.5">{active.name}</p>
+                <p className="text-[11px] font-mono text-gray-400 dark:text-white/30 truncate">{active.host}</p>
+              </div>
+
+              <nav className="p-2 flex flex-col">
+                {SECTIONS.map((sec) => (
+                  <div key={sec.label} className="mb-1">
+                    <p className="px-2 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-white/30">
+                      {sec.label}
+                    </p>
+                    {sec.items.map((it) => {
+                      const isOn = menu === it.key;
+                      return (
+                        <button
+                          key={`${sec.label}-${it.key}`}
+                          onClick={() => setMenu(it.key)}
+                          className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                            isOn
+                              ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                              : "text-gray-600 dark:text-white/70 hover:bg-gray-100 dark:hover:bg-white/5"
+                          }`}
+                        >
+                          <span className="shrink-0">{it.icon}</span>
+                          <span className="text-left flex-1 truncate">{it.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))}
+
+                {/* Coming soon section — visual placeholder buat Tier 2/3 */}
+                {SOON_SECTIONS.map((sec) => (
+                  <div key={sec.label} className="mb-1 mt-2 border-t border-gray-100 dark:border-white/5 pt-2">
+                    <p className="px-2 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-white/30">
+                      {sec.label}
+                    </p>
+                    {sec.items.map((it, idx) => (
+                      <div
+                        key={`soon-${sec.label}-${idx}`}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-300 dark:text-white/20 cursor-not-allowed select-none"
+                        title="Belum tersedia, masih dalam pengembangan"
+                      >
+                        <span className="shrink-0">{it.icon}</span>
+                        <span className="text-left flex-1 truncate">{it.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </nav>
+            </div>
           </aside>
 
           {/* Content area */}
