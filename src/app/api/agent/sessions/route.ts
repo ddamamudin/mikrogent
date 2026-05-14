@@ -56,3 +56,16 @@ export async function POST() {
 
   return NextResponse.json({ session: created });
 }
+
+// DELETE — hapus semua sesi chat user. Dipakai tombol "Bersihkan semua chat"
+// di sidebar histori.
+export async function DELETE() {
+  const auth = await requireUser();
+  if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
+  const result = await prisma.agentChatSession.deleteMany({
+    where: { userId: auth.session.userId },
+  });
+
+  return NextResponse.json({ ok: true, deleted: result.count });
+}

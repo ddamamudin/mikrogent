@@ -26,6 +26,9 @@ export default function SessionsListSidebar() {
   const [renameTarget, setRenameTarget] = useState<SessionItem | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [renaming, setRenaming] = useState(false);
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
+  const [pendingClearAll, setPendingClearAll] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   // Histori chat selalu tampil di sidebar dashboard (Router, Monitor, Agent),
@@ -115,6 +118,22 @@ export default function SessionsListSidebar() {
     }
   };
 
+  const handleClearAll = async () => {
+    setClearing(true);
+    try {
+      const res = await fetch("/api/agent/sessions", { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setPendingClearAll(false);
+      // Setelah semua dihapus, server bakal auto-create sesi baru saat
+      // user mendarat di /dashboard/agent. Navigate ke sana supaya state bersih.
+      window.location.href = "/dashboard/agent";
+    } catch {
+      // gagal → biarin state, user bisa retry
+    } finally {
+      setClearing(false);
+    }
+  };
+
   const handleRename = async () => {
     if (!renameTarget) return;
     const newTitle = renameValue.trim();
@@ -141,10 +160,56 @@ export default function SessionsListSidebar() {
   return (
     <>
       {/* Section header sticky — full-width separator kayak Masukan/Profil footer */}
-      <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-white/10 px-3 pt-3 pb-1">
+      <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-white/10 px-3 pt-3 pb-1 flex items-center justify-between gap-2">
         <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-white/30 font-semibold">
           Histori ({sessions.length}/20)
         </p>
+        <div className="relative">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setHeaderMenuOpen((o) => !o);
+            }}
+            className={`p-1 rounded text-gray-400 dark:text-white/30 hover:bg-gray-200 dark:hover:bg-white/10 hover:text-gray-700 dark:hover:text-white transition ${
+              headerMenuOpen ? "bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-white" : ""
+            }`}
+            aria-label="Opsi histori"
+            title="Opsi histori"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <circle cx="12" cy="5" r="1.5" />
+              <circle cx="12" cy="12" r="1.5" />
+              <circle cx="12" cy="19" r="1.5" />
+            </svg>
+          </button>
+          {headerMenuOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-[55]"
+                onClick={() => setHeaderMenuOpen(false)}
+                aria-hidden="true"
+              />
+              <div
+                role="menu"
+                className="absolute top-full right-0 mt-1 w-44 z-[56] bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1"
+              >
+                <button
+                  onClick={() => {
+                    setHeaderMenuOpen(false);
+                    setPendingClearAll(true);
+                  }}
+                  className="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
+                  </svg>
+                  Bersihkan semua chat
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
       <div className="px-2 pb-2">
         {sessions.map((s) => {
@@ -272,6 +337,45 @@ export default function SessionsListSidebar() {
                 className="flex-1 px-3 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-medium transition disabled:opacity-50"
               >
                 {deletingId !== null ? "Menghapus..." : "Hapus"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Bersihkan semua chat */}
+      {pendingClearAll && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[60] flex items-center justify-center px-4"
+        >
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => !clearing && setPendingClearAll(false)}
+            aria-hidden="true"
+          />
+          <div className="relative w-full max-w-sm bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 shadow-xl p-5 space-y-3">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white">Bersihkan semua chat?</h3>
+            <p className="text-sm text-gray-600 dark:text-white/60">
+              Semua <strong className="text-gray-900 dark:text-white">{sessions.length} sesi</strong> chat akan dihapus permanen dan tidak bisa dikembalikan.
+            </p>
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setPendingClearAll(false)}
+                disabled={clearing}
+                className="flex-1 px-3 py-2 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-white/70 text-sm font-medium transition disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleClearAll}
+                disabled={clearing}
+                className="flex-1 px-3 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-medium transition disabled:opacity-50"
+              >
+                {clearing ? "Menghapus..." : "Bersihkan"}
               </button>
             </div>
           </div>

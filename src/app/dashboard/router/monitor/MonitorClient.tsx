@@ -163,23 +163,6 @@ const SECTIONS: MenuSection[] = [
   },
 ];
 
-const SOON_SECTIONS: MenuSection[] = [
-  {
-    label: "SEGERA",
-    items: [
-      { key: "users", label: "Report Selling", icon: <SoonIcon /> },
-    ],
-  },
-];
-
-function SoonIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-    </svg>
-  );
-}
-
 export default function MonitorClient({ initialRouters }: { initialRouters: RouterTab[] }) {
   const dashSidebar = useDashboardSidebar();
   const [routers, setRouters] = useState<RouterTab[]>(initialRouters);
@@ -362,23 +345,6 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
                 </div>
               ))}
 
-              {SOON_SECTIONS.map((sec) => (
-                <div key={sec.label} className="mb-1 mt-2 border-t border-gray-100 dark:border-white/5 pt-2">
-                  <p className="px-2 pt-1 pb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-white/30">
-                    {sec.label}
-                  </p>
-                  {sec.items.map((it, idx) => (
-                    <div
-                      key={`soon-${sec.label}-${idx}`}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-300 dark:text-white/20 cursor-not-allowed select-none"
-                      title="Belum tersedia, masih dalam pengembangan"
-                    >
-                      <span className="shrink-0">{it.icon}</span>
-                      <span className="text-left flex-1 truncate">{it.label}</span>
-                    </div>
-                  ))}
-                </div>
-              ))}
             </nav>
           </div>
         </aside>
