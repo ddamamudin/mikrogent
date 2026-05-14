@@ -57,15 +57,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   if (typeof sshUser === "string") data.sshUser = sshUser.trim();
   if (typeof sshPass === "string") data.sshPass = encryptSshPass(sshPass.trim());
 
-  // Kalau kredensial koneksi berubah, reset status connected supaya user wajib verify ulang
+  // Kalau kredensial koneksi berubah, reset status connected & apiEnabled supaya user wajib verify ulang
   if (data.host !== undefined || data.port !== undefined || data.sshUser !== undefined || data.sshPass !== undefined) {
     data.connected = false;
+    data.apiEnabled = false;
   }
 
   const updated = await prisma.mikrotikCredential.update({
     where: { id },
     data,
-    select: { id: true, name: true, host: true, port: true, sshUser: true, sshPass: true, connected: true },
+    select: { id: true, name: true, host: true, port: true, sshUser: true, sshPass: true, connected: true, apiEnabled: true, apiPort: true },
   });
   notifyRouterChange(auth.userId);
   return NextResponse.json({ ok: true, router: { ...updated, sshPass: decryptSshPass(updated.sshPass) } });

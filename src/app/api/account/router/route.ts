@@ -24,7 +24,7 @@ export async function GET() {
 
   const rows = await prisma.mikrotikCredential.findMany({
     where: { userId: auth.userId },
-    select: { id: true, name: true, host: true, port: true, sshUser: true, sshPass: true, connected: true, updatedAt: true },
+    select: { id: true, name: true, host: true, port: true, sshUser: true, sshPass: true, connected: true, apiEnabled: true, apiPort: true, updatedAt: true },
     orderBy: { createdAt: "asc" },
   });
   const routers = rows.map((r) => ({ ...r, sshPass: decryptSshPass(r.sshPass) }));
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
       sshPass: encryptSshPass(String(sshPass).trim()),
       connected: false,
     },
-    select: { id: true, name: true, host: true, port: true, sshUser: true, sshPass: true, connected: true },
+    select: { id: true, name: true, host: true, port: true, sshUser: true, sshPass: true, connected: true, apiEnabled: true, apiPort: true },
   });
 
   RT.adminRouterChanged().catch(() => {});

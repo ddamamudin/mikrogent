@@ -18,7 +18,7 @@ export default async function DashboardRouterPage() {
     }),
     prisma.mikrotikCredential.findMany({
       where: { userId: session.userId },
-      select: { id: true, name: true, host: true, port: true, sshUser: true, sshPass: true, connected: true, updatedAt: true },
+      select: { id: true, name: true, host: true, port: true, sshUser: true, sshPass: true, connected: true, apiEnabled: true, apiPort: true, updatedAt: true },
       orderBy: { createdAt: "asc" },
     }),
     // Multi-session: ambil activeCredentialId dari sesi most-recent untuk tampilan

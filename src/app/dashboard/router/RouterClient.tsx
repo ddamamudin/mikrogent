@@ -12,6 +12,8 @@ type RouterRow = {
   sshUser: string;
   sshPass: string;
   connected: boolean;
+  apiEnabled: boolean;
+  apiPort: number;
 };
 
 // Pending new router (belum punya id, belum save)
@@ -183,6 +185,20 @@ export default function RouterClient({
     void verifyRouter(id);
   };
 
+  const enableApi = async (id: string) => {
+    setBusyId(id);
+    const res = await fetch(`/api/account/router/${id}/enable-api`, { method: "POST" });
+    setBusyId(null);
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      setRouters((rs) => rs.map((r) => (r.id === id ? { ...r, apiEnabled: true } : r)));
+      const id_msg = data.identity ? ` (identity: ${data.identity})` : "";
+      showMsg("ok", `API aktif${id_msg}. Buka menu Monitor untuk lihat status router.`);
+    } else {
+      showMsg("err", data?.error || "Gagal aktifkan API");
+    }
+  };
+
   const verifyRouter = async (id: string) => {
     setBusyId(id);
     const res = await fetch(`/api/account/router/${id}/verify`, { method: "POST" });
@@ -297,14 +313,24 @@ export default function RouterClient({
               ) : (
                 <h2 className="text-sm font-semibold text-gray-900 dark:text-white">{r.name}</h2>
               )}
-              <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full ${
-                r.connected
-                  ? "bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400"
-                  : "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400"
-              }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${r.connected ? "bg-green-500" : "bg-amber-500"}`} />
-                {r.connected ? "Terhubung" : "Belum terhubung"}
-              </span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full ${
+                  r.connected
+                    ? "bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400"
+                    : "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${r.connected ? "bg-green-500" : "bg-amber-500"}`} />
+                  {r.connected ? "Terhubung" : "Belum terhubung"}
+                </span>
+                <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full ${
+                  r.apiEnabled
+                    ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400"
+                    : "bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-white/40"
+                }`} title={r.apiEnabled ? `RouterOS API aktif di port ${r.apiPort}` : "RouterOS API belum diaktifkan"}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${r.apiEnabled ? "bg-indigo-500" : "bg-gray-400"}`} />
+                  {r.apiEnabled ? "API aktif" : "API non-aktif"}
+                </span>
+              </div>
             </div>
 
             {isEditing ? (
@@ -363,6 +389,11 @@ export default function RouterClient({
                   <button onClick={() => verifyRouter(r.id)} disabled={isBusy} className="text-xs px-3 py-1.5 rounded-lg bg-blue-100 dark:bg-blue-500/10 hover:bg-blue-200 dark:hover:bg-blue-500/20 text-blue-700 dark:text-blue-400 font-medium transition disabled:opacity-50">
                     {isBusy ? "..." : "Tes Koneksi"}
                   </button>
+                  {!r.apiEnabled && (
+                    <button onClick={() => enableApi(r.id)} disabled={isBusy || !r.connected} title={!r.connected ? "Tes koneksi SSH dulu sebelum aktifkan API" : `Aktifkan RouterOS API di port ${r.apiPort}`} className="text-xs px-3 py-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-500/10 hover:bg-indigo-200 dark:hover:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 font-medium transition disabled:opacity-50">
+                      {isBusy ? "..." : "Aktifkan API"}
+                    </button>
+                  )}
                   <button onClick={() => startEdit(r)} disabled={isBusy} className="text-xs px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-white/70 font-medium transition disabled:opacity-50">
                     Edit
                   </button>

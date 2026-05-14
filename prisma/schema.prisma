@@ -65,16 +65,18 @@ model AppConfig {
 }
 
 model MikrotikCredential {
-  id        String   @id @default(cuid())
-  userId    String
-  name      String
-  host      String
-  port      Int      @default(22)
-  sshUser   String
-  sshPass   String
-  connected Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  host       String
+  port       Int      @default(22)
+  sshUser    String
+  sshPass    String
+  connected  Boolean  @default(false)
+  apiEnabled Boolean  @default(false)
+  apiPort    Int      @default(8728)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   agentMemory       AgentMemory?
   activeInSessions  AgentChatSession[] @relation("ActiveCredential")

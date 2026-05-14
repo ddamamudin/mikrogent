@@ -1,5 +1,6 @@
 import { Client } from 'ssh2';
 import { createConnection } from 'net';
+import { RouterOSAPI } from 'node-routeros';
 
 // Quick TCP port check (mirip mikhmon fsockopen).
 // Cuma cek apakah port terbuka & host reachable, gak verify auth.
@@ -145,4 +146,142 @@ export async function scanMikrotikConfig(config: MikrotikConfig): Promise<string
   return joined.slice(0, TOTAL_MEMORY_CAP) +
     `\n\n[Snapshot total dipotong di ${TOTAL_MEMORY_CAP} karakter. ` +
     `Sisanya bisa di-query ad-hoc via execute_mikrotik_command.]`;
+}
+
+// =====================================================================
+// RouterOS API helpers (port 8728 default)
+// =====================================================================
+
+export interface RouterosApiConfig {
+  host: string;
+  apiPort?: number;
+  username: string;
+  password: string;
+  timeoutMs?: number;
+}
+
+// Open koneksi RouterOS API. Caller WAJIB panggil .close() (atau pakai
+// withRouterosApi yang udah handle close otomatis di finally).
+export async function connectRouterosApi(cfg: RouterosApiConfig): Promise<RouterOSAPI> {
+  const api = new RouterOSAPI({
+    host: cfg.host,
+    user: cfg.username,
+    password: cfg.password,
+    port: cfg.apiPort ?? 8728,
+    timeout: Math.ceil((cfg.timeoutMs ?? 8000) / 1000),
+    keepalive: false,
+  });
+  await api.connect();
+  return api;
+}
+
+// Helper buat operasi sekali pakai: connect → run → close otomatis.
+// Aman dari leak koneksi kalau run throw exception.
+export async function withRouterosApi<T>(
+  cfg: RouterosApiConfig,
+  run: (api: RouterOSAPI) => Promise<T>,
+): Promise<T> {
+  const api = await connectRouterosApi(cfg);
+  try {
+    return await run(api);
+  } finally {
+    try { api.close(); } catch {}
+  }
+}
+
+// Aktifkan RouterOS API service via SSH. Idempotent: cek state dulu sebelum
+// ngubah supaya gak generate change event ke router yang udah on.
+// Set address restriction kalau MIKROPLAY_SERVER_IP di-env.
+export async function enableRouterosApiService(
+  sshCfg: MikrotikConfig,
+): Promise<{ ok: boolean; alreadyEnabled: boolean; addressRestricted: boolean; raw: string; error?: string }> {
+  const restrictIp = process.env.MIKROPLAY_SERVER_IP?.trim();
+  const restrictCidr = restrictIp ? `${restrictIp}/32` : "";
+
+  // 1. Cek state sekarang
+  let printOut: string;
+  try {
+    printOut = await executeMikrotikCommand(
+      "/ip service print where name=api",
+      sshCfg,
+    );
+  } catch (e) {
+    return {
+      ok: false,
+      alreadyEnabled: false,
+      addressRestricted: false,
+      raw: "",
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
+
+  // RouterOS print output: kalau `X` di kolom flags = disabled.
+  // Sederhana: cek apakah ada token "X" di line yang mengandung "api ".
+  const lines = printOut.split(/\r?\n/);
+  const apiLine = lines.find((l) => /\bapi\b/.test(l) && !/api-ssl/.test(l)) ?? "";
+  const isDisabled = /^\s*\d+\s+[A-Z]*X/.test(apiLine);
+  const alreadyEnabled = !isDisabled && apiLine.length > 0;
+
+  // 2. Bangun command set: enable + (optional) address restriction.
+  const cmds: string[] = [];
+  if (isDisabled) cmds.push("/ip service set [find name=api] disabled=no");
+  if (restrictCidr) cmds.push(`/ip service set [find name=api] address=${restrictCidr}`);
+
+  let cmdOutput = "";
+  for (const cmd of cmds) {
+    try {
+      cmdOutput += `\n$ ${cmd}\n` + (await executeMikrotikCommand(cmd, sshCfg));
+    } catch (e) {
+      return {
+        ok: false,
+        alreadyEnabled,
+        addressRestricted: false,
+        raw: printOut + cmdOutput,
+        error: e instanceof Error ? e.message : String(e),
+      };
+    }
+  }
+
+  // 3. Verify ulang
+  let verifyOut = "";
+  try {
+    verifyOut = await executeMikrotikCommand(
+      "/ip service print where name=api",
+      sshCfg,
+    );
+  } catch (e) {
+    return {
+      ok: false,
+      alreadyEnabled,
+      addressRestricted: false,
+      raw: printOut + cmdOutput,
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
+
+  const verifyLine = verifyOut.split(/\r?\n/).find((l) => /\bapi\b/.test(l) && !/api-ssl/.test(l)) ?? "";
+  const stillDisabled = /^\s*\d+\s+[A-Z]*X/.test(verifyLine);
+
+  return {
+    ok: !stillDisabled,
+    alreadyEnabled,
+    addressRestricted: !!restrictCidr,
+    raw: printOut + cmdOutput + "\n=== verify ===\n" + verifyOut,
+  };
+}
+
+// Quick test koneksi via API. Pakai /system/identity/print (paling ringan).
+// Auto-close. Return identity name kalau sukses.
+export async function testRouterosApi(
+  cfg: RouterosApiConfig,
+): Promise<{ ok: boolean; identity?: string; error?: string }> {
+  try {
+    const identity = await withRouterosApi(cfg, async (api) => {
+      const rows = await api.write("/system/identity/print");
+      return rows?.[0]?.name as string | undefined;
+    });
+    return { ok: true, identity };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
 }
