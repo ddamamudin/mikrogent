@@ -27,7 +27,8 @@ export async function POST() {
       select: { id: true, name: true, host: true, connected: true },
       orderBy: { createdAt: "asc" },
     }),
-    prisma.agentChatSession.findUnique({ where: { userId }, select: { activeCredentialId: true } }),
+    // Phase 1 multi-session: voice nempel ke sesi paling baru (most-recent updatedAt).
+    prisma.agentChatSession.findFirst({ where: { userId }, orderBy: { updatedAt: "desc" }, select: { id: true, activeCredentialId: true } }),
     prisma.agentDailyCount.findUnique({ where: { userId } }),
   ]);
 
@@ -75,11 +76,17 @@ export async function POST() {
   }
   if (!activeCredentialId && connectedRouters.length === 1) {
     activeCredentialId = connectedRouters[0].id;
-    await prisma.agentChatSession.upsert({
-      where: { userId },
-      update: { activeCredentialId },
-      create: { userId, activeCredentialId, messages: [], apiMessages: [] },
-    });
+    if (chatSession?.id) {
+      await prisma.agentChatSession.update({
+        where: { id: chatSession.id },
+        data: { activeCredentialId },
+      });
+    } else {
+      // First-time voice user: bikin sesi baru biar konsisten dengan chat flow.
+      await prisma.agentChatSession.create({
+        data: { userId, activeCredentialId, messages: [], apiMessages: [] },
+      });
+    }
   }
 
   const memory = activeCredentialId

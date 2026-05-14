@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect, createContext, useContext, Suspense } from "react";
 import { usePathname } from "next/navigation";
 import { InstallButton } from "@/components/InstallButton";
 import MasukanSidebarLink from "@/components/MasukanSidebarLink";
+import SessionsListSidebar from "@/components/SessionsListSidebar";
 
 const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
 
@@ -140,7 +141,7 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
             <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
               {NAV.map(({ href, label, icon }) => {
                 const active = pathname === href || pathname.startsWith(`${href}/`);
-                return (
+                const item = (
                   <a
                     key={href}
                     href={href}
@@ -154,6 +155,17 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
                     <span>{label}</span>
                   </a>
                 );
+                if (href === "/dashboard/agent") {
+                  return (
+                    <div key={href}>
+                      {item}
+                      <Suspense fallback={null}>
+                        <SessionsListSidebar />
+                      </Suspense>
+                    </div>
+                  );
+                }
+                return item;
               })}
 
               {showBrandField && user.brand && (

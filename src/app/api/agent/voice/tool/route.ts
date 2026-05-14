@@ -22,15 +22,24 @@ export async function POST(req: NextRequest) {
   const userId = session.userId;
   const [user, chatSession] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { validated: true } }),
-    prisma.agentChatSession.findUnique({ where: { userId }, select: { activeCredentialId: true } }),
+    // Phase 1 multi-session: voice tool nempel ke sesi most-recent.
+    prisma.agentChatSession.findFirst({
+      where: { userId },
+      orderBy: { updatedAt: "desc" },
+      select: { id: true, activeCredentialId: true },
+    }),
   ]);
   if (!user?.validated) {
     return NextResponse.json({ error: "Akun belum tervalidasi" }, { status: 403 });
   }
+  if (!chatSession) {
+    return NextResponse.json({ error: "Sesi chat belum ada. Buka halaman agent dulu yaa." }, { status: 400 });
+  }
 
-  let activeCredentialId = chatSession?.activeCredentialId ?? null;
+  let activeCredentialId = chatSession.activeCredentialId ?? null;
   const ctx = {
     userId,
+    sessionId: chatSession.id,
     activeCredentialId,
     setActiveCredentialId: (id: string | null) => { activeCredentialId = id; ctx.activeCredentialId = id; },
   };

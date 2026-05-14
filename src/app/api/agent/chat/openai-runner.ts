@@ -96,6 +96,7 @@ export async function runOpenAI(opts: {
   memory: string | null;
   firstName: string;
   userId: string;
+  sessionId: string;
   routers: RouterInfo[];
   activeCredentialId: string | null;
   emit: (evt: SseEvent) => void;
@@ -104,6 +105,7 @@ export async function runOpenAI(opts: {
   let activeCredentialId = opts.activeCredentialId;
   const ctx: ToolContext = {
     userId: opts.userId,
+    sessionId: opts.sessionId,
     activeCredentialId,
     setActiveCredentialId: (id) => { activeCredentialId = id; ctx.activeCredentialId = id; },
   };

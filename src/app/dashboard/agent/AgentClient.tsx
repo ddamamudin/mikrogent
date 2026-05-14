@@ -17,8 +17,11 @@ interface Attachment {
   preview: string; // data URL for thumbnail
 }
 
+export type SessionListItem = { id: string; title: string | null; updatedAt: string };
+
 interface Props {
   userId: string;
+  sessionId: string;
   firstName: string;
   hasAnyConnected: boolean;
   totalRouters: number;
@@ -32,6 +35,7 @@ interface Props {
   voiceCallEnabled: boolean;
   voiceDailyLimitSeconds: number;
   initialVoiceSecondsUsed: number;
+  sessionsList: SessionListItem[];
 }
 
 function greetingByTime(d: Date = new Date()): string {
@@ -42,7 +46,7 @@ function greetingByTime(d: Date = new Date()): string {
   return "Selamat Malam";
 }
 
-export default function AgentClient({ firstName, hasAnyConnected, totalRouters, connectedRouters, activeRouter, agentReady, dailyChatLimit, initialChatCount, initialMessages, initialApiMessages, voiceCallEnabled, voiceDailyLimitSeconds, initialVoiceSecondsUsed }: Props) {
+export default function AgentClient({ sessionId, firstName, hasAnyConnected, totalRouters, connectedRouters, activeRouter, agentReady, dailyChatLimit, initialChatCount, initialMessages, initialApiMessages, voiceCallEnabled, voiceDailyLimitSeconds, initialVoiceSecondsUsed, sessionsList }: Props) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [apiMessages, setApiMessages] = useState<ApiMessage[]>(initialApiMessages);
   const [input, setInput] = useState("");
@@ -67,12 +71,12 @@ export default function AgentClient({ firstName, hasAnyConnected, totalRouters, 
   const { setState: setAgentSidebar } = useAgentSidebar();
 
   const saveSession = useCallback((msgs: Message[], apiMsgs: ApiMessage[]) => {
-    fetch("/api/agent/session", {
+    fetch(`/api/agent/sessions/${sessionId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ messages: msgs, apiMessages: apiMsgs }),
     }).catch(() => {});
-  }, []);
+  }, [sessionId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -101,10 +105,21 @@ export default function AgentClient({ firstName, hasAnyConnected, totalRouters, 
     return () => container.removeEventListener("click", handler);
   }, []);
 
-  const resetChat = useCallback(() => {
-    setMessages([]); setApiMessages([]); setError(""); setToolLabel(""); setStreamingText("");
-    setAttachments([]);
-    fetch("/api/agent/session", { method: "DELETE" }).catch(() => {});
+  // "Chat baru": bikin sesi baru di DB (auto-FIFO 10), terus navigate ke sesi
+  // tersebut via ?session=<id>. Lebih bersih daripada clear-in-place karena
+  // user bisa balik ke sesi lama lewat sidebar history.
+  const resetChat = useCallback(async () => {
+    setError(""); setToolLabel(""); setStreamingText(""); setAttachments([]);
+    try {
+      const res = await fetch("/api/agent/sessions", { method: "POST" });
+      if (!res.ok) throw new Error("Gagal bikin sesi baru");
+      const data = await res.json();
+      const newId: string | undefined = data?.session?.id;
+      if (!newId) throw new Error("Sesi baru tidak valid");
+      window.location.href = `/dashboard/agent?session=${newId}`;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal bikin sesi baru");
+    }
   }, []);
 
   // Push agent state ke sidebar (cuma yang dipakai header: tombol "Chat baru").
@@ -200,6 +215,7 @@ export default function AgentClient({ firstName, hasAnyConnected, totalRouters, 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          sessionId,
           messages: newApiMessages,
           attachments: snapshot.length > 0
             ? snapshot.map(({ name, data, mimeType }) => ({ name, data, mimeType }))

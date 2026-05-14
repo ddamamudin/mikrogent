@@ -28,30 +28,39 @@ export async function POST(req: NextRequest) {
   }
 
   const userId = session.userId;
-  const existing = await prisma.agentChatSession.findUnique({ where: { userId } });
+
+  // Phase 1 multi-session: voice tetep nge-target sesi paling baru (most-recent
+  // updatedAt). Kalau user lagi buka sesi lain di tab terpisah, transcript voice
+  // tetep nyangkut ke sesi yang terakhir di-update. Bisa di-tighten ke sessionId
+  // explicit nanti kalau perlu.
+  const existing = await prisma.agentChatSession.findFirst({
+    where: { userId },
+    orderBy: { updatedAt: "desc" },
+  });
 
   // Tandai pesan dari voice supaya kelihatan beda di UI (prefix 🎙️ di UI label)
   const newMessages = items.map((it) => ({ role: it.role, content: it.content, source: "voice" as const }));
   const newApiMessages = items.map((it) => ({ role: it.role, content: it.content }));
 
-  const messagesArr = Array.isArray(existing?.messages) ? (existing.messages as unknown[]) : [];
-  const apiMessagesArr = Array.isArray(existing?.apiMessages) ? (existing.apiMessages as unknown[]) : [];
-
-  const mergedMessages = JSON.parse(JSON.stringify([...messagesArr, ...newMessages]));
-  const mergedApiMessages = JSON.parse(JSON.stringify([...apiMessagesArr, ...newApiMessages]));
-
-  await prisma.agentChatSession.upsert({
-    where: { userId },
-    update: {
-      messages: mergedMessages,
-      apiMessages: mergedApiMessages,
-    },
-    create: {
-      userId,
-      messages: JSON.parse(JSON.stringify(newMessages)),
-      apiMessages: JSON.parse(JSON.stringify(newApiMessages)),
-    },
-  });
+  if (existing) {
+    const messagesArr = Array.isArray(existing.messages) ? (existing.messages as unknown[]) : [];
+    const apiMessagesArr = Array.isArray(existing.apiMessages) ? (existing.apiMessages as unknown[]) : [];
+    await prisma.agentChatSession.update({
+      where: { id: existing.id },
+      data: {
+        messages: JSON.parse(JSON.stringify([...messagesArr, ...newMessages])),
+        apiMessages: JSON.parse(JSON.stringify([...apiMessagesArr, ...newApiMessages])),
+      },
+    });
+  } else {
+    await prisma.agentChatSession.create({
+      data: {
+        userId,
+        messages: JSON.parse(JSON.stringify(newMessages)),
+        apiMessages: JSON.parse(JSON.stringify(newApiMessages)),
+      },
+    });
+  }
 
   return NextResponse.json({ ok: true, appended: items.length });
 }

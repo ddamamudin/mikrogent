@@ -93,12 +93,17 @@ export async function POST(req: NextRequest) {
 
   let inputMessages: Anthropic.MessageParam[];
   let attachments: AttachmentIn[] = [];
+  let sessionId: string;
   try {
     const body = await req.json();
     inputMessages = validateMessages(body?.messages);
     if (Array.isArray(body?.attachments)) {
       attachments = (body.attachments as AttachmentIn[]).slice(0, 5);
     }
+    if (typeof body?.sessionId !== "string" || !body.sessionId) {
+      throw new Error("sessionId wajib di body");
+    }
+    sessionId = body.sessionId;
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Request tidak valid";
     return new Response(sseRaw({ type: "error", error: msg }), {
@@ -135,10 +140,16 @@ export async function POST(req: NextRequest) {
       orderBy: { createdAt: "asc" },
     }),
     prisma.agentChatSession.findUnique({
-      where: { userId },
-      select: { activeCredentialId: true },
+      where: { id: sessionId },
+      select: { id: true, userId: true, activeCredentialId: true },
     }),
   ]);
+
+  if (!chatSession || chatSession.userId !== userId) {
+    return new Response(sseRaw({ type: "error", error: "Sesi chat tidak ditemukan" }), {
+      status: 404, headers: { "Content-Type": "text/event-stream" },
+    });
+  }
   const firstName = (user?.name ?? "").trim().split(/\s+/)[0] || "Kak";
   const connectedRouters = routers.filter((r) => r.connected);
 
@@ -163,11 +174,10 @@ export async function POST(req: NextRequest) {
   }
   if (!activeCredentialId && connectedRouters.length === 1) {
     activeCredentialId = connectedRouters[0].id;
-    // Persist auto-pick supaya next request konsisten
-    await prisma.agentChatSession.upsert({
-      where: { userId },
-      update: { activeCredentialId },
-      create: { userId, activeCredentialId, messages: [], apiMessages: [] },
+    // Persist auto-pick ke sesi yang lagi aktif supaya next request konsisten
+    await prisma.agentChatSession.update({
+      where: { id: sessionId },
+      data: { activeCredentialId },
     });
   }
 
@@ -187,6 +197,7 @@ export async function POST(req: NextRequest) {
     userId,
     routers: connectedRouters.map((r) => ({ id: r.id, name: r.name, host: r.host })),
     activeCredentialId,
+    sessionId,
   };
 
   // Atomic reserve: increment count by 1 (or reset to 1 kalau date beda) HANYA kalau belum lewat limit.

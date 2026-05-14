@@ -102,7 +102,9 @@ export const TOOL_LABELS: Record<string, (input: Record<string, unknown>) => str
 
 export interface ToolContext {
   userId: string;
-  // Active router state - bisa berubah dalam satu sesi via set_active_router
+  sessionId: string;
+  // Active router state - bisa berubah dalam satu sesi via set_active_router.
+  // Di-persist per AgentChatSession.activeCredentialId.
   activeCredentialId: string | null;
   setActiveCredentialId: (id: string | null) => void;
 }
@@ -135,10 +137,9 @@ export async function executeTool(
         return `ERROR: Router "${match.name}" (${match.host}) belum terhubung. Suruh user verifikasi koneksi router itu dulu di menu Router.`;
       }
 
-      await prisma.agentChatSession.upsert({
-        where: { userId: ctx.userId },
-        update: { activeCredentialId: match.id },
-        create: { userId: ctx.userId, activeCredentialId: match.id, messages: [], apiMessages: [] },
+      await prisma.agentChatSession.update({
+        where: { id: ctx.sessionId },
+        data: { activeCredentialId: match.id },
       });
       ctx.setActiveCredentialId(match.id);
       return `SUKSES: Router aktif sekarang "${match.name}" (${match.host}). Perintah selanjutnya akan jalan ke router ini.`;

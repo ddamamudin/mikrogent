@@ -21,8 +21,11 @@ export default async function DashboardRouterPage() {
       select: { id: true, name: true, host: true, port: true, sshUser: true, sshPass: true, connected: true, updatedAt: true },
       orderBy: { createdAt: "asc" },
     }),
-    prisma.agentChatSession.findUnique({
+    // Multi-session: ambil activeCredentialId dari sesi most-recent untuk tampilan
+    // "Aktif di agent" di Router page.
+    prisma.agentChatSession.findFirst({
       where: { userId: session.userId },
+      orderBy: { updatedAt: "desc" },
       select: { activeCredentialId: true },
     }),
   ]);

@@ -20,11 +20,23 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: "Router belum terhubung. Verifikasi koneksi dulu." }, { status: 400 });
   }
 
-  await prisma.agentChatSession.upsert({
+  // Phase 1 multi-session: set active router di sesi paling baru. Kalau belum
+  // ada sesi, bikin baru.
+  const recent = await prisma.agentChatSession.findFirst({
     where: { userId: session.userId },
-    update: { activeCredentialId: id },
-    create: { userId: session.userId, activeCredentialId: id, messages: [], apiMessages: [] },
+    orderBy: { updatedAt: "desc" },
+    select: { id: true },
   });
+  if (recent) {
+    await prisma.agentChatSession.update({
+      where: { id: recent.id },
+      data: { activeCredentialId: id },
+    });
+  } else {
+    await prisma.agentChatSession.create({
+      data: { userId: session.userId, activeCredentialId: id, messages: [], apiMessages: [] },
+    });
+  }
 
   return NextResponse.json({ ok: true });
 }
