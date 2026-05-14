@@ -90,6 +90,7 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
   const [routers, setRouters] = useState<RouterTab[]>(initialRouters);
   const [activeId, setActiveId] = useState<string | null>(initialRouters[0]?.id ?? null);
   const [menu, setMenu] = useState<MenuKey>("status");
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const refetch = useCallback(async () => {
     try {
@@ -141,36 +142,6 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
         </p>
       </div>
 
-      {/* Card picker router */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-        {routers.map((r) => {
-          const isActive = r.id === activeId;
-          return (
-            <button
-              key={r.id}
-              onClick={() => setActiveId(r.id)}
-              className={`text-left rounded-xl border px-3 py-2.5 transition shadow-sm ${
-                isActive
-                  ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-500/10 ring-2 ring-blue-500/20"
-                  : "border-gray-200 dark:border-white/10 bg-white dark:bg-slate-900 hover:border-gray-300 dark:hover:border-white/20"
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${r.apiEnabled ? "bg-indigo-500" : "bg-gray-400"}`} />
-                <p className={`text-sm font-semibold truncate ${
-                  isActive ? "text-blue-700 dark:text-blue-300" : "text-gray-900 dark:text-white"
-                }`}>
-                  {r.name}
-                </p>
-              </div>
-              <p className="text-[11px] font-mono text-gray-400 dark:text-white/30 truncate pl-3.5">
-                {r.host}
-              </p>
-            </button>
-          );
-        })}
-      </div>
-
       {active && !active.apiEnabled && (
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-amber-200 dark:border-amber-500/30 px-5 py-8 text-center space-y-2 shadow-sm">
           <p className="text-sm text-gray-700 dark:text-white/70">
@@ -186,15 +157,71 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
       {active && active.apiEnabled && (
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Sub-sidebar in-page ala mikhmon (sections + items) */}
-          <aside className="lg:w-56 shrink-0">
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden">
-              {/* Header dengan identity router (mirip mikhmon "MikhmonSession" header) */}
-              <div className="px-4 py-3 border-b border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/5">
-                <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-white/30 font-semibold">Router aktif</p>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white truncate mt-0.5">{active.name}</p>
-                <p className="text-[11px] font-mono text-gray-400 dark:text-white/30 truncate">{active.host}</p>
+          <aside className="lg:w-56 shrink-0 space-y-2">
+            {/* Picker card terpisah biar dropdown bisa nge-overlay nav card di bawahnya
+                tanpa kena clip overflow-hidden. */}
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm">
+              <div className="relative">
+                <button
+                  onClick={() => setPickerOpen((o) => !o)}
+                  className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/5 transition flex items-start gap-2 rounded-xl"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-white/30 font-semibold">Router aktif</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white truncate mt-0.5 flex items-center gap-1.5">
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${active.apiEnabled ? "bg-indigo-500" : "bg-gray-400"}`} />
+                      {active.name}
+                    </p>
+                    <p className="text-[11px] font-mono text-gray-400 dark:text-white/30 truncate">{active.host}</p>
+                  </div>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`text-gray-400 dark:text-white/30 shrink-0 mt-1 transition-transform ${pickerOpen ? "rotate-180" : ""}`}>
+                    <polyline points="6 9 12 15 18 9"/>
+                  </svg>
+                </button>
+                {pickerOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setPickerOpen(false)} aria-hidden="true" />
+                    <div className="absolute top-full left-0 right-0 mt-1 z-20 bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden">
+                      <p className="px-3 py-2 text-[10px] uppercase tracking-wider text-gray-400 dark:text-white/30 font-semibold border-b border-gray-100 dark:border-white/5">
+                        {routers.length} router
+                      </p>
+                      <div className="max-h-72 overflow-y-auto py-1">
+                        {routers.map((r) => {
+                          const isActive = r.id === activeId;
+                          return (
+                            <button
+                              key={r.id}
+                              onClick={() => { setActiveId(r.id); setPickerOpen(false); }}
+                              className={`w-full text-left px-3 py-2 transition flex items-start gap-2 ${
+                                isActive
+                                  ? "bg-blue-50 dark:bg-blue-500/10"
+                                  : "hover:bg-gray-50 dark:hover:bg-white/5"
+                              }`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${r.apiEnabled ? "bg-indigo-500" : "bg-gray-400"}`} />
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm font-medium truncate ${
+                                  isActive ? "text-blue-700 dark:text-blue-300" : "text-gray-900 dark:text-white"
+                                }`}>{r.name}</p>
+                                <p className="text-[11px] font-mono text-gray-400 dark:text-white/30 truncate">{r.host}</p>
+                              </div>
+                              {isActive && (
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500 dark:text-blue-400 shrink-0 mt-1">
+                                  <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
+            </div>
 
+            {/* Nav card terpisah dari picker */}
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden">
               <nav className="p-2 flex flex-col">
                 {SECTIONS.map((sec) => (
                   <div key={sec.label} className="mb-1">
