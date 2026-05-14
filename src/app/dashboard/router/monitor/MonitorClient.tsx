@@ -91,6 +91,7 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
   const [activeId, setActiveId] = useState<string | null>(initialRouters[0]?.id ?? null);
   const [menu, setMenu] = useState<MenuKey>("status");
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const refetch = useCallback(async () => {
     try {
@@ -122,24 +123,46 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
 
   if (routers.length === 0) {
     return (
-      <div className="space-y-4 max-w-7xl">
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Monitor Router</h1>
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 px-5 py-8 text-center text-sm text-gray-500 dark:text-white/40 shadow-sm">
-          Belum ada router. Tambahkan di <Link href="/dashboard/router" className="text-blue-500 hover:underline">halaman Router</Link> dulu.
-        </div>
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 px-5 py-8 text-center text-sm text-gray-500 dark:text-white/40 shadow-sm">
+        Belum ada router. Tambahkan di <Link href="/dashboard/router" className="text-blue-500 hover:underline">halaman Router</Link> dulu.
       </div>
     );
   }
 
+  // Cari label menu aktif buat tampil di header (mirip "page title" mini)
+  const activeMenuLabel =
+    SECTIONS.flatMap((s) => s.items).find((i) => i.key === menu)?.label ?? "Status Router";
+
   return (
-    <div className="space-y-4 max-w-7xl">
-      <div>
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Monitor Router</h1>
-        <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5">
-          Kelola router via RouterOS API. Aktifkan API dulu di{" "}
-          <Link href="/dashboard/router" className="text-blue-500 hover:underline">halaman Router</Link>{" "}
-          buat router yang masih non-aktif.
-        </p>
+    <div className="space-y-3">
+      {/* Sub-header Monitor: hamburger toggle sidebar + breadcrumb mini */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm px-3 py-2 flex items-center gap-3">
+        <button
+          onClick={() => setSidebarOpen((o) => !o)}
+          aria-label="Toggle menu Monitor"
+          title={sidebarOpen ? "Tutup menu" : "Buka menu"}
+          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition text-gray-700 dark:text-white/70"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <div className="flex items-center gap-2 text-sm min-w-0">
+          <span className="font-semibold text-gray-900 dark:text-white">Monitor</span>
+          <span className="text-gray-300 dark:text-white/20">/</span>
+          {active && (
+            <>
+              <span className="text-gray-700 dark:text-white/70 truncate flex items-center gap-1.5">
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${active.apiEnabled ? "bg-indigo-500" : "bg-gray-400"}`} />
+                {active.name}
+              </span>
+              <span className="text-gray-300 dark:text-white/20 hidden sm:inline">/</span>
+            </>
+          )}
+          <span className="text-gray-500 dark:text-white/50 truncate hidden sm:inline">{activeMenuLabel}</span>
+        </div>
       </div>
 
       {active && !active.apiEnabled && (
@@ -155,8 +178,9 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
       )}
 
       {active && active.apiEnabled && (
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* Sub-sidebar in-page ala mikhmon (sections + items) */}
+        <div className="flex flex-col lg:flex-row gap-3">
+          {/* Sub-sidebar — bisa di-toggle hide/show via hamburger di sub-header */}
+          {sidebarOpen && (
           <aside className="lg:w-56 shrink-0 space-y-2">
             {/* Picker card terpisah biar dropdown bisa nge-overlay nav card di bawahnya
                 tanpa kena clip overflow-hidden. */}
@@ -269,8 +293,9 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
               </nav>
             </div>
           </aside>
+          )}
 
-          {/* Content area */}
+          {/* Content area — full width kalau sidebar hide */}
           <div className="flex-1 min-w-0">
             {menu === "status" && <RouterStatus key={`status-${active.id}`} routerId={active.id} routerName={active.name} />}
             {menu === "users" && <HotspotUserPanel key={`users-${active.id}`} routerId={active.id} />}
