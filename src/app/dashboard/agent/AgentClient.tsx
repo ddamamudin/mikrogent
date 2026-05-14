@@ -132,6 +132,14 @@ export default function AgentClient({ firstName, hasAnyConnected, totalRouters, 
     el.style.height = Math.min(el.scrollHeight, 160) + "px";
   }
 
+  // Auto-resize tiap kali `input` state berubah — handle case dictation /
+  // paste programmatic yang gak lewat onChange handler textarea. Pakai useEffect
+  // supaya jalan setelah React commit DOM (setTimeout 0 dari handler luar
+  // kadang ke-fire sebelum commit, scrollHeight masih basi).
+  useEffect(() => {
+    autoResize();
+  }, [input]);
+
   async function sendMessage(text?: string) {
     const content = (text ?? input).trim();
     if (!content || loading) return;
@@ -470,13 +478,14 @@ export default function AgentClient({ firstName, hasAnyConnected, totalRouters, 
                 onText={(text) => {
                   if (!text) return;
                   setInput((cur) => (cur ? `${cur.trimEnd()} ${text}` : text));
-                  // Resize textarea + fokus supaya user bisa langsung review/edit/kirim
-                  setTimeout(() => {
-                    autoResize();
-                    textareaRef.current?.focus();
+                  // autoResize jalan otomatis via useEffect [input].
+                  // Fokus + cursor di akhir biar user bisa langsung edit/kirim.
+                  requestAnimationFrame(() => {
                     const el = textareaRef.current;
-                    if (el) el.setSelectionRange(el.value.length, el.value.length);
-                  }, 0);
+                    if (!el) return;
+                    el.focus();
+                    el.setSelectionRange(el.value.length, el.value.length);
+                  });
                 }}
                 onError={(msg) => setError(msg)}
               />
