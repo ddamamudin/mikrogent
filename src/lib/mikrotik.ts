@@ -177,6 +177,11 @@ export async function connectRouterosApi(cfg: RouterosApiConfig): Promise<Router
 
 // Helper buat operasi sekali pakai: connect → run → close otomatis.
 // Aman dari leak koneksi kalau run throw exception.
+//
+// CATATAN: close() di node-routeros bisa hang kalau pending write masih
+// in-flight (socket gak ke-ack quit). Kita defer close ke next tick via
+// setImmediate supaya gak nge-block event loop — kalau ada outer timeout
+// (Promise.race di caller), setTimeout-nya tetap bisa fire.
 export async function withRouterosApi<T>(
   cfg: RouterosApiConfig,
   run: (api: RouterOSAPI) => Promise<T>,
@@ -185,7 +190,17 @@ export async function withRouterosApi<T>(
   try {
     return await run(api);
   } finally {
-    try { api.close(); } catch {}
+    setImmediate(() => {
+      try { api.close(); } catch {}
+      // Defensive: paksa destroy socket internal kalau close gak resolve.
+      // Akses internal socket via property — node-routeros nge-expose
+      // socket di field bernama `socket` (TCP) atau `connection`.
+      try {
+        const internal = api as unknown as { socket?: { destroy?: () => void }; connection?: { destroy?: () => void } };
+        internal.socket?.destroy?.();
+        internal.connection?.destroy?.();
+      } catch {}
+    });
   }
 }
 

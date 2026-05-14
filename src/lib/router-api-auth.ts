@@ -50,6 +50,9 @@ export async function withCredentialApi<T>(
   // pasti balas 502 JSON sebelum Nginx 60s timeout default (yang nyebabin
   // user dapet HTML 502 page yang gak bisa di-parse).
   const hardTimeout = apiCfg.timeoutMs * 3 + 5000;
+  const reqTag = `[router-api ${cred.host}:${cred.apiPort}]`;
+  const t0 = Date.now();
+  console.log(`${reqTag} start (timeout=${hardTimeout}ms)`);
   try {
     const data = await Promise.race([
       withRouterosApi(apiCfg, handler),
@@ -57,9 +60,11 @@ export async function withCredentialApi<T>(
         setTimeout(() => reject(new Error(`RouterOS API gak respond dalam ${hardTimeout}ms — router mungkin offline / API service belum aktif / firewall block`)), hardTimeout),
       ),
     ]);
+    console.log(`${reqTag} ok in ${Date.now() - t0}ms`);
     return NextResponse.json({ ok: true, data });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+    console.log(`${reqTag} err in ${Date.now() - t0}ms: ${msg}`);
     return NextResponse.json({ error: `RouterOS API error: ${msg}` }, { status: 502 });
   }
 }
