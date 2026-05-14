@@ -280,7 +280,7 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
                 {pickerOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setPickerOpen(false)} aria-hidden="true" />
-                    <div className="absolute top-full left-0 mt-2 w-64 max-w-[calc(100vw-2rem)] z-20 bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden">
+                    <div className="fixed top-14 left-3 mt-2 w-64 max-w-[calc(100vw-1.5rem)] z-20 bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden">
                       <p className="px-3 py-2 text-[10px] uppercase tracking-wider text-gray-400 dark:text-white/30 font-semibold border-b border-gray-100 dark:border-white/5">
                         {routers.length} router
                       </p>

@@ -145,7 +145,6 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
           </div>
           <div className="flex items-center gap-2">
             <InstallButton />
-            <span className="text-sm text-gray-500 dark:text-white/60 hidden sm:block">{user.name}</span>
             {isAgentPage && (
               <button
                 onClick={() => agentState?.onReset?.()}
