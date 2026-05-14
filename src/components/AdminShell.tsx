@@ -161,7 +161,7 @@ export default function AdminShell({
   const initials = getInitials(adminName);
 
   return (
-    <div className="h-dvh flex flex-col bg-gray-100 dark:bg-slate-950 text-gray-900 dark:text-white">
+    <div className="h-dvh flex flex-col overflow-hidden bg-gray-100 dark:bg-slate-950 text-gray-900 dark:text-white">
       <header className="sticky top-0 h-14 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-white/10 flex items-center justify-between px-3 sm:px-4 shrink-0 z-40">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
@@ -312,7 +312,7 @@ export default function AdminShell({
           </div>
         </aside>
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6">{children}</main>
+        <main className="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6">{children}</main>
       </div>
     </div>
   );
