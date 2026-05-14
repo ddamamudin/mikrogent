@@ -88,6 +88,20 @@ const NAV_GROUPS = [
   },
 ];
 
+// Menu khusus role ADMIN. Superadmin gak butuh panduan (dia yang bikin sistemnya),
+// operator gak punya akses fitur yang dijelasin di halaman bantuan.
+const BANTUAN_ITEM = {
+  href: "/admin/bantuan",
+  label: "Bantuan",
+  icon: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  ),
+};
+
 const PAGE_TITLES: Record<string, string> = {
   "/admin/dashboard": "Dashboard",
   "/admin/tenant": "Tenant",
@@ -95,6 +109,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/admin/router": "Router",
   "/admin/log": "Log Aktivitas",
   "/admin/pengaturan": "Pengaturan",
+  "/admin/bantuan": "Bantuan",
   "/admin/inbox": "Inbox",
 };
 
@@ -111,6 +126,15 @@ function navForLevel(level: AdminLevel) {
         items: NAV_GROUPS[0].items.filter((i) =>
           ["/admin/dashboard", "/admin/tenant"].includes(i.href),
         ),
+      },
+    ];
+  }
+  if (level === "ADMIN") {
+    return [
+      NAV_GROUPS[0],
+      {
+        label: "Sistem",
+        items: [...NAV_GROUPS[1].items, BANTUAN_ITEM],
       },
     ];
   }
