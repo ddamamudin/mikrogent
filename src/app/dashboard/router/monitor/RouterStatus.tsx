@@ -109,50 +109,51 @@ export default function RouterStatus({ routerId, routerName }: { routerId: strin
 
   const cpuNum = parseInt(data.resource.cpuLoad, 10) || 0;
 
+  const stats: { label: string; value: string; sub?: string; warn?: boolean }[] = [
+    { label: "Uptime", value: data.resource.uptime },
+    { label: "CPU Load", value: `${data.resource.cpuLoad}%`, warn: cpuNum > 80 },
+    { label: "Memory", value: `${memPct}%`, sub: `${formatBytes(data.resource.totalMemory - data.resource.freeMemory)} / ${formatBytes(data.resource.totalMemory)}`, warn: memPct > 80 },
+    { label: "Storage", value: `${hddPct}%`, sub: `${formatBytes(data.resource.totalHdd - data.resource.freeHdd)} / ${formatBytes(data.resource.totalHdd)}`, warn: hddPct > 80 },
+    { label: "Hotspot Aktif", value: String(data.counts.hotspotActive) },
+    { label: "PPP Aktif", value: String(data.counts.pppActive) },
+    { label: "DHCP Lease", value: String(data.counts.dhcpLeasesBound) },
+  ];
+
   return (
     <div className="space-y-4 max-w-7xl">
-      {/* Header card */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 p-5 shadow-sm">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="min-w-0">
-            <h2 className="text-base font-semibold text-gray-900 dark:text-white truncate">{data.identity}</h2>
-            <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5 truncate">
-              {data.resource.boardName}{data.routerboard?.model ? ` · ${data.routerboard.model}` : ""} · RouterOS {data.resource.version}
-            </p>
+      {/* Header card — gabung identity + sysinfo + stats compact. Hemat ruang
+          banyak banget vs grid 7 stat card sebelumnya. */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden">
+        <div className="p-5">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="min-w-0">
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white truncate">{data.identity}</h2>
+              <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5 truncate">
+                {data.resource.boardName}{data.routerboard?.model ? ` · ${data.routerboard.model}` : ""} · RouterOS {data.resource.version}
+              </p>
+            </div>
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              Live · {new Date(data.fetchedAt).toLocaleTimeString("id-ID")}
+            </span>
           </div>
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            Live
-          </span>
         </div>
-      </div>
-
-      {/* Resource cards — 2 / 4 kolom (mobile / desktop). Cukup lebar untuk
-          "1d11h41m28s" tanpa truncate. */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard tone="blue" label="UPTIME" value={data.resource.uptime} mono />
-        <StatCard tone="amber" label="CPU LOAD" value={`${data.resource.cpuLoad}%`} highlight={cpuNum > 80} />
-        <StatCard
-          tone="green"
-          label="MEMORY"
-          value={`${memPct}%`}
-          sub={`${formatBytes(data.resource.totalMemory - data.resource.freeMemory)} / ${formatBytes(data.resource.totalMemory)}`}
-          highlight={memPct > 80}
-        />
-        <StatCard
-          tone="cyan"
-          label="STORAGE"
-          value={`${hddPct}%`}
-          sub={`${formatBytes(data.resource.totalHdd - data.resource.freeHdd)} / ${formatBytes(data.resource.totalHdd)}`}
-          highlight={hddPct > 80}
-        />
-      </div>
-
-      {/* Service counts — 3 kolom */}
-      <div className="grid grid-cols-3 gap-3">
-        <StatCard tone="purple" label="HOTSPOT AKTIF" value={String(data.counts.hotspotActive)} sub="user terhubung" />
-        <StatCard tone="pink" label="PPP AKTIF" value={String(data.counts.pppActive)} sub="user terhubung" />
-        <StatCard tone="blue" label="DHCP LEASE" value={String(data.counts.dhcpLeasesBound)} sub="bound" />
+        {/* Stats row — compact key/value grid. Mobile 2col, desktop 7col. */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 border-t border-gray-100 dark:border-white/5 divide-x divide-gray-100 dark:divide-white/5">
+          {stats.map((s) => (
+            <div key={s.label} className="px-4 py-3 min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-white/30 truncate">{s.label}</p>
+              <p className={`text-sm font-semibold mt-0.5 truncate ${s.warn ? "text-amber-600 dark:text-amber-400" : "text-gray-900 dark:text-white"}`} title={s.value}>
+                {s.value}
+              </p>
+              {s.sub && (
+                <p className="text-[10px] text-gray-400 dark:text-white/30 truncate font-mono mt-0.5" title={s.sub}>
+                  {s.sub}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Interface list panel */}
@@ -206,32 +207,6 @@ export default function RouterStatus({ routerId, routerName }: { routerId: strin
       <p className="text-[11px] text-gray-400 dark:text-white/30 text-right">
         Update tiap 5 detik (pause saat tab gak aktif)
       </p>
-    </div>
-  );
-}
-
-const STAT_TONES: Record<string, { bg: string; text: string; ring: string }> = {
-  blue: { bg: "bg-blue-50 dark:bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", ring: "ring-blue-500/40" },
-  green: { bg: "bg-green-50 dark:bg-green-500/10", text: "text-green-600 dark:text-green-400", ring: "ring-green-500/40" },
-  amber: { bg: "bg-amber-50 dark:bg-amber-500/10", text: "text-amber-600 dark:text-amber-400", ring: "ring-amber-500/40" },
-  purple: { bg: "bg-purple-50 dark:bg-purple-500/10", text: "text-purple-600 dark:text-purple-400", ring: "ring-purple-500/40" },
-  cyan: { bg: "bg-cyan-50 dark:bg-cyan-500/10", text: "text-cyan-600 dark:text-cyan-400", ring: "ring-cyan-500/40" },
-  pink: { bg: "bg-pink-50 dark:bg-pink-500/10", text: "text-pink-600 dark:text-pink-400", ring: "ring-pink-500/40" },
-};
-
-function StatCard({ tone, label, value, sub, mono, highlight }: { tone: string; label: string; value: string; sub?: string; mono?: boolean; highlight?: boolean }) {
-  const t = STAT_TONES[tone] ?? STAT_TONES.blue;
-  return (
-    <div className={`${t.bg} rounded-xl p-4 ${highlight ? `ring-2 ${t.ring}` : ""}`}>
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-white/50">{label}</p>
-      <p className={`${mono ? "font-mono text-lg sm:text-xl" : "text-2xl sm:text-3xl"} font-bold mt-1.5 ${t.text} truncate`} title={value}>
-        {value}
-      </p>
-      {sub && (
-        <p className="text-[11px] text-gray-500 dark:text-white/40 mt-1 truncate font-mono" title={sub}>
-          {sub}
-        </p>
-      )}
     </div>
   );
 }
