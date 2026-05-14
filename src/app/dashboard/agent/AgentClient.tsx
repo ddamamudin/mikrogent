@@ -473,7 +473,7 @@ export default function AgentClient({ firstName, hasAnyConnected, totalRouters, 
             <textarea ref={textareaRef} value={input}
               onChange={(e) => { setInput(e.target.value); autoResize(); }}
               onKeyDown={handleKeyDown}
-              placeholder={hasAnyConnected ? "Kirim pesan ke Replay Agent..." : "Ketik 'halo' untuk mulai..."}
+              placeholder={hasAnyConnected ? "Tanya Replay Agent..." : "Ketik 'halo' untuk mulai..."}
               rows={1}
               className="flex-1 resize-none overflow-hidden border-none outline-none bg-transparent text-[15px] text-gray-900 placeholder-gray-400 leading-relaxed min-h-[24px] font-[inherit]"
             />
