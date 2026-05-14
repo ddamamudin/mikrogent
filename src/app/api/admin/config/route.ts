@@ -125,14 +125,11 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Provider tidak valid" }, { status: 400 });
     }
 
-    // Voice call wajib OpenAI provider + API key terisi
+    // Voice call selalu lewat OpenAI Realtime (Anthropic gak punya voice API),
+    // tapi independen dari chat provider — yang penting OpenAI API key terisi.
     if (voiceCallEnabled === true) {
       const existing = await prisma.appConfig.findUnique({ where: { id: "singleton" } });
-      const effectiveProvider = llmProvider ?? existing?.llmProvider;
       const effectiveOpenaiKey = openaiApiKey !== undefined ? openaiApiKey : existing?.openaiApiKey;
-      if (effectiveProvider !== "openai") {
-        return NextResponse.json({ error: "Voice call hanya bisa diaktifkan saat provider = OpenAI" }, { status: 400 });
-      }
       if (!effectiveOpenaiKey || !String(effectiveOpenaiKey).trim()) {
         return NextResponse.json({ error: "API Key OpenAI wajib diisi sebelum mengaktifkan voice call" }, { status: 400 });
       }

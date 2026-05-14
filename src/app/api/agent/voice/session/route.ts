@@ -48,9 +48,8 @@ export async function POST() {
       { status: 403 },
     );
   }
-  if (config.llmProvider !== "openai") {
-    return NextResponse.json({ error: "Voice call hanya tersedia saat provider = OpenAI" }, { status: 503 });
-  }
+  // Voice call selalu lewat OpenAI Realtime — independen dari chat provider.
+  // Yang penting OpenAI API key tersedia.
   if (!config.openaiApiKey) {
     return NextResponse.json({ error: "API Key OpenAI belum dikonfigurasi" }, { status: 503 });
   }

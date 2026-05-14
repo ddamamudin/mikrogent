@@ -224,9 +224,6 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
     if (isNaN(secs) || secs < 30 || secs > 3600) {
       return showMsg("err", "Durasi voice harus 30 - 3600 detik");
     }
-    if (voiceCallEnabled && llmProvider !== "openai") {
-      return showMsg("err", "Voice call hanya bisa diaktifkan saat provider = OpenAI");
-    }
     if (voiceCallEnabled && !openaiApiKey.trim()) {
       return showMsg("err", "Isi & simpan API Key OpenAI dulu sebelum mengaktifkan voice call");
     }
@@ -316,9 +313,9 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
           <h2 className={sectionHead}>Provider AI & Model</h2>
 
           <div className="space-y-2">
-            <label className="text-sm text-gray-600 dark:text-white/60">Provider LLM</label>
+            <label className="text-sm text-gray-600 dark:text-white/60">Provider LLM (chat)</label>
             <div className="grid grid-cols-2 gap-2">
-              {(["anthropic", "openai"] as const).map((p) => (
+              {(["openai", "anthropic"] as const).map((p) => (
                 <button
                   key={p}
                   type="button"
@@ -329,32 +326,19 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
                       : "bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/60 hover:border-gray-300 dark:hover:border-white/20"
                   }`}
                 >
-                  {p === "anthropic" ? "Anthropic (Claude)" : "OpenAI (GPT)"}
+                  {p === "openai" ? "OpenAI (GPT)" : "Anthropic (Claude)"}
                 </button>
               ))}
             </div>
-          </div>
-
-          <div className="space-y-3 rounded-lg border border-gray-100 dark:border-white/5 p-3 bg-gray-50/50 dark:bg-white/[0.02]">
-            <p className="text-xs font-semibold text-gray-500 dark:text-white/50 uppercase tracking-wider">
-              Anthropic{llmProvider === "anthropic" && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 normal-case tracking-normal">aktif</span>}
+            <p className="text-[11px] text-gray-400 dark:text-white/30">
+              Voice call selalu lewat OpenAI Realtime — pilih chat provider apa aja, voice tetap jalan asal API Key OpenAI di bawah terisi.
             </p>
-            <div className="space-y-1">
-              <label className="text-sm text-gray-600 dark:text-white/60">API Key</label>
-              <input type="password" value={claudeApiKey} onChange={(e) => setClaudeApiKey(e.target.value)}
-                className={inputClass} placeholder="sk-ant-api03-..." autoComplete="off" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm text-gray-600 dark:text-white/60">Model</label>
-              <select value={anthropicModel} onChange={(e) => setAnthropicModel(e.target.value)} className={inputClass}>
-                {ANTHROPIC_MODELS.map((m) => (<option key={m.id} value={m.id}>{m.label}</option>))}
-              </select>
-            </div>
           </div>
 
           <div className="space-y-3 rounded-lg border border-gray-100 dark:border-white/5 p-3 bg-gray-50/50 dark:bg-white/[0.02]">
             <p className="text-xs font-semibold text-gray-500 dark:text-white/50 uppercase tracking-wider">
-              OpenAI{llmProvider === "openai" && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 normal-case tracking-normal">aktif</span>}
+              OpenAI{llmProvider === "openai" && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 normal-case tracking-normal">aktif buat chat</span>}
+              {llmProvider !== "openai" && voiceCallEnabled && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 normal-case tracking-normal">dipakai buat voice</span>}
             </p>
             <div className="space-y-1">
               <label className="text-sm text-gray-600 dark:text-white/60">API Key</label>
@@ -371,6 +355,23 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
               <label className="text-sm text-gray-600 dark:text-white/60">Model voice / realtime</label>
               <select value={openaiRealtimeModel} onChange={(e) => setOpenaiRealtimeModel(e.target.value)} className={inputClass}>
                 {OPENAI_REALTIME_MODELS.map((m) => (<option key={m.id} value={m.id}>{m.label}</option>))}
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-3 rounded-lg border border-gray-100 dark:border-white/5 p-3 bg-gray-50/50 dark:bg-white/[0.02]">
+            <p className="text-xs font-semibold text-gray-500 dark:text-white/50 uppercase tracking-wider">
+              Anthropic{llmProvider === "anthropic" && <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 normal-case tracking-normal">aktif buat chat</span>}
+            </p>
+            <div className="space-y-1">
+              <label className="text-sm text-gray-600 dark:text-white/60">API Key</label>
+              <input type="password" value={claudeApiKey} onChange={(e) => setClaudeApiKey(e.target.value)}
+                className={inputClass} placeholder="sk-ant-api03-..." autoComplete="off" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm text-gray-600 dark:text-white/60">Model</label>
+              <select value={anthropicModel} onChange={(e) => setAnthropicModel(e.target.value)} className={inputClass}>
+                {ANTHROPIC_MODELS.map((m) => (<option key={m.id} value={m.id}>{m.label}</option>))}
               </select>
             </div>
           </div>
@@ -458,9 +459,9 @@ export default function PengaturanClient({ config: initial, admin }: { config: C
             </button>
           </div>
 
-          {voiceCallEnabled && llmProvider !== "openai" && (
+          {voiceCallEnabled && !openaiApiKey.trim() && (
             <div className="text-xs px-3 py-2 rounded-lg bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-500/20">
-              Provider aktif: <strong>{llmProvider}</strong>. Ganti ke <strong>OpenAI</strong> dulu di card Provider & simpan.
+              Voice call butuh <strong>API Key OpenAI</strong> terisi di card Provider AI. Chat provider boleh tetap Claude/lainnya — voice cuma jalan lewat OpenAI Realtime.
             </div>
           )}
 

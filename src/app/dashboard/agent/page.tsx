@@ -28,9 +28,10 @@ export default async function AgentPage() {
   const firstName = (user?.name ?? "").trim().split(/\s+/)[0] || "Kak";
   const initialChatCount = dailyCount?.date === today ? (dailyCount.count ?? 0) : 0;
   const initialVoiceSeconds = dailyCount?.date === today ? (dailyCount.voiceSeconds ?? 0) : 0;
+  // Voice call selalu lewat OpenAI Realtime — independen dari chat provider.
+  // Yang penting voice toggle ON + OpenAI key terisi.
   const voiceCallEnabled =
     (config?.voiceCallEnabled ?? false) &&
-    config?.llmProvider === "openai" &&
     !!config?.openaiApiKey;
   const voiceDailyLimitSeconds = user?.dailyVoiceSeconds ?? config?.voiceDailySeconds ?? 180;
   const connectedRouters = routers.filter((r) => r.connected);
