@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import PasswordInput from "@/components/PasswordInput";
 
 const inputClass = "w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-blue-500";
 
@@ -57,7 +58,7 @@ export default function PasswordPage() {
         {fields.map(({ label, value, set }) => (
           <div key={label} className="space-y-1">
             <label className="text-sm text-gray-600 dark:text-white/60">{label}</label>
-            <input type="password" value={value} onChange={(e) => set(e.target.value)} className={inputClass} />
+            <PasswordInput value={value} onChange={(e) => set(e.target.value)} className={inputClass} />
           </div>
         ))}
 

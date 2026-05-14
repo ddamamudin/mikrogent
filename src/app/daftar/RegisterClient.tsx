@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import PasswordInput from "@/components/PasswordInput";
 
 const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
 
@@ -88,7 +89,7 @@ export default function RegisterClient({ showBrandField }: { showBrandField: boo
 
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium text-gray-500 px-1">Password</label>
-          <input name="password" type="password" value={form.password} onChange={handleChange} required minLength={8} className={inputClass} placeholder="Minimal 8 karakter" />
+          <PasswordInput name="password" value={form.password} onChange={handleChange} required minLength={8} className={inputClass} placeholder="Minimal 8 karakter" />
         </div>
 
         {showBrandField && (

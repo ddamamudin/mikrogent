@@ -3,6 +3,7 @@
 import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
+import PasswordInput from "@/components/PasswordInput";
 
 const inputClass = "w-full bg-gray-100 rounded-xl px-4 py-3.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-gray-200 transition text-[15px]";
 
@@ -73,11 +74,11 @@ function ResetPasswordForm() {
         )}
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium text-gray-500 px-1">Password Baru</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={inputClass} placeholder="Minimal 8 karakter" />
+          <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={inputClass} placeholder="Minimal 8 karakter" />
         </div>
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium text-gray-500 px-1">Konfirmasi Password</label>
-          <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required className={inputClass} placeholder="Ulangi password baru" />
+          <PasswordInput value={confirm} onChange={(e) => setConfirm(e.target.value)} required className={inputClass} placeholder="Ulangi password baru" />
         </div>
         <button type="submit" disabled={loading}
           className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-semibold transition text-[15px] mt-2">

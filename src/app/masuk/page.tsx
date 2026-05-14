@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import PasswordInput from "@/components/PasswordInput";
 
 export default function LoginPage() {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -61,8 +62,8 @@ export default function LoginPage() {
             <label className="text-sm font-medium text-gray-500">Password</label>
             <Link href="/lupa-password" className="text-xs text-blue-600">Lupa password?</Link>
           </div>
-          <input
-            type="password" value={form.password}
+          <PasswordInput
+            value={form.password}
             onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
             required className={inputClass} placeholder="Password Anda"
           />
