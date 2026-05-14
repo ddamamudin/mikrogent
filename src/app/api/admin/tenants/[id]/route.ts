@@ -39,7 +39,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   ]);
   if (!tenant) return NextResponse.json({ error: "Tenant tidak ditemukan" }, { status: 404 });
   const { agentDailyCount, dailyChatLimit: userOverride, dailyVoiceSeconds: userVoiceOverride, ...rest } = tenant;
-  const globalLimit = config?.dailyChatLimit ?? 50;
+  const globalLimit = config?.dailyChatLimit ?? 100;
   const globalVoiceLimit = config?.voiceDailySeconds ?? 180;
   const sameDay = agentDailyCount?.date === today;
   return NextResponse.json({

@@ -34,7 +34,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
   ]);
   if (!tenant) notFound();
 
-  const globalLimit = config?.dailyChatLimit ?? 50;
+  const globalLimit = config?.dailyChatLimit ?? 100;
   const globalVoiceLimit = config?.voiceDailySeconds ?? 180;
   const { dailyChatLimit: userOverride, dailyVoiceSeconds: userVoiceOverride, ...rest } = tenant;
   const sameDay = dailyCount?.date === today;

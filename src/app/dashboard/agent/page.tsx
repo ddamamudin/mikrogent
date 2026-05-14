@@ -55,7 +55,7 @@ export default async function AgentPage() {
       connectedRouters={connectedRouters.map((r) => ({ id: r.id, name: r.name }))}
       activeRouter={activeRouter}
       agentReady={agentReady}
-      dailyChatLimit={user?.dailyChatLimit ?? config?.dailyChatLimit ?? 50}
+      dailyChatLimit={user?.dailyChatLimit ?? config?.dailyChatLimit ?? 100}
       initialChatCount={initialChatCount}
       initialMessages={(chatSession?.messages as { role: "user" | "assistant"; content: string }[]) ?? []}
       initialApiMessages={(chatSession?.apiMessages as unknown[]) ?? []}

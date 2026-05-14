@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
   }
 
   const today = getTodayString();
-  const effectiveLimit = userRecord.dailyChatLimit ?? config.dailyChatLimit ?? 50;
+  const effectiveLimit = userRecord.dailyChatLimit ?? config.dailyChatLimit ?? 100;
 
   type AttachmentIn = { name: string; data: string; mimeType: string };
 

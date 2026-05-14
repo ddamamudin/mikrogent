@@ -58,7 +58,7 @@ model AppConfig {
   openaiVoice         String  @default("marin")
   agentPersona        String?
   agentKnowledge      String?
-  dailyChatLimit      Int     @default(50)
+  dailyChatLimit      Int     @default(100)
   voiceCallEnabled    Boolean @default(false)
   voiceDailySeconds   Int     @default(180)
   defaultMaxRouters   Int     @default(1)

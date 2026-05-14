@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
     prisma.appConfig.findUnique({ where: { id: "singleton" }, select: { dailyChatLimit: true, voiceDailySeconds: true, voiceCallEnabled: true } }),
   ]);
 
-  const dailyChatLimit = config?.dailyChatLimit ?? 50;
+  const dailyChatLimit = config?.dailyChatLimit ?? 100;
   const voiceDailySeconds = config?.voiceDailySeconds ?? 180;
   const voiceCallEnabled = config?.voiceCallEnabled ?? false;
   const tenantsWithCount = tenants.map((t) => {

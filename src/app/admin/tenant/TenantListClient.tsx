@@ -130,7 +130,7 @@ export default function TenantListClient({ adminLevel = "SUPER" }: { adminLevel?
     setTenants(newTenants);
     setTotal(data.total ?? 0);
     setTotalPages(data.totalPages ?? 1);
-    setDailyChatLimit(data.dailyChatLimit ?? 50);
+    setDailyChatLimit(data.dailyChatLimit ?? 100);
     setVoiceDailySeconds(data.voiceDailySeconds ?? 180);
     setVoiceCallEnabled(!!data.voiceCallEnabled);
     if (!opts?.silent) setLoading(false);
