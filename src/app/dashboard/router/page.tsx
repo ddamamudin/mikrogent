@@ -11,7 +11,7 @@ export default async function DashboardRouterPage() {
   const session = getSessionFromCookie(cookieStore.get("session")?.value);
   if (!session || session.role !== "USER") redirect("/masuk");
 
-  const [user, routers] = await Promise.all([
+  const [user, routers, chatSession] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.userId },
       select: { maxRouters: true },
@@ -21,8 +21,18 @@ export default async function DashboardRouterPage() {
       select: { id: true, name: true, host: true, port: true, sshUser: true, sshPass: true, connected: true, updatedAt: true },
       orderBy: { createdAt: "asc" },
     }),
+    prisma.agentChatSession.findUnique({
+      where: { userId: session.userId },
+      select: { activeCredentialId: true },
+    }),
   ]);
 
   const decrypted = routers.map((r) => ({ ...r, sshPass: decryptSshPass(r.sshPass) }));
-  return <RouterClient initialRouters={decrypted} maxRouters={user?.maxRouters ?? 1} />;
+  return (
+    <RouterClient
+      initialRouters={decrypted}
+      maxRouters={user?.maxRouters ?? 1}
+      activeCredentialId={chatSession?.activeCredentialId ?? null}
+    />
+  );
 }

@@ -27,7 +27,15 @@ type PendingRow = {
 const inputClass =
   "w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-blue-500";
 
-export default function RouterClient({ initialRouters, maxRouters: initialMaxRouters }: { initialRouters: RouterRow[]; maxRouters: number }) {
+export default function RouterClient({
+  initialRouters,
+  maxRouters: initialMaxRouters,
+  activeCredentialId,
+}: {
+  initialRouters: RouterRow[];
+  maxRouters: number;
+  activeCredentialId: string | null;
+}) {
   const [routers, setRouters] = useState<RouterRow[]>(initialRouters);
   const [maxRouters, setMaxRouters] = useState<number>(initialMaxRouters);
   const [pending, setPending] = useState<PendingRow | null>(null);
@@ -233,9 +241,31 @@ export default function RouterClient({ initialRouters, maxRouters: initialMaxRou
     </div>
   );
 
+  const connectedCount = routers.filter((r) => r.connected).length;
+  const activeRouter = activeCredentialId ? routers.find((r) => r.id === activeCredentialId && r.connected) : null;
+
   return (
     <div className="space-y-4">
       {renderHeader()}
+
+      {routers.length > 0 && (
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 px-4 py-3 shadow-sm flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className={`w-2 h-2 rounded-full ${connectedCount > 0 ? "bg-green-500" : "bg-amber-500"}`} />
+            <span className="text-sm text-gray-700 dark:text-white/70">
+              <strong className="text-gray-900 dark:text-white">{connectedCount}/{routers.length}</strong> router terhubung
+            </span>
+          </div>
+          {activeRouter && (
+            <>
+              <span className="text-gray-300 dark:text-white/20">·</span>
+              <span className="text-sm text-gray-500 dark:text-white/50 truncate">
+                Aktif di agent: <strong className="text-gray-700 dark:text-white/70">{activeRouter.name}</strong>
+              </span>
+            </>
+          )}
+        </div>
+      )}
 
       {message && (
         <div className={`text-sm px-4 py-3 rounded-lg ${message.type === "ok" ? "bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-500/20" : "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/20"}`}>

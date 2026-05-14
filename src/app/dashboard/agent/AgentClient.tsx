@@ -107,23 +107,15 @@ export default function AgentClient({ firstName, hasAnyConnected, totalRouters, 
     fetch("/api/agent/session", { method: "DELETE" }).catch(() => {});
   }, []);
 
-  // Push agent state ke sidebar
+  // Push agent state ke sidebar (cuma yang dipakai header: tombol "Chat baru").
+  // Info kuota & status router udah dipindah ke halaman masing-masing.
   useEffect(() => {
     setAgentSidebar({
-      hasAnyConnected,
-      totalRouters,
-      connectedCount: connectedRouters.length,
-      activeRouterName: activeRouter?.name ?? null,
-      chatCount,
-      dailyChatLimit,
-      voiceCallEnabled,
-      voiceSecondsUsed,
-      voiceDailyLimitSeconds,
       hasMessages: messages.length > 0,
       onReset: resetChat,
     });
     return () => setAgentSidebar(null);
-  }, [setAgentSidebar, hasAnyConnected, totalRouters, connectedRouters.length, activeRouter?.name, chatCount, dailyChatLimit, voiceCallEnabled, voiceSecondsUsed, voiceDailyLimitSeconds, messages.length, resetChat]);
+  }, [setAgentSidebar, messages.length, resetChat]);
 
   function autoResize() {
     const el = textareaRef.current;

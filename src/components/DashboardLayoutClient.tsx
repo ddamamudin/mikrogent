@@ -7,9 +7,10 @@ import MasukanSidebarLink from "@/components/MasukanSidebarLink";
 
 const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
 
-const NAV = [
+const NAV: { href: string; label: string; icon: React.ReactNode }[] = [
   {
-    group: "Replay Agent",
+    href: "/dashboard/agent",
+    label: "Replay Agent",
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="3" width="20" height="14" rx="2" />
@@ -17,12 +18,10 @@ const NAV = [
         <path d="M9 8h.01M15 8h.01M9 12h6" />
       </svg>
     ),
-    items: [
-      { href: "/dashboard/agent", label: "MikroTik Agent" },
-    ],
   },
   {
-    group: "Router",
+    href: "/dashboard/router",
+    label: "Router",
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="14" width="20" height="8" rx="2" />
@@ -31,9 +30,6 @@ const NAV = [
         <path d="M6 10V6a6 6 0 0 1 12 0v4" />
       </svg>
     ),
-    items: [
-      { href: "/dashboard/router", label: "Setting Router" },
-    ],
   },
 ];
 
@@ -50,16 +46,9 @@ function getInitials(name: string | undefined): string {
 
 type User = { name: string; brand: string | null; email: string };
 
+// Sekarang state cuma dipakai header buat tombol "Chat baru" — info kuota & status
+// router udah dipindah ke halaman masing-masing (Router page & Profil page).
 export type AgentSidebarState = {
-  hasAnyConnected: boolean;
-  totalRouters: number;
-  connectedCount: number;
-  activeRouterName: string | null;
-  chatCount: number;
-  dailyChatLimit: number;
-  voiceCallEnabled: boolean;
-  voiceSecondsUsed: number;
-  voiceDailyLimitSeconds: number;
   hasMessages: boolean;
   onReset: () => void;
 };
@@ -77,7 +66,6 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
   const pathname = usePathname();
   const isAgentPage = pathname === "/dashboard/agent";
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({ "Replay Agent": true, "Router": true });
   const [agentState, setAgentState] = useState<AgentSidebarState | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -150,68 +138,23 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
           {/* Sidebar (overlay, ga menggeser konten) */}
           <aside className={`${sidebarBase} ${sidebarPos}`}>
             <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
-              {NAV.map(({ group, icon, items }) => (
-                <div key={group}>
-                  <button
-                    onClick={() => setGroupOpen((o) => ({ ...o, [group]: !o[group] }))}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-white/70 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition"
+              {NAV.map(({ href, label, icon }) => {
+                const active = pathname === href || pathname.startsWith(`${href}/`);
+                return (
+                  <a
+                    key={href}
+                    href={href}
+                    className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                      active
+                        ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
+                        : "text-gray-600 dark:text-white/70 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+                    }`}
                   >
-                    <div className="flex items-center gap-2">{icon}<span>{group}</span></div>
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className={`transition-transform ${groupOpen[group] ? "rotate-180" : ""}`}>
-                      <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </button>
-
-                  {groupOpen[group] && (
-                    <div className="mt-1 ml-4 space-y-1">
-                      {items.map(({ href, label }) => {
-                        const active = pathname === href;
-                        return (
-                          <a
-                            key={href}
-                            href={href}
-                            className={`block px-3 py-1.5 rounded-lg text-sm transition ${
-                              active ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
-                              : "text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
-                            }`}
-                          >
-                            {label}
-                          </a>
-                        );
-                      })}
-
-                      {/* Info agent: status router, kuota, tombol chat baru */}
-                      {group === "Replay Agent" && agentState && (
-                        <div className="mt-2 mx-1 px-3 py-2.5 bg-gray-50 dark:bg-white/5 rounded-lg space-y-1.5">
-                          <div className="flex items-center gap-1.5 text-xs">
-                            <span className={`w-1.5 h-1.5 rounded-full ${agentState.hasAnyConnected ? "bg-green-500" : "bg-yellow-500"}`} />
-                            <span className="text-gray-600 dark:text-white/60">
-                              {agentState.totalRouters === 0
-                                ? "Belum ada router"
-                                : agentState.hasAnyConnected
-                                  ? `${agentState.connectedCount}/${agentState.totalRouters} router terhubung`
-                                  : `${agentState.totalRouters} router, belum terhubung`}
-                            </span>
-                          </div>
-                          {agentState.activeRouterName && (
-                            <div className="text-xs text-gray-500 dark:text-white/40 truncate">
-                              Aktif: <strong className="text-gray-700 dark:text-white/70">{agentState.activeRouterName}</strong>
-                            </div>
-                          )}
-                          <div className="text-xs text-gray-500 dark:text-white/40">
-                            {agentState.chatCount}/{agentState.dailyChatLimit} chat hari ini
-                          </div>
-                          {agentState.voiceCallEnabled && (
-                            <div className="text-xs text-gray-500 dark:text-white/40">
-                              {agentState.voiceSecondsUsed}/{agentState.voiceDailyLimitSeconds} detik voice hari ini
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
+                    <span className="shrink-0">{icon}</span>
+                    <span>{label}</span>
+                  </a>
+                );
+              })}
 
               {showBrandField && user.brand && (
                 <a

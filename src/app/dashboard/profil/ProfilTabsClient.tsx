@@ -31,7 +31,66 @@ function Toast({ message }: { message: { type: "ok" | "err"; text: string } | nu
   );
 }
 
-function ProfilTab({ user: initialUser }: { user: User }) {
+type Quota = {
+  chatCount: number;
+  dailyChatLimit: number;
+  voiceSecondsUsed: number;
+  voiceDailyLimitSeconds: number;
+  voiceCallEnabled: boolean;
+};
+
+function QuotaCard({ quota }: { quota: Quota }) {
+  const chatPct = Math.min(100, Math.round((quota.chatCount / quota.dailyChatLimit) * 100));
+  const voicePct = quota.voiceDailyLimitSeconds > 0
+    ? Math.min(100, Math.round((quota.voiceSecondsUsed / quota.voiceDailyLimitSeconds) * 100))
+    : 0;
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 p-5 space-y-4 shadow-sm">
+      <h2 className="text-xs font-semibold text-gray-400 dark:text-white/50 uppercase tracking-wider">Kuota Hari Ini</h2>
+
+      <div className="space-y-1.5">
+        <div className="flex items-baseline justify-between">
+          <span className="text-sm text-gray-600 dark:text-white/60">Chat</span>
+          <span className="text-sm tabular-nums text-gray-900 dark:text-white">
+            <strong>{quota.chatCount}</strong>
+            <span className="text-gray-400 dark:text-white/30"> / {quota.dailyChatLimit}</span>
+          </span>
+        </div>
+        <div className="h-1.5 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+          <div
+            className={`h-full transition-all ${chatPct >= 100 ? "bg-red-500" : chatPct >= 80 ? "bg-amber-500" : "bg-blue-500"}`}
+            style={{ width: `${chatPct}%` }}
+          />
+        </div>
+      </div>
+
+      {quota.voiceCallEnabled && (
+        <div className="space-y-1.5">
+          <div className="flex items-baseline justify-between">
+            <span className="text-sm text-gray-600 dark:text-white/60">Voice</span>
+            <span className="text-sm tabular-nums text-gray-900 dark:text-white">
+              <strong>{quota.voiceSecondsUsed}</strong>
+              <span className="text-gray-400 dark:text-white/30"> / {quota.voiceDailyLimitSeconds} detik</span>
+            </span>
+          </div>
+          <div className="h-1.5 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+            <div
+              className={`h-full transition-all ${voicePct >= 100 ? "bg-red-500" : voicePct >= 80 ? "bg-amber-500" : "bg-blue-500"}`}
+              style={{ width: `${voicePct}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      <p className="text-[11px] text-gray-400 dark:text-white/30">
+        Reset otomatis tiap jam 07:00 WIB.
+      </p>
+    </div>
+  );
+}
+
+function ProfilTab({ user: initialUser, quota }: { user: User; quota: Quota }) {
   const [user, setUser] = useState(initialUser);
   const [name, setName] = useState(user.name);
   const [alamat, setAlamat] = useState(user.alamat || "");
@@ -64,40 +123,43 @@ function ProfilTab({ user: initialUser }: { user: User }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <Toast message={message} />
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 p-6 space-y-4 shadow-sm">
-        <div className="space-y-1">
-          <label className="text-sm text-gray-600 dark:text-white/60">Nama Lengkap</label>
-          <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
-        </div>
-        <div className="space-y-1">
-          <label className="text-sm text-gray-600 dark:text-white/60">Email</label>
-          <input
-            type="text"
-            value={user.email}
-            disabled
-            className="w-full bg-gray-100 dark:bg-slate-800/50 border border-gray-200 dark:border-white/5 rounded-lg px-3 py-2 text-sm text-gray-400 dark:text-white/30 cursor-not-allowed"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-sm text-gray-600 dark:text-white/60">Alamat</label>
-          <input type="text" value={alamat} onChange={(e) => setAlamat(e.target.value)} className={inputClass} placeholder="Jl. Merdeka No. 1, Jakarta" />
-        </div>
-        <div className="space-y-1">
-          <label className="text-sm text-gray-600 dark:text-white/60">Nomor WhatsApp</label>
-          <input type="tel" value={noWa} onChange={(e) => setNoWa(e.target.value)} className={inputClass} placeholder="08xxxxxxxxxx" />
-        </div>
+    <div className="space-y-4">
+      <QuotaCard quota={quota} />
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Toast message={message} />
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 p-6 space-y-4 shadow-sm">
+          <div className="space-y-1">
+            <label className="text-sm text-gray-600 dark:text-white/60">Nama Lengkap</label>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm text-gray-600 dark:text-white/60">Email</label>
+            <input
+              type="text"
+              value={user.email}
+              disabled
+              className="w-full bg-gray-100 dark:bg-slate-800/50 border border-gray-200 dark:border-white/5 rounded-lg px-3 py-2 text-sm text-gray-400 dark:text-white/30 cursor-not-allowed"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm text-gray-600 dark:text-white/60">Alamat</label>
+            <input type="text" value={alamat} onChange={(e) => setAlamat(e.target.value)} className={inputClass} placeholder="Jl. Merdeka No. 1, Jakarta" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm text-gray-600 dark:text-white/60">Nomor WhatsApp</label>
+            <input type="tel" value={noWa} onChange={(e) => setNoWa(e.target.value)} className={inputClass} placeholder="08xxxxxxxxxx" />
+          </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition disabled:opacity-50"
-        >
-          {loading ? "Menyimpan..." : "Simpan Perubahan"}
-        </button>
-      </div>
-    </form>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition disabled:opacity-50"
+          >
+            {loading ? "Menyimpan..." : "Simpan Perubahan"}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
 
@@ -247,7 +309,7 @@ function HapusTab({ email }: { email: string }) {
   );
 }
 
-export default function ProfilTabsClient({ user }: { user: User }) {
+export default function ProfilTabsClient({ user, quota }: { user: User; quota: Quota }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -302,7 +364,7 @@ export default function ProfilTabsClient({ user }: { user: User }) {
       </div>
 
       <div id={`tab-panel-${tab}`} role="tabpanel">
-        {tab === "profil" && <ProfilTab user={user} />}
+        {tab === "profil" && <ProfilTab user={user} quota={quota} />}
         {tab === "password" && <PasswordTab />}
         {tab === "hapus" && <HapusTab email={user.email} />}
       </div>
