@@ -4,9 +4,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 type State = "idle" | "recording" | "transcribing";
 
-// Hard cap durasi rekam supaya gak ada user yang ninggalin tab nyala terus
-// nge-burn quota OpenAI. 2 menit cukup untuk pesan panjang.
-const MAX_RECORD_MS = 120_000;
+// Hard cap durasi rekam: 60 detik. Pesan chat biasanya pendek (5-15 detik),
+// 60 detik udah > 4x average. Kalau butuh lebih panjang, user tinggal klik
+// mic lagi setelah stop — text di-append ke textarea, gak ada limit total.
+const MAX_RECORD_MS = 60_000;
 
 export default function DictateButton({
   disabled,
@@ -142,19 +143,27 @@ export default function DictateButton({
   const isBusy = state === "transcribing";
 
   if (state === "recording") {
-    const secs = Math.min(MAX_RECORD_MS / 1000, elapsed);
+    const maxSec = MAX_RECORD_MS / 1000;
+    const secs = Math.min(maxSec, elapsed);
+    const remaining = Math.max(0, maxSec - secs);
+    const nearLimit = remaining <= 10;
     return (
-      <button
-        type="button"
-        onClick={handleClick}
-        title={`Sedang merekam — klik untuk stop (${secs}s)`}
-        className={`${baseClass} bg-red-500 text-white hover:bg-red-600 relative`}
-      >
-        <span className="absolute inset-0 rounded-full bg-red-500 opacity-60 animate-ping" />
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" className="relative">
-          <rect x="2" y="2" width="10" height="10" rx="2" />
-        </svg>
-      </button>
+      <div className="flex items-center gap-1.5 shrink-0">
+        <span className={`text-[11px] font-mono tabular-nums ${nearLimit ? "text-red-500" : "text-gray-400"}`}>
+          {secs}s
+        </span>
+        <button
+          type="button"
+          onClick={handleClick}
+          title={`Sedang merekam — klik untuk stop (${remaining}s sampai auto-stop)`}
+          className={`${baseClass} bg-red-500 text-white hover:bg-red-600 relative`}
+        >
+          <span className="absolute inset-0 rounded-full bg-red-500 opacity-60 animate-ping" />
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" className="relative">
+            <rect x="2" y="2" width="10" height="10" rx="2" />
+          </svg>
+        </button>
+      </div>
     );
   }
 
