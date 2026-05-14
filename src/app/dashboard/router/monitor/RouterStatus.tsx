@@ -107,71 +107,74 @@ export default function RouterStatus({ routerId, routerName }: { routerId: strin
   const memPct = pct(data.resource.freeMemory, data.resource.totalMemory);
   const hddPct = pct(data.resource.freeHdd, data.resource.totalHdd);
 
+  const cpuNum = parseInt(data.resource.cpuLoad, 10) || 0;
+
   return (
-    <div className="space-y-4">
-      {/* Header */}
+    <div className="space-y-4 max-w-7xl">
+      {/* Header card */}
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 p-5 shadow-sm">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <div>
-            <h2 className="text-base font-semibold text-gray-900 dark:text-white">{data.identity}</h2>
-            <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5">
-              {data.resource.boardName} {data.routerboard?.model ? `· ${data.routerboard.model}` : ""} · RouterOS {data.resource.version}
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white truncate">{data.identity}</h2>
+            <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5 truncate">
+              {data.resource.boardName}{data.routerboard?.model ? ` · ${data.routerboard.model}` : ""} · RouterOS {data.resource.version}
             </p>
           </div>
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400">
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 shrink-0">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
             Live
           </span>
         </div>
       </div>
 
-      {/* Resource grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <StatCard label="Uptime" value={data.resource.uptime} />
-        <StatCard label="CPU Load" value={`${data.resource.cpuLoad}%`} accent={parseInt(data.resource.cpuLoad, 10) > 80 ? "warn" : "ok"} />
+      {/* Stat cards (tone-based, konsisten dengan admin dashboard) */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-7 gap-3">
+        <StatCard tone="blue" label="UPTIME" value={data.resource.uptime} mono />
+        <StatCard tone="amber" label="CPU LOAD" value={`${data.resource.cpuLoad}%`} highlight={cpuNum > 80} />
         <StatCard
-          label="Memory"
-          value={`${memPct}% terpakai`}
+          tone="green"
+          label="MEMORY"
+          value={`${memPct}%`}
           sub={`${formatBytes(data.resource.totalMemory - data.resource.freeMemory)} / ${formatBytes(data.resource.totalMemory)}`}
-          accent={memPct > 80 ? "warn" : "ok"}
+          highlight={memPct > 80}
         />
         <StatCard
-          label="Storage"
-          value={`${hddPct}% terpakai`}
+          tone="cyan"
+          label="STORAGE"
+          value={`${hddPct}%`}
           sub={`${formatBytes(data.resource.totalHdd - data.resource.freeHdd)} / ${formatBytes(data.resource.totalHdd)}`}
-          accent={hddPct > 80 ? "warn" : "ok"}
+          highlight={hddPct > 80}
         />
+        <StatCard tone="purple" label="HOTSPOT" value={String(data.counts.hotspotActive)} sub="user aktif" />
+        <StatCard tone="pink" label="PPP" value={String(data.counts.pppActive)} sub="user aktif" />
+        <StatCard tone="blue" label="DHCP LEASE" value={String(data.counts.dhcpLeasesBound)} sub="bound" />
       </div>
 
-      {/* Service counts */}
-      <div className="grid grid-cols-3 gap-3">
-        <StatCard label="Hotspot aktif" value={String(data.counts.hotspotActive)} />
-        <StatCard label="PPP aktif" value={String(data.counts.pppActive)} />
-        <StatCard label="DHCP lease" value={String(data.counts.dhcpLeasesBound)} />
-      </div>
-
-      {/* Interface list */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b border-gray-200 dark:border-white/10">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Interface ({data.interfaces.length})</h3>
+      {/* Interface list panel */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden shadow-sm">
+        <div className="px-5 py-3 border-b border-gray-100 dark:border-white/5 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-white/80">Interface ({data.interfaces.length})</h2>
+          <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-white/30">
+            Live · {new Date(data.fetchedAt).toLocaleTimeString("id-ID")}
+          </p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
-            <thead className="bg-gray-50 dark:bg-white/5 text-gray-500 dark:text-white/40">
+            <thead className="bg-gray-50 dark:bg-white/5 text-[10px] uppercase tracking-wider text-gray-500 dark:text-white/40">
               <tr>
-                <th className="text-left px-4 py-2 font-medium">Status</th>
-                <th className="text-left px-4 py-2 font-medium">Nama</th>
-                <th className="text-left px-4 py-2 font-medium">Type</th>
-                <th className="text-left px-4 py-2 font-medium">MAC</th>
-                <th className="text-right px-4 py-2 font-medium">RX</th>
-                <th className="text-right px-4 py-2 font-medium">TX</th>
+                <th className="text-left px-4 py-2 font-semibold">Status</th>
+                <th className="text-left px-4 py-2 font-semibold">Nama</th>
+                <th className="text-left px-4 py-2 font-semibold hidden sm:table-cell">Type</th>
+                <th className="text-left px-4 py-2 font-semibold hidden md:table-cell">MAC</th>
+                <th className="text-right px-4 py-2 font-semibold">RX</th>
+                <th className="text-right px-4 py-2 font-semibold">TX</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-50 dark:divide-white/5">
               {data.interfaces.map((i) => (
-                <tr key={i.name} className="border-t border-gray-100 dark:border-white/5">
-                  <td className="px-4 py-2">
-                    <span className={`inline-flex items-center gap-1 ${
+                <tr key={i.name}>
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    <span className={`inline-flex items-center gap-1.5 ${
                       i.disabled ? "text-gray-400 dark:text-white/30" :
                       i.running ? "text-green-600 dark:text-green-400" :
                       "text-amber-600 dark:text-amber-400"
@@ -180,11 +183,11 @@ export default function RouterStatus({ routerId, routerName }: { routerId: strin
                       {i.disabled ? "Disabled" : i.running ? "Running" : "Down"}
                     </span>
                   </td>
-                  <td className="px-4 py-2 font-mono text-gray-700 dark:text-white/70">{i.name}</td>
-                  <td className="px-4 py-2 text-gray-500 dark:text-white/50">{i.type ?? "-"}</td>
-                  <td className="px-4 py-2 font-mono text-gray-500 dark:text-white/50">{i.mac ?? "-"}</td>
-                  <td className="px-4 py-2 text-right font-mono text-gray-700 dark:text-white/70">{i.rxByte ? formatBytes(parseInt(i.rxByte, 10)) : "-"}</td>
-                  <td className="px-4 py-2 text-right font-mono text-gray-700 dark:text-white/70">{i.txByte ? formatBytes(parseInt(i.txByte, 10)) : "-"}</td>
+                  <td className="px-4 py-2 font-mono text-gray-900 dark:text-white whitespace-nowrap">{i.name}</td>
+                  <td className="px-4 py-2 text-gray-500 dark:text-white/50 hidden sm:table-cell whitespace-nowrap">{i.type ?? "-"}</td>
+                  <td className="px-4 py-2 font-mono text-gray-500 dark:text-white/50 hidden md:table-cell whitespace-nowrap">{i.mac ?? "-"}</td>
+                  <td className="px-4 py-2 text-right font-mono text-gray-700 dark:text-white/70 whitespace-nowrap">{i.rxByte ? formatBytes(parseInt(i.rxByte, 10)) : "-"}</td>
+                  <td className="px-4 py-2 text-right font-mono text-gray-700 dark:text-white/70 whitespace-nowrap">{i.txByte ? formatBytes(parseInt(i.txByte, 10)) : "-"}</td>
                 </tr>
               ))}
               {data.interfaces.length === 0 && (
@@ -195,21 +198,35 @@ export default function RouterStatus({ routerId, routerName }: { routerId: strin
         </div>
       </div>
 
-      <p className="text-xs text-gray-400 dark:text-white/30 text-right">
-        Update tiap 5 detik (pause saat tab gak aktif) · {new Date(data.fetchedAt).toLocaleTimeString("id-ID")}
+      <p className="text-[11px] text-gray-400 dark:text-white/30 text-right">
+        Update tiap 5 detik (pause saat tab gak aktif)
       </p>
     </div>
   );
 }
 
-function StatCard({ label, value, sub, accent = "ok" }: { label: string; value: string; sub?: string; accent?: "ok" | "warn" }) {
+const STAT_TONES: Record<string, { bg: string; text: string; ring: string }> = {
+  blue: { bg: "bg-blue-50 dark:bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", ring: "ring-blue-500/40" },
+  green: { bg: "bg-green-50 dark:bg-green-500/10", text: "text-green-600 dark:text-green-400", ring: "ring-green-500/40" },
+  amber: { bg: "bg-amber-50 dark:bg-amber-500/10", text: "text-amber-600 dark:text-amber-400", ring: "ring-amber-500/40" },
+  purple: { bg: "bg-purple-50 dark:bg-purple-500/10", text: "text-purple-600 dark:text-purple-400", ring: "ring-purple-500/40" },
+  cyan: { bg: "bg-cyan-50 dark:bg-cyan-500/10", text: "text-cyan-600 dark:text-cyan-400", ring: "ring-cyan-500/40" },
+  pink: { bg: "bg-pink-50 dark:bg-pink-500/10", text: "text-pink-600 dark:text-pink-400", ring: "ring-pink-500/40" },
+};
+
+function StatCard({ tone, label, value, sub, mono, highlight }: { tone: string; label: string; value: string; sub?: string; mono?: boolean; highlight?: boolean }) {
+  const t = STAT_TONES[tone] ?? STAT_TONES.blue;
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 px-4 py-3 shadow-sm">
-      <p className="text-xs text-gray-500 dark:text-white/40">{label}</p>
-      <p className={`text-lg font-semibold mt-1 ${accent === "warn" ? "text-amber-600 dark:text-amber-400" : "text-gray-900 dark:text-white"}`}>
+    <div className={`${t.bg} rounded-xl p-4 ${highlight ? `ring-2 ${t.ring}` : ""}`}>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-white/50">{label}</p>
+      <p className={`${mono ? "font-mono text-lg sm:text-xl" : "text-2xl sm:text-3xl"} font-bold mt-1.5 ${t.text} truncate`} title={value}>
         {value}
       </p>
-      {sub && <p className="text-xs text-gray-400 dark:text-white/30 mt-0.5 font-mono">{sub}</p>}
+      {sub && (
+        <p className="text-[11px] text-gray-500 dark:text-white/40 mt-1 truncate font-mono" title={sub}>
+          {sub}
+        </p>
+      )}
     </div>
   );
 }

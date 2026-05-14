@@ -49,7 +49,7 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
 
   if (routers.length === 0) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 max-w-7xl">
         <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Monitor Router</h1>
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 px-5 py-8 text-center text-sm text-gray-500 dark:text-white/40 shadow-sm">
           Belum ada router. Tambahkan di <Link href="/dashboard/router" className="text-blue-500 hover:underline">halaman Router</Link> dulu.
@@ -59,7 +59,7 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-w-7xl">
       <div>
         <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Monitor Router</h1>
         <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5">
