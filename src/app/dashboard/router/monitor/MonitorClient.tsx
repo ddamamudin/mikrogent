@@ -231,10 +231,12 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
 
   return (
     <div className="space-y-3">
-      {/* Sub-header Monitor — sticky top supaya tetep nempel di atas saat
-          scroll konten. z-10 lebih rendah dari sidebar utama dashboard (z-30)
-          supaya sidebar utama tetep di atas saat dibuka. */}
-      <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm px-3 py-2 flex items-center gap-3">
+      {/* Sub-header wrapper — sticky full-width breakout dari padding main (p-6).
+          Bg-nya match main bg (gray-100 / slate-950) supaya content yang scroll
+          di belakang sub-header card gak bocor lewat sela rounded-xl edge atau
+          padding atas. Card-nya rounded preserve, wrapper-nya yang full edge. */}
+      <div className="sticky top-0 z-10 -mx-6 -mt-6 px-6 pt-6 bg-gray-100 dark:bg-slate-950">
+      <div className="relative bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm px-3 py-2 flex items-center gap-3">
         <button
           onClick={() => setSidebarOpen((o) => !o)}
           aria-label="Toggle menu Monitor"
@@ -272,11 +274,11 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
                 {pickerOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setPickerOpen(false)} aria-hidden="true" />
-                    <div className="absolute top-full left-0 mt-2 w-64 z-20 bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden">
+                    <div className="absolute top-full left-0 mt-2 w-64 max-w-[calc(100vw-2rem)] z-20 bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden">
                       <p className="px-3 py-2 text-[10px] uppercase tracking-wider text-gray-400 dark:text-white/30 font-semibold border-b border-gray-100 dark:border-white/5">
                         {routers.length} router
                       </p>
-                      <div className="max-h-72 overflow-y-auto py-1">
+                      <div className="max-h-72 overflow-y-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                         {routers.map((r) => {
                           const isA = r.id === activeId;
                           return (
@@ -325,7 +327,7 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
               : "opacity-0 -translate-y-2 scale-95 pointer-events-none"
           }`}
         >
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 shadow-xl overflow-hidden max-h-[calc(100vh-8rem)] overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 shadow-xl overflow-hidden max-h-[calc(100vh-8rem)] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <nav className="p-2 flex flex-col">
               {SECTIONS.map((sec) => (
                 <div key={sec.label} className="mb-1">
@@ -372,6 +374,7 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
             </nav>
           </div>
         </aside>
+      </div>
       </div>
 
       {/* Backdrop sub-sidebar — z-[5] di bawah sub-header sticky (z-10) tapi
