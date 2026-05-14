@@ -9,7 +9,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["ssh2"],
+  serverExternalPackages: ["ssh2", "node-routeros"],
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
