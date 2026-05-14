@@ -60,7 +60,8 @@ export default function RegisterClient({ showBrandField }: { showBrandField: boo
   const inputClass = "w-full bg-gray-100 rounded-xl px-4 py-3.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-gray-200 transition text-[15px]";
 
   return (
-    <div className="min-h-screen bg-white flex flex-col px-6">
+    <div className="min-h-screen bg-white flex flex-col items-center px-6">
+      <div className="w-full max-w-sm flex flex-col flex-1">
       <div className="pt-16 pb-8 text-center">
         <Link href="/">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -143,6 +144,7 @@ export default function RegisterClient({ showBrandField }: { showBrandField: boo
           <Link href="/masuk" className="text-blue-600 font-medium">Masuk</Link>
         </p>
       </form>
+      </div>
     </div>
   );
 }

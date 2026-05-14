@@ -58,33 +58,35 @@ function ResetPasswordForm() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col px-6">
-      <div className="pt-20 pb-10 text-center">
-        <Link href="/">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/mikroplay-logo-text.png" alt="Mikroplay" className="h-10 w-auto mx-auto" />
-        </Link>
-        <h1 className="text-2xl font-bold mt-5 text-gray-900">Buat Password Baru</h1>
-        <p className="text-gray-400 text-sm mt-1">Buat password baru yang kuat untuk akun Anda</p>
-      </div>
+    <div className="min-h-screen bg-white flex flex-col items-center px-6">
+      <div className="w-full max-w-sm flex flex-col flex-1">
+        <div className="pt-20 pb-10 text-center">
+          <Link href="/">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/mikroplay-logo-text.png" alt="Mikroplay" className="h-10 w-auto mx-auto" />
+          </Link>
+          <h1 className="text-2xl font-bold mt-5 text-gray-900">Buat Password Baru</h1>
+          <p className="text-gray-400 text-sm mt-1">Buat password baru yang kuat untuk akun Anda</p>
+        </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        {error && (
-          <div className="bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3">{error}</div>
-        )}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-gray-500 px-1">Password Baru</label>
-          <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={inputClass} placeholder="Minimal 8 karakter" />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-gray-500 px-1">Konfirmasi Password</label>
-          <PasswordInput value={confirm} onChange={(e) => setConfirm(e.target.value)} required className={inputClass} placeholder="Ulangi password baru" />
-        </div>
-        <button type="submit" disabled={loading}
-          className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-semibold transition text-[15px] mt-2">
-          {loading ? "Menyimpan..." : "Simpan Password Baru"}
-        </button>
-      </form>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {error && (
+            <div className="bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl px-4 py-3">{error}</div>
+          )}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-gray-500 px-1">Password Baru</label>
+            <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className={inputClass} placeholder="Minimal 8 karakter" />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-gray-500 px-1">Konfirmasi Password</label>
+            <PasswordInput value={confirm} onChange={(e) => setConfirm(e.target.value)} required className={inputClass} placeholder="Ulangi password baru" />
+          </div>
+          <button type="submit" disabled={loading}
+            className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-semibold transition text-[15px] mt-2">
+            {loading ? "Menyimpan..." : "Simpan Password Baru"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
