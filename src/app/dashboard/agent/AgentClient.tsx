@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback, FormEvent } from "react";
 import { useAgentSidebar } from "@/components/DashboardLayoutClient";
 import VoiceCallModal from "./VoiceCallModal";
+import DictateButton from "@/components/DictateButton";
 
 type Role = "user" | "assistant";
 interface Message { role: Role; content: string; }
@@ -463,6 +464,23 @@ export default function AgentClient({ firstName, hasAnyConnected, totalRouters, 
               rows={1}
               className="flex-1 resize-none overflow-hidden border-none outline-none bg-transparent text-[15px] text-gray-900 placeholder-gray-400 leading-relaxed min-h-[24px] font-[inherit]"
             />
+            {!loading && (
+              <DictateButton
+                disabled={chatCount >= dailyChatLimit}
+                onText={(text) => {
+                  if (!text) return;
+                  setInput((cur) => (cur ? `${cur.trimEnd()} ${text}` : text));
+                  // Resize textarea + fokus supaya user bisa langsung review/edit/kirim
+                  setTimeout(() => {
+                    autoResize();
+                    textareaRef.current?.focus();
+                    const el = textareaRef.current;
+                    if (el) el.setSelectionRange(el.value.length, el.value.length);
+                  }, 0);
+                }}
+                onError={(msg) => setError(msg)}
+              />
+            )}
             {loading ? (
               <button type="button" onClick={stopStream}
                 className="shrink-0 w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center cursor-pointer hover:bg-gray-700 transition border-none">
