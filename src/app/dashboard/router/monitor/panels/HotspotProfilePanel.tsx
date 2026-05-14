@@ -1,0 +1,290 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import ConfirmDialog from "@/components/ConfirmDialog";
+
+type Profile = {
+  id: string;
+  name: string;
+  sharedUsers: string;
+  rateLimit: string;
+  addressPool: string;
+  parentQueue: string;
+  expmode: string;
+  price: string;
+  validity: string;
+  sprice: string;
+  lockUser: boolean;
+};
+
+type Draft = Omit<Profile, "id">;
+
+const inputClass = "w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500";
+
+const EXPMODES = [
+  { value: "0", label: "No expire" },
+  { value: "rem", label: "Hapus setelah expired" },
+  { value: "ntf", label: "Notify (limit-uptime 1s)" },
+];
+
+function emptyDraft(): Draft {
+  return {
+    name: "",
+    sharedUsers: "1",
+    rateLimit: "",
+    addressPool: "",
+    parentQueue: "",
+    expmode: "0",
+    price: "0",
+    validity: "",
+    sprice: "0",
+    lockUser: false,
+  };
+}
+
+export default function HotspotProfilePanel({ routerId }: { routerId: string }) {
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [pools, setPools] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{ id: string; draft: Draft } | null>(null);
+  const [adding, setAdding] = useState<Draft | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Profile | null>(null);
+  const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  const showMsg = (type: "ok" | "err", text: string) => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage(null), 4000);
+  };
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/account/router/${routerId}/hotspot/profiles`, { cache: "no-store" });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json?.error ?? "Gagal");
+        setProfiles([]);
+      } else {
+        setProfiles(json.data?.profiles ?? []);
+        setPools(json.data?.pools ?? []);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [routerId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    queueMicrotask(() => { if (!cancelled) void fetchData(); });
+    return () => { cancelled = true; };
+  }, [fetchData]);
+
+  const handleSaveEdit = async () => {
+    if (!editing) return;
+    setBusyId(editing.id);
+    const res = await fetch(`/api/account/router/${routerId}/hotspot/profiles/${encodeURIComponent(editing.id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fields: editing.draft }),
+    });
+    setBusyId(null);
+    if (!res.ok) { const j = await res.json().catch(() => ({})); showMsg("err", j?.error ?? "Gagal"); return; }
+    setEditing(null);
+    showMsg("ok", "Profile diupdate");
+    fetchData();
+  };
+
+  const handleSaveAdd = async () => {
+    if (!adding) return;
+    if (!adding.name.trim()) { showMsg("err", "Name wajib"); return; }
+    setBusyId("__add__");
+    const res = await fetch(`/api/account/router/${routerId}/hotspot/profiles`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(adding),
+    });
+    setBusyId(null);
+    if (!res.ok) { const j = await res.json().catch(() => ({})); showMsg("err", j?.error ?? "Gagal"); return; }
+    setAdding(null);
+    showMsg("ok", "Profile dibikin");
+    fetchData();
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    setBusyId(pendingDelete.id);
+    const res = await fetch(`/api/account/router/${routerId}/hotspot/profiles/${encodeURIComponent(pendingDelete.id)}`, { method: "DELETE" });
+    setBusyId(null);
+    setPendingDelete(null);
+    if (!res.ok) { const j = await res.json().catch(() => ({})); showMsg("err", j?.error ?? "Gagal"); return; }
+    showMsg("ok", "Profile dihapus");
+    fetchData();
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 p-3 shadow-sm flex flex-wrap gap-2 items-center justify-between">
+        <p className="text-xs text-gray-500 dark:text-white/40">
+          Profile menentukan validity, harga, bandwidth, dan mode expired tiap voucher.
+        </p>
+        <div className="flex gap-2">
+          <button onClick={fetchData} className="text-xs px-3 py-2 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 text-gray-700 dark:text-white/70 font-medium">Refresh</button>
+          <button onClick={() => setAdding(emptyDraft())} className="text-xs px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium">+ Tambah Profile</button>
+        </div>
+      </div>
+
+      {message && (
+        <div className={`text-sm px-4 py-3 rounded-lg ${message.type === "ok" ? "bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-500/20" : "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/20"}`}>
+          {message.text}
+        </div>
+      )}
+
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden shadow-sm">
+        <div className="px-5 py-3 border-b border-gray-100 dark:border-white/5">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-white/80">Profile ({profiles.length})</h2>
+        </div>
+        {loading ? (
+          <p className="px-5 py-8 text-sm text-gray-400 dark:text-white/30 text-center">Memuat...</p>
+        ) : error ? (
+          <p className="px-5 py-8 text-sm text-red-500 text-center">{error}</p>
+        ) : profiles.length === 0 ? (
+          <p className="px-5 py-8 text-sm text-gray-400 dark:text-white/30 text-center">Belum ada profile.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="bg-gray-50 dark:bg-white/5 text-[10px] uppercase tracking-wider text-gray-500 dark:text-white/40">
+                <tr>
+                  <th className="text-left px-4 py-2 font-semibold">Name</th>
+                  <th className="text-left px-4 py-2 font-semibold">Shared</th>
+                  <th className="text-left px-4 py-2 font-semibold hidden md:table-cell">Rate Limit</th>
+                  <th className="text-left px-4 py-2 font-semibold hidden lg:table-cell">Validity</th>
+                  <th className="text-right px-4 py-2 font-semibold hidden lg:table-cell">Price</th>
+                  <th className="text-left px-4 py-2 font-semibold hidden xl:table-cell">Expmode</th>
+                  <th className="text-right px-4 py-2 font-semibold">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 dark:divide-white/5">
+                {profiles.map((p) => {
+                  const isBusy = busyId === p.id;
+                  return (
+                    <tr key={p.id}>
+                      <td className="px-4 py-2 font-mono text-gray-900 dark:text-white whitespace-nowrap">{p.name}</td>
+                      <td className="px-4 py-2 text-gray-700 dark:text-white/70">{p.sharedUsers}</td>
+                      <td className="px-4 py-2 font-mono text-gray-500 dark:text-white/50 hidden md:table-cell whitespace-nowrap">{p.rateLimit || "-"}</td>
+                      <td className="px-4 py-2 text-gray-500 dark:text-white/50 hidden lg:table-cell whitespace-nowrap">{p.validity || "-"}</td>
+                      <td className="px-4 py-2 text-right text-gray-700 dark:text-white/70 hidden lg:table-cell whitespace-nowrap">{p.price !== "0" ? `Rp ${Number(p.price).toLocaleString("id-ID")}` : "-"}</td>
+                      <td className="px-4 py-2 text-gray-500 dark:text-white/50 hidden xl:table-cell whitespace-nowrap">{EXPMODES.find((e) => e.value === p.expmode)?.label ?? p.expmode}</td>
+                      <td className="px-4 py-2 text-right whitespace-nowrap">
+                        <div className="inline-flex gap-1">
+                          <button onClick={() => setEditing({ id: p.id, draft: { ...p } })} disabled={isBusy} className="text-[11px] px-2 py-1 rounded bg-blue-100 dark:bg-blue-500/10 hover:bg-blue-200 text-blue-700 dark:text-blue-400 disabled:opacity-50">Edit</button>
+                          <button onClick={() => setPendingDelete(p)} disabled={isBusy} className="text-[11px] px-2 py-1 rounded bg-red-100 dark:bg-red-500/10 hover:bg-red-200 text-red-600 dark:text-red-400 disabled:opacity-50">Hapus</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {adding && <ProfileModal title="Tambah Profile" draft={adding} onChange={setAdding} pools={pools} onCancel={() => setAdding(null)} onSubmit={handleSaveAdd} busy={busyId === "__add__"} submitLabel="Tambah" />}
+      {editing && <ProfileModal title={`Edit ${editing.draft.name}`} draft={editing.draft} onChange={(d) => setEditing({ ...editing, draft: d! })} pools={pools} onCancel={() => setEditing(null)} onSubmit={handleSaveEdit} busy={busyId === editing.id} submitLabel="Simpan" />}
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        variant="danger"
+        title={pendingDelete ? `Hapus profile "${pendingDelete.name}"?` : ""}
+        description="User yang masih pakai profile ini akan ke-orphan. Pindahkan dulu user-nya ke profile lain kalau perlu."
+        confirmLabel="Hapus"
+        cancelLabel="Batal"
+        loading={!!pendingDelete && busyId === pendingDelete.id}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
+    </div>
+  );
+}
+
+function ProfileModal({ title, draft, onChange, pools, onCancel, onSubmit, busy, submitLabel }: {
+  title: string;
+  draft: Draft;
+  onChange: (d: Draft) => void;
+  pools: string[];
+  onCancel: () => void;
+  onSubmit: () => void;
+  busy: boolean;
+  submitLabel: string;
+}) {
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center px-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
+      <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 shadow-xl p-5 space-y-3 max-h-[90vh] overflow-y-auto">
+        <h3 className="text-base font-semibold text-gray-900 dark:text-white">{title}</h3>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div className="col-span-2">
+            <label className="text-xs text-gray-500 dark:text-white/40">Name</label>
+            <input value={draft.name} onChange={(e) => onChange({ ...draft, name: e.target.value })} className={inputClass} placeholder="contoh: 1HARI" />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 dark:text-white/40">Shared Users</label>
+            <input type="number" min={1} value={draft.sharedUsers} onChange={(e) => onChange({ ...draft, sharedUsers: e.target.value })} className={inputClass} />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 dark:text-white/40">Rate Limit</label>
+            <input value={draft.rateLimit} onChange={(e) => onChange({ ...draft, rateLimit: e.target.value })} className={inputClass} placeholder="2M/2M" />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 dark:text-white/40">Validity</label>
+            <input value={draft.validity} onChange={(e) => onChange({ ...draft, validity: e.target.value })} className={inputClass} placeholder="1d, 12h, 30m" />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 dark:text-white/40">Expmode</label>
+            <select value={draft.expmode} onChange={(e) => onChange({ ...draft, expmode: e.target.value })} className={inputClass}>
+              {EXPMODES.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 dark:text-white/40">Harga Modal</label>
+            <input type="number" min={0} value={draft.price} onChange={(e) => onChange({ ...draft, price: e.target.value })} className={inputClass} />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 dark:text-white/40">Harga Jual</label>
+            <input type="number" min={0} value={draft.sprice} onChange={(e) => onChange({ ...draft, sprice: e.target.value })} className={inputClass} />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 dark:text-white/40">Address Pool</label>
+            <select value={draft.addressPool || "none"} onChange={(e) => onChange({ ...draft, addressPool: e.target.value === "none" ? "" : e.target.value })} className={inputClass}>
+              <option value="none">(none)</option>
+              {pools.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 dark:text-white/40">Parent Queue</label>
+            <input value={draft.parentQueue} onChange={(e) => onChange({ ...draft, parentQueue: e.target.value })} className={inputClass} placeholder="none" />
+          </div>
+          <div className="col-span-2">
+            <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-white/70 cursor-pointer">
+              <input type="checkbox" checked={draft.lockUser} onChange={(e) => onChange({ ...draft, lockUser: e.target.checked })} />
+              Lock voucher ke MAC pertama login (anti-share)
+            </label>
+          </div>
+        </div>
+
+        <div className="flex gap-2 pt-2">
+          <button onClick={onCancel} className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-white/60 text-sm font-medium">Batal</button>
+          <button onClick={onSubmit} disabled={busy} className="flex-1 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium">
+            {busy ? "..." : submitLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
