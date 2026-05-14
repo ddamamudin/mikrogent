@@ -138,7 +138,8 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
 
           {/* Sidebar (overlay, ga menggeser konten) */}
           <aside className={`${sidebarBase} ${sidebarPos}`}>
-            <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
+            {/* Top nav (fixed, gak ikut scroll) */}
+            <nav className="py-4 px-2 space-y-1 shrink-0">
               {NAV.map(({ href, label, icon }) => {
                 const active = pathname === href || pathname.startsWith(`${href}/`);
                 return (
@@ -156,11 +157,6 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
                   </a>
                 );
               })}
-
-              {/* Histori chat di bawah nav items (cuma muncul saat di /dashboard/agent) */}
-              <Suspense fallback={null}>
-                <SessionsListSidebar />
-              </Suspense>
 
               {showBrandField && user.brand && (
                 <a
@@ -181,6 +177,13 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
                 </a>
               )}
             </nav>
+
+            {/* Histori chat (scrollable, scrollbar disembunyikan) */}
+            <div className="flex-1 min-h-0 overflow-y-auto px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <Suspense fallback={null}>
+                <SessionsListSidebar />
+              </Suspense>
+            </div>
 
             <div className="px-3 py-2 border-t border-gray-200 dark:border-white/10 space-y-1">
               <MasukanSidebarLink />

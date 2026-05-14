@@ -5,18 +5,6 @@ import { usePathname, useSearchParams } from "next/navigation";
 
 type SessionItem = { id: string; title: string | null; updatedAt: string };
 
-function relativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return "baru saja";
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}j`;
-  const d = Math.floor(h / 24);
-  if (d < 7) return `${d}h`;
-  return new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
-}
-
 // List sesi chat di sidebar (cuma muncul saat route /dashboard/agent).
 // Fetch awal saat mount + reload tiap kali pathname/searchParams berubah (user
 // switch sesi atau bikin sesi baru). Server udah ngurus FIFO 10 di POST endpoint.
@@ -69,10 +57,12 @@ export default function SessionsListSidebar() {
 
   return (
     <>
-      <div className="mt-2 px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-gray-400 dark:text-white/30 font-semibold">
-        Histori ({sessions.length}/10)
+      <div className="mt-2 mx-1 pt-3 pb-1 border-t border-gray-200 dark:border-white/10">
+        <p className="px-2 pb-1 text-[10px] uppercase tracking-wider text-gray-400 dark:text-white/30 font-semibold">
+          Histori ({sessions.length}/10)
+        </p>
       </div>
-      <div className="space-y-0.5">
+      <div className="space-y-0.5 pb-2">
         {sessions.map((s) => {
           const active = s.id === currentSessionId;
           const title = s.title || "Chat baru";
@@ -80,17 +70,14 @@ export default function SessionsListSidebar() {
             <div key={s.id} className="group relative">
               <a
                 href={`/dashboard/agent?session=${s.id}`}
-                className={`flex items-start gap-2 pl-3 pr-8 py-1.5 rounded-lg text-sm transition ${
+                className={`flex items-center gap-2 pl-3 pr-8 py-2 rounded-lg text-sm transition ${
                   active
                     ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
                     : "text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
                 }`}
                 title={title}
               >
-                <div className="flex-1 min-w-0">
-                  <div className="truncate text-[13px]">{title}</div>
-                  <div className="text-[10px] text-gray-400 dark:text-white/30">{relativeTime(s.updatedAt)}</div>
-                </div>
+                <span className="flex-1 min-w-0 truncate text-[13px]">{title}</span>
               </a>
               <button
                 onClick={(e) => {
