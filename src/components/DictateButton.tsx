@@ -155,7 +155,7 @@ export default function DictateButton({
         <button
           type="button"
           onClick={handleClick}
-          title={`Sedang merekam — klik untuk stop (${remaining}s sampai auto-stop)`}
+          title={`Sedang merekam, klik untuk stop (${remaining}s sampai auto-stop)`}
           className={`${baseClass} bg-red-500 text-white hover:bg-red-600 relative`}
         >
           <span className="absolute inset-0 rounded-full bg-red-500 opacity-60 animate-ping" />

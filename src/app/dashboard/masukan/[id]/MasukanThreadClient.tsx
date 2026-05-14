@@ -80,7 +80,7 @@ export default function MasukanThreadClient({ feedbackId }: { feedbackId: string
         <a href="/dashboard/masukan" className="text-xs text-blue-600 hover:underline">← Daftar masukan</a>
         <h1 className="text-lg font-semibold text-gray-900 dark:text-white mt-1">{thread.subject}</h1>
         {thread.status === "RESOLVED" && (
-          <div className="mt-1 text-xs text-gray-500 dark:text-white/40">Status: <span className="text-gray-700 dark:text-white/60 font-medium">Selesai</span> — admin sudah menutup thread ini. Buat masukan baru kalau perlu lanjut.</div>
+          <div className="mt-1 text-xs text-gray-500 dark:text-white/40">Status: <span className="text-gray-700 dark:text-white/60 font-medium">Selesai</span>. Admin sudah menutup thread ini. Buat masukan baru kalau perlu lanjut.</div>
         )}
       </div>
 

@@ -261,7 +261,7 @@ export default function PengaturanClient({ config: initial, admin, isSuper = tru
           <div className="flex items-center justify-between">
             <div className="pr-4">
               <p className="text-sm font-medium text-gray-900 dark:text-white">Halaman daftar tenant</p>
-              <p className="text-xs text-gray-400 dark:text-white/30 mt-0.5">Matikan kalau gak mau ada pendaftaran user baru — admin bikinin manual atau impersonate</p>
+              <p className="text-xs text-gray-400 dark:text-white/30 mt-0.5">Matikan kalau gak mau ada pendaftaran user baru, admin bikinin manual atau impersonate</p>
             </div>
             <button onClick={() => handleToggleRegistration(!registrationEnabled)} disabled={configLoading}
               className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${registrationEnabled ? "bg-blue-600" : "bg-gray-200 dark:bg-white/10"}`}>
@@ -308,7 +308,7 @@ export default function PengaturanClient({ config: initial, admin, isSuper = tru
               ))}
             </div>
             <p className="text-[11px] text-gray-400 dark:text-white/30">
-              Voice call selalu lewat OpenAI Realtime — pilih chat provider apa aja, voice tetap jalan asal API Key OpenAI di bawah terisi.
+              Voice call selalu lewat OpenAI Realtime. Pilih chat provider apa aja, voice tetap jalan asal API Key OpenAI di bawah terisi.
             </p>
           </div>
 
@@ -438,7 +438,7 @@ export default function PengaturanClient({ config: initial, admin, isSuper = tru
 
           {voiceCallEnabled && !openaiApiKey.trim() && (
             <div className="text-xs px-3 py-2 rounded-lg bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-500/20">
-              Voice call butuh <strong>API Key OpenAI</strong> terisi di card Provider AI. Chat provider boleh tetap Claude/lainnya — voice cuma jalan lewat OpenAI Realtime.
+              Voice call butuh <strong>API Key OpenAI</strong> terisi di card Provider AI. Chat provider boleh tetap Claude/lainnya, voice cuma jalan lewat OpenAI Realtime.
             </div>
           )}
 

@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   notifyAdmins({
     type: "user_email_verified",
     title: "Email tenant terverifikasi",
-    body: `${emailToken.user.name} (${emailToken.user.email}) — siap divalidasi`,
+    body: `${emailToken.user.name} (${emailToken.user.email}), siap divalidasi`,
     link: `/admin/tenant/${emailToken.userId}`,
     meta: { tenantId: emailToken.userId },
   }).catch(() => {});

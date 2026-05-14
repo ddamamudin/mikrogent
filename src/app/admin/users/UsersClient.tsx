@@ -209,7 +209,7 @@ export default function UsersClient({ adminLevel }: { adminLevel: AdminLevel }) 
                                 </button>
                               </>
                             ) : (
-                              <span className="text-xs text-gray-300 dark:text-white/20">—</span>
+                              <span className="text-xs text-gray-300 dark:text-white/20">-</span>
                             )}
                           </div>
                         </td>

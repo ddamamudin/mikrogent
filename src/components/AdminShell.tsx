@@ -342,7 +342,7 @@ export default function AdminShell({
               className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition ${
                 collapsed ? "justify-center" : ""
               }`}
-              title={collapsed ? `${adminName ?? "Admin"} — Klik untuk keluar` : undefined}
+              title={collapsed ? `${adminName ?? "Admin"}, klik untuk keluar` : undefined}
             >
               <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white text-xs font-semibold flex items-center justify-center shrink-0">
                 {initials}
