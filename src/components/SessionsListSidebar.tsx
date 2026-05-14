@@ -140,13 +140,13 @@ export default function SessionsListSidebar() {
 
   return (
     <>
-      {/* Section header sticky di atas scroll container */}
-      <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 mx-1 pt-3 pb-1 border-t border-gray-200 dark:border-white/10">
-        <p className="px-2 pb-1 text-[10px] uppercase tracking-wider text-gray-400 dark:text-white/30 font-semibold">
+      {/* Section header sticky — full-width separator kayak Masukan/Profil footer */}
+      <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-white/10 px-3 pt-3 pb-1">
+        <p className="text-[10px] uppercase tracking-wider text-gray-400 dark:text-white/30 font-semibold">
           Histori ({sessions.length}/20)
         </p>
       </div>
-      <div className="pb-2">
+      <div className="px-2 pb-2">
         {sessions.map((s) => {
           const active = s.id === currentSessionId;
           const title = s.title || "Chat baru";

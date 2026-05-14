@@ -178,8 +178,11 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
               )}
             </nav>
 
-            {/* Histori chat (scrollable, scrollbar disembunyikan) */}
-            <div className="flex-1 min-h-0 overflow-y-auto px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {/* Histori chat (scrollable, scrollbar disembunyikan). NB: gak ada
+                horizontal padding di sini supaya separator histori bisa full-width
+                kayak separator Masukan/Profil. Padding horizontal di-handle per-item
+                di dalam SessionsListSidebar. */}
+            <div className="flex-1 min-h-0 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <Suspense fallback={null}>
                 <SessionsListSidebar />
               </Suspense>
