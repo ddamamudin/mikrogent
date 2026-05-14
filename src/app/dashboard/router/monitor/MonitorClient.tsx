@@ -91,7 +91,9 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
   const [activeId, setActiveId] = useState<string | null>(initialRouters[0]?.id ?? null);
   const [menu, setMenu] = useState<MenuKey>("status");
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // Default closed (sama pattern dengan sidebar utama dashboard).
+  // Open via hamburger → overlay slide-in, gak nge-geser content.
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const refetch = useCallback(async () => {
     try {
@@ -178,10 +180,24 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
       )}
 
       {active && active.apiEnabled && (
-        <div className="flex flex-col lg:flex-row gap-3">
-          {/* Sub-sidebar — bisa di-toggle hide/show via hamburger di sub-header */}
+        <div className="relative">
+          {/* Backdrop saat sidebar open — click outside untuk close. Sama
+              pattern kayak sidebar utama dashboard. */}
           {sidebarOpen && (
-          <aside className="lg:w-56 shrink-0 space-y-2">
+            <div
+              onClick={() => setSidebarOpen(false)}
+              aria-hidden="true"
+              className="absolute inset-0 z-20 bg-black/20"
+            />
+          )}
+
+          {/* Sub-sidebar floating overlay — slide-in dari kiri, gak nge-geser
+              content. Default closed; toggle pakai hamburger di sub-header. */}
+          <aside
+            className={`absolute top-0 left-0 w-56 z-30 space-y-2 transition-transform duration-200 ${
+              sidebarOpen ? "translate-x-0" : "-translate-x-[120%]"
+            }`}
+          >
             {/* Picker card terpisah biar dropdown bisa nge-overlay nav card di bawahnya
                 tanpa kena clip overflow-hidden. */}
             <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm">
@@ -257,7 +273,7 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
                       return (
                         <button
                           key={`${sec.label}-${it.key}`}
-                          onClick={() => setMenu(it.key)}
+                          onClick={() => { setMenu(it.key); setSidebarOpen(false); }}
                           className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition ${
                             isOn
                               ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
@@ -293,10 +309,10 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
               </nav>
             </div>
           </aside>
-          )}
 
-          {/* Content area — full width kalau sidebar hide */}
-          <div className="flex-1 min-w-0">
+          {/* Content area — selalu full width, gak nge-geser saat sidebar
+              di-toggle (overlay behavior). */}
+          <div className="w-full min-w-0">
             {menu === "status" && <RouterStatus key={`status-${active.id}`} routerId={active.id} routerName={active.name} />}
             {menu === "users" && <HotspotUserPanel key={`users-${active.id}`} routerId={active.id} />}
             {menu === "profiles" && <HotspotProfilePanel key={`profiles-${active.id}`} routerId={active.id} />}
