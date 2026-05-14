@@ -127,8 +127,9 @@ export default function RouterStatus({ routerId, routerName }: { routerId: strin
         </div>
       </div>
 
-      {/* Stat cards (tone-based, konsisten dengan admin dashboard) */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-7 gap-3">
+      {/* Resource cards — 2 / 4 kolom (mobile / desktop). Cukup lebar untuk
+          "1d11h41m28s" tanpa truncate. */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard tone="blue" label="UPTIME" value={data.resource.uptime} mono />
         <StatCard tone="amber" label="CPU LOAD" value={`${data.resource.cpuLoad}%`} highlight={cpuNum > 80} />
         <StatCard
@@ -145,8 +146,12 @@ export default function RouterStatus({ routerId, routerName }: { routerId: strin
           sub={`${formatBytes(data.resource.totalHdd - data.resource.freeHdd)} / ${formatBytes(data.resource.totalHdd)}`}
           highlight={hddPct > 80}
         />
-        <StatCard tone="purple" label="HOTSPOT" value={String(data.counts.hotspotActive)} sub="user aktif" />
-        <StatCard tone="pink" label="PPP" value={String(data.counts.pppActive)} sub="user aktif" />
+      </div>
+
+      {/* Service counts — 3 kolom */}
+      <div className="grid grid-cols-3 gap-3">
+        <StatCard tone="purple" label="HOTSPOT AKTIF" value={String(data.counts.hotspotActive)} sub="user terhubung" />
+        <StatCard tone="pink" label="PPP AKTIF" value={String(data.counts.pppActive)} sub="user terhubung" />
         <StatCard tone="blue" label="DHCP LEASE" value={String(data.counts.dhcpLeasesBound)} sub="bound" />
       </div>
 

@@ -74,9 +74,14 @@ export function useAgentSidebar() {
   return useContext(AgentSidebarCtx);
 }
 
+// Routes yang butuh kanvas lebar (tabel, grid multi-card, dashboard).
+// Sisanya default max-w-lg buat halaman form.
+const WIDE_PATHS = ["/dashboard/router/monitor"];
+
 export default function DashboardLayoutClient({ user, showBrandField, children }: { user: User; showBrandField: boolean; children: React.ReactNode }) {
   const pathname = usePathname();
   const isAgentPage = pathname === "/dashboard/agent";
+  const isWidePage = WIDE_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [agentState, setAgentState] = useState<AgentSidebarState | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -275,9 +280,16 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
             </div>
           </aside>
 
-          {/* Main Content - selalu full lebar */}
+          {/* Main Content. Default container max-w-lg cocok buat halaman form
+              (Profil, Password, Router list, dll). Tapi page yang butuh tabel
+              lebar/multi-card (Monitor) di-opt-in via WIDE_PATHS supaya pakai
+              max-w-7xl seperti pattern admin. */}
           <main className={`h-full ${isAgentPage ? "" : "overflow-y-auto p-6"}`}>
-            {isAgentPage ? children : <div className="max-w-lg mx-auto">{children}</div>}
+            {isAgentPage ? children : (
+              <div className={`${isWidePage ? "max-w-7xl" : "max-w-lg"} mx-auto`}>
+                {children}
+              </div>
+            )}
           </main>
         </div>
       </div>
