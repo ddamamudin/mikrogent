@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { usePathname, useSearchParams } from "next/navigation";
+
+const MENU_WIDTH = 144;
+const MENU_HEIGHT = 80;
+const VIEWPORT_PADDING = 16;
 
 type SessionItem = { id: string; title: string | null; updatedAt: string };
 
@@ -16,12 +21,55 @@ export default function SessionsListSidebar() {
   const [pendingDelete, setPendingDelete] = useState<SessionItem | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const [mounted, setMounted] = useState(false);
   const [renameTarget, setRenameTarget] = useState<SessionItem | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [renaming, setRenaming] = useState(false);
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   const isAgentPage = pathname === "/dashboard/agent";
+
+  // createPortal butuh document — render-nya cuma di client setelah mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Reset menu pos saat menu ditutup, dan auto-close saat user scroll/resize
+  useEffect(() => {
+    if (!menuOpenId) {
+      setMenuPos(null);
+      return;
+    }
+    const onScrollOrResize = () => setMenuOpenId(null);
+    window.addEventListener("scroll", onScrollOrResize, true);
+    window.addEventListener("resize", onScrollOrResize);
+    return () => {
+      window.removeEventListener("scroll", onScrollOrResize, true);
+      window.removeEventListener("resize", onScrollOrResize);
+    };
+  }, [menuOpenId]);
+
+  const openMenu = (sessionId: string, buttonEl: HTMLElement) => {
+    const rect = buttonEl.getBoundingClientRect();
+    const vh = window.innerHeight;
+    const vw = window.innerWidth;
+
+    // Default: anchor di kanan button, di bawah. Flip ke atas kalau gak muat.
+    let top = rect.bottom + 4;
+    if (top + MENU_HEIGHT > vh - VIEWPORT_PADDING) {
+      top = rect.top - MENU_HEIGHT - 4;
+    }
+    // Anchor kanan button → menu rata kanan dengan button
+    let left = rect.right - MENU_WIDTH;
+    if (left < VIEWPORT_PADDING) left = VIEWPORT_PADDING;
+    if (left + MENU_WIDTH > vw - VIEWPORT_PADDING) {
+      left = vw - VIEWPORT_PADDING - MENU_WIDTH;
+    }
+
+    setMenuPos({ top, left });
+    setMenuOpenId(sessionId);
+  };
 
   const fetchSessions = useCallback(async () => {
     try {
@@ -36,18 +84,6 @@ export default function SessionsListSidebar() {
     if (!isAgentPage) return;
     fetchSessions();
   }, [isAgentPage, fetchSessions, currentSessionId, pathname]);
-
-  // Auto-close menu kalau klik di luar
-  useEffect(() => {
-    if (!menuOpenId) return;
-    const handler = (e: MouseEvent) => {
-      const target = e.target as Element;
-      if (target.closest(`[data-menu-id="${menuOpenId}"]`)) return;
-      setMenuOpenId(null);
-    };
-    document.addEventListener("click", handler);
-    return () => document.removeEventListener("click", handler);
-  }, [menuOpenId]);
 
   // Focus input saat rename modal kebuka
   useEffect(() => {
@@ -107,7 +143,7 @@ export default function SessionsListSidebar() {
       {/* Section header sticky di atas scroll container */}
       <div className="sticky top-0 z-10 bg-white dark:bg-slate-900 mx-1 pt-3 pb-1 border-t border-gray-200 dark:border-white/10">
         <p className="px-2 pb-1 text-[10px] uppercase tracking-wider text-gray-400 dark:text-white/30 font-semibold">
-          Histori ({sessions.length}/10)
+          Histori ({sessions.length}/20)
         </p>
       </div>
       <div className="pb-2">
@@ -116,7 +152,7 @@ export default function SessionsListSidebar() {
           const title = s.title || "Chat baru";
           const menuOpen = menuOpenId === s.id;
           return (
-            <div key={s.id} className="group relative" data-menu-id={s.id}>
+            <div key={s.id} className="group relative">
               <a
                 href={`/dashboard/agent?session=${s.id}`}
                 className={`flex items-center gap-2 pl-3 pr-8 py-1.5 rounded-lg text-[13px] transition ${
@@ -132,7 +168,8 @@ export default function SessionsListSidebar() {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  setMenuOpenId(menuOpen ? null : s.id);
+                  if (menuOpen) setMenuOpenId(null);
+                  else openMenu(s.id, e.currentTarget);
                 }}
                 className={`absolute top-1/2 -translate-y-1/2 right-1.5 p-1 rounded text-gray-400 dark:text-white/30 hover:bg-gray-200 dark:hover:bg-white/10 hover:text-gray-700 dark:hover:text-white transition ${
                   menuOpen ? "opacity-100 bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-white" : "opacity-0 group-hover:opacity-100"
@@ -146,45 +183,61 @@ export default function SessionsListSidebar() {
                   <circle cx="12" cy="19" r="1.5" />
                 </svg>
               </button>
-
-              {menuOpen && (
-                <div className="absolute right-1.5 top-full mt-0.5 z-20 w-36 bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg shadow-lg py-1">
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setMenuOpenId(null);
-                      setRenameTarget(s);
-                    }}
-                    className="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 dark:text-white/80 hover:bg-gray-100 dark:hover:bg-white/5 transition"
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 20h9" />
-                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-                    </svg>
-                    Ganti nama
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setMenuOpenId(null);
-                      setPendingDelete(s);
-                    }}
-                    className="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
-                  >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="3 6 5 6 21 6" />
-                      <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
-                    </svg>
-                    Hapus
-                  </button>
-                </div>
-              )}
             </div>
           );
         })}
       </div>
+
+      {/* Dropdown menu via portal — escape sidebar overflow biar gak ke-clip */}
+      {mounted && menuOpenId && menuPos && createPortal(
+        (() => {
+          const target = sessions.find((x) => x.id === menuOpenId);
+          if (!target) return null;
+          return (
+            <>
+              {/* Backdrop transparent buat tutup-on-outside-click */}
+              <div
+                onClick={() => setMenuOpenId(null)}
+                className="fixed inset-0 z-[55]"
+                aria-hidden="true"
+              />
+              <div
+                role="menu"
+                style={{ top: menuPos.top, left: menuPos.left, width: MENU_WIDTH }}
+                className="fixed z-[56] bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1"
+              >
+                <button
+                  onClick={() => {
+                    setMenuOpenId(null);
+                    setRenameTarget(target);
+                  }}
+                  className="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 dark:text-white/80 hover:bg-gray-100 dark:hover:bg-white/5 transition"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                  </svg>
+                  Ganti nama
+                </button>
+                <button
+                  onClick={() => {
+                    setMenuOpenId(null);
+                    setPendingDelete(target);
+                  }}
+                  className="w-full text-left flex items-center gap-2 px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6" />
+                  </svg>
+                  Hapus
+                </button>
+              </div>
+            </>
+          );
+        })(),
+        document.body,
+      )}
 
       {/* Confirm Hapus */}
       {pendingDelete && (

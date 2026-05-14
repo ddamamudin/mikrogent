@@ -5,7 +5,7 @@ import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import AgentClient from "./AgentClient";
 
-const MAX_SESSIONS_PER_USER = 10;
+const MAX_SESSIONS_PER_USER = 20;
 
 type ChatSession = {
   id: string;

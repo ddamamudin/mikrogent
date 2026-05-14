@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 
-const MAX_SESSIONS_PER_USER = 10;
+const MAX_SESSIONS_PER_USER = 20;
 
 async function requireUser() {
   const cookieStore = await cookies();
@@ -13,7 +13,7 @@ async function requireUser() {
   return { session };
 }
 
-// GET — list 10 sesi user, sorted by updatedAt desc (terbaru di atas).
+// GET — list maks N (MAX_SESSIONS_PER_USER) sesi user, sorted by updatedAt desc.
 // Return minimal field: id, title, updatedAt. Messages tidak diload (heavy).
 export async function GET() {
   const auth = await requireUser();
