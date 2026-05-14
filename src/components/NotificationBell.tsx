@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type NotifItem = {
   id: string;
@@ -34,6 +35,7 @@ const TYPE_ICON: Record<string, string> = {
 };
 
 export default function NotificationBell() {
+  const router = useRouter();
   const [items, setItems] = useState<NotifItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
@@ -97,7 +99,7 @@ export default function NotificationBell() {
       });
     }
     setOpen(false);
-    if (n.link) window.location.href = n.link;
+    if (n.link) router.push(n.link);
   };
 
   return (

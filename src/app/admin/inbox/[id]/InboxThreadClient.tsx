@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 
 type Message = { id: string; fromRole: "USER" | "ADMIN"; fromName: string; body: string; createdAt: string };
 type Thread = {
@@ -89,7 +90,7 @@ export default function InboxThreadClient({ feedbackId }: { feedbackId: string }
     return (
       <div className="p-8 text-center">
         <p className="text-sm text-gray-500 dark:text-white/40 mb-3">Thread tidak ditemukan</p>
-        <a href="/admin/inbox" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">← Kembali ke inbox</a>
+        <Link href="/admin/inbox" className="text-sm text-blue-600 dark:text-blue-400 hover:underline">← Kembali ke inbox</Link>
       </div>
     );
   }
@@ -99,7 +100,7 @@ export default function InboxThreadClient({ feedbackId }: { feedbackId: string }
       {/* Header */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0 flex-1">
-          <a href="/admin/inbox" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">← Inbox</a>
+          <Link href="/admin/inbox" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">← Inbox</Link>
           <h1 className="text-lg font-semibold text-gray-900 dark:text-white mt-1 truncate">{thread.subject}</h1>
           <div className="flex items-center gap-2 mt-1 text-xs text-gray-500 dark:text-white/40 flex-wrap">
             <span>{thread.user.name}</span>

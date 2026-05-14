@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type Tenant = {
   id: string;
@@ -277,9 +278,9 @@ export default function TenantDetailClient({ tenant: initial, mikrotikCreds }: {
   return (
     <div className="max-w-2xl space-y-4">
       <div className="flex items-center gap-3">
-        <a href="/admin/tenant" className="text-sm text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white/60 transition">
+        <Link href="/admin/tenant" className="text-sm text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white/60 transition">
           ← Kembali
-        </a>
+        </Link>
       </div>
 
       <div className="flex items-center justify-between">

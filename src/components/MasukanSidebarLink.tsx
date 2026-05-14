@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 
 export default function MasukanSidebarLink() {
   const pathname = usePathname();
@@ -32,7 +33,7 @@ export default function MasukanSidebarLink() {
   }, [fetchCount]);
 
   return (
-    <a
+    <Link
       href="/dashboard/masukan"
       className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition ${
         active
@@ -49,6 +50,6 @@ export default function MasukanSidebarLink() {
           {unread > 99 ? "99+" : unread}
         </span>
       )}
-    </a>
+    </Link>
   );
 }

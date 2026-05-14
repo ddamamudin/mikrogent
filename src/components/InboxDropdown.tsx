@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 
 type InboxItem = {
   id: string;
@@ -86,9 +87,9 @@ export default function InboxDropdown() {
         <div className="absolute right-0 mt-2 w-80 sm:w-96 max-h-[80vh] overflow-hidden bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 rounded-xl shadow-2xl z-50 flex flex-col">
           <div className="px-4 py-3 border-b border-gray-100 dark:border-white/5 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Inbox Masukan</h3>
-            <a href="/admin/inbox" className="text-xs text-blue-600 dark:text-blue-400 hover:underline" onClick={() => setOpen(false)}>
+            <Link href="/admin/inbox" className="text-xs text-blue-600 dark:text-blue-400 hover:underline" onClick={() => setOpen(false)}>
               Lihat semua
-            </a>
+            </Link>
           </div>
           <div className="flex-1 overflow-y-auto">
             {items.length === 0 ? (

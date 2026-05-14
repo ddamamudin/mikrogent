@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type Stats = {
   total: number;
@@ -206,12 +207,12 @@ export default function AdminDashboardClient({
               </p>
             </div>
           </div>
-          <a
+          <Link
             href="/admin/tenant"
             className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-medium transition shrink-0"
           >
             Lihat daftar
-          </a>
+          </Link>
         </div>
       )}
 
@@ -242,9 +243,9 @@ export default function AdminDashboardClient({
         <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden shadow-sm">
           <div className="px-5 py-3 border-b border-gray-100 dark:border-white/5 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-700 dark:text-white/80">Tenant Terbaru</h2>
-            <a href="/admin/tenant" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+            <Link href="/admin/tenant" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
               Semua →
-            </a>
+            </Link>
           </div>
           {tenants.length === 0 ? (
             <p className="px-5 py-8 text-sm text-gray-400 dark:text-white/30 text-center">

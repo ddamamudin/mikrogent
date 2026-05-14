@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 
 type Message = { id: string; fromRole: "USER" | "ADMIN"; fromName: string; body: string; createdAt: string };
 type Thread = {
@@ -69,7 +70,7 @@ export default function MasukanThreadClient({ feedbackId }: { feedbackId: string
     return (
       <div className="p-8 text-center">
         <p className="text-sm text-gray-500 mb-3">Thread tidak ditemukan</p>
-        <a href="/dashboard/masukan" className="text-sm text-blue-600 hover:underline">← Kembali</a>
+        <Link href="/dashboard/masukan" className="text-sm text-blue-600 hover:underline">← Kembali</Link>
       </div>
     );
   }
@@ -77,7 +78,7 @@ export default function MasukanThreadClient({ feedbackId }: { feedbackId: string
   return (
     <div className="flex flex-col h-[calc(100vh-7rem)] space-y-3">
       <div>
-        <a href="/dashboard/masukan" className="text-xs text-blue-600 hover:underline">← Daftar masukan</a>
+        <Link href="/dashboard/masukan" className="text-xs text-blue-600 hover:underline">← Daftar masukan</Link>
         <h1 className="text-lg font-semibold text-gray-900 dark:text-white mt-1">{thread.subject}</h1>
         {thread.status === "RESOLVED" && (
           <div className="mt-1 text-xs text-gray-500 dark:text-white/40">Status: <span className="text-gray-700 dark:text-white/60 font-medium">Selesai</span>. Admin sudah menutup thread ini. Buat masukan baru kalau perlu lanjut.</div>
@@ -133,7 +134,7 @@ export default function MasukanThreadClient({ feedbackId }: { feedbackId: string
         </div>
       ) : (
         <div className="bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 p-3 text-center text-xs text-gray-500 dark:text-white/40">
-          Thread sudah ditutup. <a href="/dashboard/masukan" className="text-blue-600 hover:underline">Buat masukan baru</a>
+          Thread sudah ditutup. <Link href="/dashboard/masukan" className="text-blue-600 hover:underline">Buat masukan baru</Link>
         </div>
       )}
     </div>
