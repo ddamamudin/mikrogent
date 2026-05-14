@@ -26,7 +26,7 @@ export default function RegisterClient({ showBrandField }: { showBrandField: boo
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!agreed) return setError("Anda harus menyetujui syarat dan ketentuan");
+    if (!agreed) return setError("Anda harus menyetujui Syarat dan Ketentuan serta Kebijakan Privasi");
     setError("");
     setLoading(true);
     const res = await fetch("/api/auth/register", {
@@ -125,9 +125,11 @@ export default function RegisterClient({ showBrandField }: { showBrandField: boo
 
         <label className="flex items-start gap-3 cursor-pointer px-1 mt-1">
           <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 accent-blue-600 w-4 h-4 shrink-0" />
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-gray-500 leading-relaxed">
             Saya menyetujui{" "}
-            <a href="#" className="text-blue-600">Syarat dan Ketentuan</a>
+            <Link href="/syarat-ketentuan" target="_blank" className="text-blue-600 hover:text-blue-500 underline underline-offset-2">Syarat &amp; Ketentuan</Link>
+            {" "}dan{" "}
+            <Link href="/kebijakan-privasi" target="_blank" className="text-blue-600 hover:text-blue-500 underline underline-offset-2">Kebijakan Privasi</Link>
           </span>
         </label>
 
