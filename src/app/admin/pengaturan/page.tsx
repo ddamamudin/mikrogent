@@ -13,9 +13,8 @@ export default async function PengaturanPage() {
   const config = await prisma.appConfig.findUnique({ where: { id: "singleton" } });
   const admin = await prisma.user.findUnique({
     where: { id: session.userId },
-    select: { name: true, email: true, adminLevel: true },
+    select: { name: true, email: true },
   });
-  if (admin?.adminLevel === "VALIDATOR") redirect("/admin/tenant");
 
   const defaults = {
     adminSetupEnabled: true,

@@ -73,7 +73,7 @@ const MIKROTIK_BADGE: Record<Tenant["mikrotikStatus"], { label: string; cls: str
 
 const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
 
-export default function TenantListClient({ isValidator = false }: { isValidator?: boolean }) {
+export default function TenantListClient() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [total, setTotal] = useState(0);
   const [dailyChatLimit, setDailyChatLimit] = useState(50);
@@ -438,7 +438,7 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
                             {t.userDailyChatLimit !== null && <span className="ml-1 text-[10px] text-blue-500">★</span>}
                             <span className="ml-1 text-[10px] text-gray-400 dark:text-white/30">chat</span>
                           </span>
-                          {!isValidator && t.chatCount > 0 && (
+                          {t.chatCount > 0 && (
                             <button
                               onClick={() => handleResetQuota(t.id, t.name)}
                               disabled={actionLoading === t.id}
@@ -457,7 +457,7 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
                               {t.userDailyVoiceSeconds !== null && <span className="ml-1 text-[10px] text-blue-500">★</span>}
                               <span className="ml-1 text-[10px] text-gray-400 dark:text-white/30">voice (s)</span>
                             </span>
-                            {!isValidator && t.voiceSecondsUsed > 0 && (
+                            {t.voiceSecondsUsed > 0 && (
                               <button
                                 onClick={() => handleResetVoiceQuota(t.id, t.name)}
                                 disabled={actionLoading === t.id}
@@ -497,34 +497,30 @@ export default function TenantListClient({ isValidator = false }: { isValidator?
                             Batal Validasi
                           </button>
                         )}
-                        {!isValidator && (
-                          <>
-                            {t.status === "ACTIVE" ? (
-                              <button
-                                onClick={() => handleStatus(t.id, "SUSPENDED")}
-                                disabled={actionLoading === t.id}
-                                className="text-xs px-3 py-1.5 rounded-lg bg-orange-100 dark:bg-orange-500/10 hover:bg-orange-200 dark:hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 transition disabled:opacity-50"
-                              >
-                                Suspend
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => handleStatus(t.id, "ACTIVE")}
-                                disabled={actionLoading === t.id}
-                                className="text-xs px-3 py-1.5 rounded-lg bg-green-100 dark:bg-green-500/10 hover:bg-green-200 dark:hover:bg-green-500/20 text-green-600 dark:text-green-400 transition disabled:opacity-50"
-                              >
-                                Aktifkan
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleDelete(t.id, t.name)}
-                              disabled={actionLoading === t.id}
-                              className="text-xs px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-500/10 hover:bg-red-200 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 transition disabled:opacity-50"
-                            >
-                              Hapus
-                            </button>
-                          </>
+                        {t.status === "ACTIVE" ? (
+                          <button
+                            onClick={() => handleStatus(t.id, "SUSPENDED")}
+                            disabled={actionLoading === t.id}
+                            className="text-xs px-3 py-1.5 rounded-lg bg-orange-100 dark:bg-orange-500/10 hover:bg-orange-200 dark:hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 transition disabled:opacity-50"
+                          >
+                            Suspend
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleStatus(t.id, "ACTIVE")}
+                            disabled={actionLoading === t.id}
+                            className="text-xs px-3 py-1.5 rounded-lg bg-green-100 dark:bg-green-500/10 hover:bg-green-200 dark:hover:bg-green-500/20 text-green-600 dark:text-green-400 transition disabled:opacity-50"
+                          >
+                            Aktifkan
+                          </button>
                         )}
+                        <button
+                          onClick={() => handleDelete(t.id, t.name)}
+                          disabled={actionLoading === t.id}
+                          className="text-xs px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-500/10 hover:bg-red-200 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 transition disabled:opacity-50"
+                        >
+                          Hapus
+                        </button>
                       </div>
                     </td>
                   </tr>

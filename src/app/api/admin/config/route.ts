@@ -26,11 +26,6 @@ export async function PATCH(req: NextRequest) {
 
   const body = await req.json();
 
-  // VALIDATOR cuma boleh ganti password sendiri, gak bisa otak-atik config
-  if (admin.adminLevel === "VALIDATOR" && !body.newPassword) {
-    return NextResponse.json({ error: "Akses ditolak" }, { status: 403 });
-  }
-
   if (typeof body.adminSetupEnabled === "boolean") {
     const config = await prisma.appConfig.upsert({
       where: { id: "singleton" },

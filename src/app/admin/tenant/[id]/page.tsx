@@ -13,7 +13,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
 
   const { id } = await params;
   const today = new Date().toISOString().slice(0, 10);
-  const [tenant, dailyCount, config, creds, admin] = await Promise.all([
+  const [tenant, dailyCount, config, creds] = await Promise.all([
     prisma.user.findUnique({
       where: { id, role: "USER" },
       select: { id: true, name: true, email: true, brand: true, alamat: true, noWa: true, status: true, emailVerified: true, validated: true, dailyChatLimit: true, dailyVoiceSeconds: true, maxRouters: true, createdAt: true, updatedAt: true },
@@ -25,14 +25,12 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
       select: { id: true, name: true, host: true, port: true, sshUser: true, sshPass: true, connected: true },
       orderBy: { createdAt: "asc" },
     }),
-    prisma.user.findUnique({ where: { id: session.userId }, select: { adminLevel: true } }),
   ]);
   if (!tenant) notFound();
 
   const globalLimit = config?.dailyChatLimit ?? 50;
   const globalVoiceLimit = config?.voiceDailySeconds ?? 180;
   const { dailyChatLimit: userOverride, dailyVoiceSeconds: userVoiceOverride, ...rest } = tenant;
-  const isValidator = admin?.adminLevel === "VALIDATOR";
   const sameDay = dailyCount?.date === today;
   return (
     <TenantDetailClient
@@ -49,7 +47,6 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
         voiceCallEnabled: config?.voiceCallEnabled ?? false,
       }}
       mikrotikCreds={creds.map((c) => ({ ...c, sshPass: decryptSshPass(c.sshPass) }))}
-      isValidator={isValidator}
     />
   );
 }

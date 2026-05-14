@@ -124,7 +124,6 @@ enum Role {
 
 enum AdminLevel {
   SUPER
-  VALIDATOR
 }
 
 enum TokenType {

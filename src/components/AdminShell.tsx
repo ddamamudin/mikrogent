@@ -71,11 +71,9 @@ const PUBLIC_PATHS = ["/admin/masuk", "/admin/setup"];
 
 export default function AdminShell({
   session,
-  adminLevel,
   children,
 }: {
   session: SessionPayload | null;
-  adminLevel?: "SUPER" | "VALIDATOR" | null;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -85,12 +83,6 @@ export default function AdminShell({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isPublicPage = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
-  const isValidator = adminLevel === "VALIDATOR";
-
-  // VALIDATOR: cuma boleh akses dashboard & tenant (router/log/pengaturan hidden)
-  const visibleNav = isValidator
-    ? NAV.filter((n) => n.href === "/admin/dashboard" || n.href === "/admin/tenant")
-    : NAV;
 
   const handleLogout = async () => {
     await fetch("/api/admin/auth/logout", { method: "POST" });
@@ -143,7 +135,7 @@ export default function AdminShell({
         {/* Sidebar - mobile: state-controlled, desktop: selalu open via lg:w-56 */}
         <aside className={`${sidebarOpen ? "w-56" : "w-0"} lg:w-56 transition-all duration-200 overflow-hidden shrink-0 bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-white/10 flex flex-col`}>
           <nav className="flex-1 py-4 px-2 space-y-1">
-            {visibleNav.map(({ href, label, icon }) => {
+            {NAV.map(({ href, label, icon }) => {
               const active = pathname === href || (href !== "/admin/dashboard" && pathname.startsWith(href));
               return (
                 <a
@@ -162,7 +154,7 @@ export default function AdminShell({
             })}
           </nav>
           <div className="px-3 py-3 border-t border-gray-200 dark:border-white/10">
-            <p className="text-xs text-gray-400 dark:text-white/30">{isValidator ? "Validator" : "Super Admin"}</p>
+            <p className="text-xs text-gray-400 dark:text-white/30">Super Admin</p>
           </div>
         </aside>
 
