@@ -28,10 +28,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (!user) redirect(LOGIN_URL);
 
   if (!user.validated) {
+    const adminWa = process.env.FONNTE_TARGET_PHONE || "";
     return (
       <>
         {impersonator && <ImpersonateBanner adminName={impersonator.adminName} targetName={user.name} />}
-        <PendingValidation name={user.name} email={user.email} />
+        <PendingValidation name={user.name} email={user.email} adminWa={adminWa} />
       </>
     );
   }

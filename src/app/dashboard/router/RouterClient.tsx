@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import PasswordInput from "@/components/PasswordInput";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 type RouterRow = {
   id: string;
@@ -36,6 +38,7 @@ export default function RouterClient({ initialRouters, maxRouters: initialMaxRou
   const [busyId, setBusyId] = useState<string | null>(null);
   const [pingState, setPingState] = useState<Record<string, { status: "idle" | "ok" | "fail" | "loading"; msg?: string }>>({});
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<RouterRow | null>(null);
 
   // Refetch silent: dipakai SSE handler waktu router/quota berubah dari sisi
   // lain (admin edit, multi-tab, dll). Skip kalau user lagi edit/add — biar
@@ -186,11 +189,17 @@ export default function RouterClient({ initialRouters, maxRouters: initialMaxRou
     }
   };
 
-  const handleDelete = async (r: RouterRow) => {
-    if (!confirm(`Hapus router "${r.name}" (${r.host})? Memory & status koneksi-nya juga ikut hilang.`)) return;
+  const handleDelete = (r: RouterRow) => {
+    setPendingDelete(r);
+  };
+
+  const confirmDelete = async () => {
+    const r = pendingDelete;
+    if (!r) return;
     setBusyId(r.id);
     const res = await fetch(`/api/account/router/${r.id}`, { method: "DELETE" });
     setBusyId(null);
+    setPendingDelete(null);
     if (res.ok) {
       setRouters((rs) => rs.filter((x) => x.id !== r.id));
       showMsg("ok", "Router dihapus");
@@ -284,7 +293,7 @@ export default function RouterClient({ initialRouters, maxRouters: initialMaxRou
                 </div>
                 <div>
                   <label className="text-xs text-gray-500 dark:text-white/40">Password</label>
-                  <input value={editDraft.sshPass} onChange={(e) => setEditDraft({ ...editDraft, sshPass: e.target.value })} className={inputClass} />
+                  <PasswordInput value={editDraft.sshPass} onChange={(e) => setEditDraft({ ...editDraft, sshPass: e.target.value })} className={inputClass} autoComplete="off" />
                 </div>
                 <div className="flex gap-2 pt-1">
                   <button onClick={() => { setEditingId(null); setEditDraft(null); }} className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-white/60 text-sm font-medium transition">
@@ -349,6 +358,16 @@ export default function RouterClient({ initialRouters, maxRouters: initialMaxRou
             />
             <span className="text-xs text-blue-600 dark:text-blue-400">Router baru</span>
           </div>
+
+          <div className="flex items-start gap-2 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2.5 text-xs text-slate-600 dark:text-white/60">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" aria-hidden="true">
+              <rect x="3" y="11" width="18" height="11" rx="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            <span>
+              Password dienkripsi <strong>AES-256-GCM</strong> di server, gak pernah dilog. Akses SSH dari router Anda dibatasi cuma ke IP server Mikroplay.
+            </span>
+          </div>
           <div className="space-y-2">
             <div>
               <label className="text-xs text-gray-500 dark:text-white/40">Host / IP Public</label>
@@ -364,7 +383,7 @@ export default function RouterClient({ initialRouters, maxRouters: initialMaxRou
             </div>
             <div>
               <label className="text-xs text-gray-500 dark:text-white/40">Password</label>
-              <input value={pending.sshPass} onChange={(e) => setPending({ ...pending, sshPass: e.target.value })} placeholder="password" className={inputClass} />
+              <PasswordInput value={pending.sshPass} onChange={(e) => setPending({ ...pending, sshPass: e.target.value })} placeholder="password SSH MikroTik" className={inputClass} autoComplete="off" />
             </div>
           </div>
           <div className="flex gap-2 pt-1">
@@ -383,6 +402,23 @@ export default function RouterClient({ initialRouters, maxRouters: initialMaxRou
           Sudah mencapai batas {maxRouters} router. Hubungi admin kalau mau nambah kuota.
         </p>
       )}
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        variant="danger"
+        title={pendingDelete ? `Hapus router "${pendingDelete.name}"?` : ""}
+        description={pendingDelete && (
+          <>
+            Memory router & status koneksi-nya ikut hilang.<br />
+            <span className="text-xs text-gray-400 dark:text-white/30 font-mono">{pendingDelete.host}:{pendingDelete.port}</span>
+          </>
+        )}
+        confirmLabel="Hapus"
+        cancelLabel="Batal"
+        loading={!!pendingDelete && busyId === pendingDelete.id}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }
