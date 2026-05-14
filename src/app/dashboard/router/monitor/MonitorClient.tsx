@@ -252,15 +252,19 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
           <span className="text-gray-300 dark:text-white/20 shrink-0">/</span>
           {active && (
             <>
-              {/* Router picker — klik nama router buka dropdown list */}
-              <div className="relative min-w-0">
+              {/* Router picker — klik nama router buka dropdown list.
+                  shrink-0: jangan ke-shrink kalau breadcrumb sempit, biar nama router tampil full.
+                  Menu label di akhir (Traffic Monitor) yang shrink/truncate duluan
+                  saat space sempit (sudah punya truncate). Hard cap nama via max-w
+                  di span buat safety case nama super panjang. */}
+              <div className="relative shrink-0">
                 <button
                   onClick={() => setPickerOpen((o) => !o)}
-                  className="flex items-center gap-1.5 max-w-full text-gray-700 dark:text-white/70 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-md px-1.5 -mx-1.5 py-0.5 transition"
+                  className="flex items-center gap-1.5 text-gray-700 dark:text-white/70 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-md px-1.5 -mx-1.5 py-0.5 transition"
                   title="Ganti router"
                 >
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${active.apiEnabled ? "bg-indigo-500" : "bg-gray-400"}`} />
-                  <span className="truncate font-medium">{active.name}</span>
+                  <span className="font-medium max-w-[240px] truncate">{active.name}</span>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 text-gray-400 dark:text-white/40 transition-transform ${pickerOpen ? "rotate-180" : ""}`}>
                     <polyline points="6 9 12 15 18 9"/>
                   </svg>
