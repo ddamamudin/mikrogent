@@ -7,6 +7,10 @@ import HotspotUserPanel from "./panels/HotspotUserPanel";
 import HotspotProfilePanel from "./panels/HotspotProfilePanel";
 import HotspotActivePanel from "./panels/HotspotActivePanel";
 import VoucherPanel from "./panels/VoucherPanel";
+import HostsPanel from "./panels/HostsPanel";
+import IpBindingPanel from "./panels/IpBindingPanel";
+import DhcpLeasePanel from "./panels/DhcpLeasePanel";
+import CookiePanel from "./panels/CookiePanel";
 
 type RouterTab = {
   id: string;
@@ -17,7 +21,7 @@ type RouterTab = {
   connected: boolean;
 };
 
-type MenuKey = "status" | "users" | "profiles" | "active" | "voucher";
+type MenuKey = "status" | "users" | "profiles" | "active" | "hosts" | "bindings" | "leases" | "cookies" | "voucher";
 
 type MenuItem = { key: MenuKey; label: string; icon: React.ReactNode };
 type MenuSection = { label: string; items: MenuItem[] };
@@ -50,6 +54,22 @@ const SECTIONS: MenuSection[] = [
         key: "active", label: "User Aktif",
         icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>,
       },
+      {
+        key: "hosts", label: "Hosts",
+        icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>,
+      },
+      {
+        key: "bindings", label: "IP Binding",
+        icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/><path d="M2 7l10 5 10-5z"/></svg>,
+      },
+      {
+        key: "leases", label: "DHCP Lease",
+        icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>,
+      },
+      {
+        key: "cookies", label: "Cookie",
+        icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c.83 0 1.64.11 2.4.32"/><circle cx="9" cy="10" r="1"/><circle cx="14" cy="14" r="1"/><circle cx="16" cy="9" r="1"/></svg>,
+      },
     ],
   },
   {
@@ -67,12 +87,11 @@ const SOON_SECTIONS: MenuSection[] = [
   {
     label: "SEGERA",
     items: [
-      { key: "users", label: "Hosts", icon: <SoonIcon /> },
-      { key: "users", label: "IP Bindings", icon: <SoonIcon /> },
-      { key: "users", label: "Cookies", icon: <SoonIcon /> },
-      { key: "users", label: "Quick Print", icon: <SoonIcon /> },
-      { key: "users", label: "PPP", icon: <SoonIcon /> },
-      { key: "users", label: "Log", icon: <SoonIcon /> },
+      { key: "users", label: "Quick Print Voucher", icon: <SoonIcon /> },
+      { key: "users", label: "PPP Secret", icon: <SoonIcon /> },
+      { key: "users", label: "PPP Profile", icon: <SoonIcon /> },
+      { key: "users", label: "PPP Active", icon: <SoonIcon /> },
+      { key: "users", label: "Hotspot Log", icon: <SoonIcon /> },
       { key: "users", label: "Report Selling", icon: <SoonIcon /> },
     ],
   },
@@ -317,6 +336,10 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
             {menu === "users" && <HotspotUserPanel key={`users-${active.id}`} routerId={active.id} />}
             {menu === "profiles" && <HotspotProfilePanel key={`profiles-${active.id}`} routerId={active.id} />}
             {menu === "active" && <HotspotActivePanel key={`active-${active.id}`} routerId={active.id} />}
+            {menu === "hosts" && <HostsPanel key={`hosts-${active.id}`} routerId={active.id} />}
+            {menu === "bindings" && <IpBindingPanel key={`bindings-${active.id}`} routerId={active.id} />}
+            {menu === "leases" && <DhcpLeasePanel key={`leases-${active.id}`} routerId={active.id} />}
+            {menu === "cookies" && <CookiePanel key={`cookies-${active.id}`} routerId={active.id} />}
             {menu === "voucher" && <VoucherPanel key={`voucher-${active.id}`} routerId={active.id} />}
           </div>
         </div>
