@@ -172,7 +172,7 @@ export default function SessionsListSidebar() {
                   else openMenu(s.id, e.currentTarget);
                 }}
                 className={`absolute top-1/2 -translate-y-1/2 right-1.5 p-1 rounded text-gray-400 dark:text-white/30 hover:bg-gray-200 dark:hover:bg-white/10 hover:text-gray-700 dark:hover:text-white transition ${
-                  menuOpen ? "opacity-100 bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-white" : "opacity-0 group-hover:opacity-100"
+                  menuOpen ? "opacity-100 bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-white" : "opacity-100"
                 }`}
                 aria-label={`Opsi sesi ${title}`}
                 title="Opsi"
