@@ -86,6 +86,31 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   return NextResponse.json({ ok: true });
 }
 
+// PATCH — partial update untuk metadata (title doang sekarang). Dipakai sama
+// fitur "Ganti nama" di sidebar histori.
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const auth = await authorizeSession(id);
+  if ("error" in auth) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
+  const body = await req.json().catch(() => null);
+  const rawTitle = body?.title;
+  if (typeof rawTitle !== "string") {
+    return NextResponse.json({ error: "title wajib string" }, { status: 400 });
+  }
+  const title = rawTitle.trim().replace(/\s+/g, " ").slice(0, TITLE_MAX_LEN);
+  if (!title) {
+    return NextResponse.json({ error: "Judul tidak boleh kosong" }, { status: 400 });
+  }
+
+  await prisma.agentChatSession.update({
+    where: { id },
+    data: { title },
+  });
+
+  return NextResponse.json({ ok: true, title });
+}
+
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const auth = await authorizeSession(id);
