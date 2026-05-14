@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { executeMikrotikCommand, scanMikrotikConfig } from "@/lib/mikrotik";
+import { executeMikrotikCommand, scanMikrotikConfig, enableRouterosApiService, testRouterosApi } from "@/lib/mikrotik";
 import { decryptSshPass } from "@/lib/crypto";
 import { RT } from "@/lib/realtime/events";
 
@@ -27,7 +27,8 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   if (!cred) return NextResponse.json({ error: "Router tidak ditemukan" }, { status: 404 });
   if (cred.userId !== user.id) return NextResponse.json({ error: "Router bukan milik Anda" }, { status: 403 });
 
-  const cfg = { host: cred.host, port: cred.port, username: cred.sshUser, password: decryptSshPass(cred.sshPass) };
+  const password = decryptSshPass(cred.sshPass);
+  const cfg = { host: cred.host, port: cred.port, username: cred.sshUser, password };
   try {
     await executeMikrotikCommand("/system identity print", cfg);
     const snapshot = await scanMikrotikConfig(cfg);
@@ -40,6 +41,34 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       }),
     ]);
     notifyRouterChange(user.id);
+
+    // Best-effort: auto-enable RouterOS API service di background biar user
+    // langsung bisa pakai halaman Monitor tanpa klik "Aktifkan API" terpisah.
+    // Gagal di-silent: user tetep bisa retry manual via tombol kalau perlu.
+    void (async () => {
+      try {
+        const enableRes = await enableRouterosApiService(cfg);
+        if (!enableRes.ok) return;
+        const testRes = await testRouterosApi({
+          host: cred.host, apiPort: enableRes.port, username: cred.sshUser, password,
+        });
+        if (!testRes.ok) {
+          // Service udah on tapi gak reachable (firewall/NAT). Save port aktual
+          // biar pas user retry manual gak hit port default 8728 yang salah.
+          await prisma.mikrotikCredential.update({
+            where: { id }, data: { apiPort: enableRes.port },
+          }).catch(() => {});
+          return;
+        }
+        await prisma.mikrotikCredential.update({
+          where: { id }, data: { apiEnabled: true, apiPort: enableRes.port },
+        });
+        notifyRouterChange(user.id);
+      } catch {
+        // Total silent — verify SSH udah sukses, API enable adalah bonus.
+      }
+    })();
+
     return NextResponse.json({ ok: true, connected: true });
   } catch (e) {
     await prisma.mikrotikCredential.update({ where: { id }, data: { connected: false } }).catch(() => {});
