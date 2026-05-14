@@ -35,21 +35,18 @@ const NAV = [
       { href: "/dashboard/router", label: "Setting Router" },
     ],
   },
-  {
-    group: "Profil",
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-        <circle cx="12" cy="7" r="4" />
-      </svg>
-    ),
-    items: [
-      { href: "/dashboard/profil", label: "Update Profil" },
-      { href: "/dashboard/password", label: "Ganti Password" },
-      { href: "/dashboard/hapus-akun", label: "Hapus Akun", danger: true },
-    ],
-  },
 ];
+
+function getInitials(name: string | undefined): string {
+  if (!name) return "U";
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
 
 type User = { name: string; brand: string | null; email: string };
 
@@ -80,12 +77,14 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
   const pathname = usePathname();
   const isAgentPage = pathname === "/dashboard/agent";
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({ "Replay Agent": true, "Router": true, "Profil": true });
+  const [groupOpen, setGroupOpen] = useState<Record<string, boolean>>({ "Replay Agent": true, "Router": true });
   const [agentState, setAgentState] = useState<AgentSidebarState | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   // Close sidebar on route change for cleaner mobile UX
   useEffect(() => {
     setSidebarOpen(false);
+    setProfileOpen(false);
   }, [pathname]);
 
   const handleLogout = async () => {
@@ -165,16 +164,14 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
 
                   {groupOpen[group] && (
                     <div className="mt-1 ml-4 space-y-1">
-                      {items.map(({ href, label, danger }) => {
+                      {items.map(({ href, label }) => {
                         const active = pathname === href;
                         return (
                           <a
                             key={href}
                             href={href}
                             className={`block px-3 py-1.5 rounded-lg text-sm transition ${
-                              active && danger ? "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10"
-                              : active ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
-                              : danger ? "text-red-500 dark:text-red-400/70 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"
+                              active ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
                               : "text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
                             }`}
                           >
@@ -236,20 +233,70 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
               )}
             </nav>
 
-            <div className="px-3 py-3 border-t border-gray-200 dark:border-white/10 space-y-1">
+            <div className="px-3 py-2 border-t border-gray-200 dark:border-white/10 space-y-1">
               <MasukanSidebarLink />
+            </div>
+
+            {/* User card footer + popup (style admin) */}
+            <div className="border-t border-gray-200 dark:border-white/10 p-2 relative">
+              {profileOpen && (
+                <>
+                  <button
+                    onClick={() => setProfileOpen(false)}
+                    className="fixed inset-0 z-0"
+                    aria-label="Tutup menu profil"
+                  />
+                  <div className="absolute bottom-full left-2 right-2 mb-1 bg-white dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg shadow-lg py-1 z-10">
+                    <a
+                      href="/dashboard/profil"
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-white/80 hover:bg-gray-100 dark:hover:bg-white/5 transition"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                      </svg>
+                      Profil
+                    </a>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                      </svg>
+                      Keluar
+                    </button>
+                  </div>
+                </>
+              )}
               <button
-                onClick={handleLogout}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-500 dark:text-white/60 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
+                onClick={() => setProfileOpen((o) => !o)}
+                className="w-full flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <polyline points="16 17 21 12 16 7" />
-                  <line x1="21" y1="12" x2="9" y2="12" />
+                <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white text-xs font-semibold flex items-center justify-center shrink-0">
+                  {getInitials(user.name)}
+                </span>
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{user.name}</p>
+                  <p className="text-[10px] text-gray-400 dark:text-white/40 truncate">{user.email}</p>
+                </div>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`text-gray-400 dark:text-white/30 shrink-0 transition-transform ${profileOpen ? "rotate-180" : ""}`}
+                >
+                  <polyline points="6 9 12 15 18 9" />
                 </svg>
-                <span>Keluar</span>
               </button>
-              {showBrandField && user.brand && <p className="text-xs text-gray-400 dark:text-white/30 truncate px-1">{user.brand}.{APP_DOMAIN}</p>}
+              {showBrandField && user.brand && <p className="text-[10px] text-gray-400 dark:text-white/30 truncate px-2 pt-1">{user.brand}.{APP_DOMAIN}</p>}
             </div>
           </aside>
 

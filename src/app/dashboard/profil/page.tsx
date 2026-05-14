@@ -1,9 +1,10 @@
 export const dynamic = "force-dynamic";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import ProfilClient from "./ProfilClient";
+import ProfilTabsClient from "./ProfilTabsClient";
 
 export default async function ProfilPage() {
   const cookieStore = await cookies();
@@ -13,5 +14,9 @@ export default async function ProfilPage() {
   const user = await prisma.user.findUnique({ where: { id: session.userId } });
   if (!user) redirect("/masuk");
 
-  return <ProfilClient user={user} />;
+  return (
+    <Suspense fallback={null}>
+      <ProfilTabsClient user={user} />
+    </Suspense>
+  );
 }
