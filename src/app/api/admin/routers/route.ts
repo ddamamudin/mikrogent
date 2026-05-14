@@ -19,9 +19,23 @@ async function requireSuperAdmin() {
   return admin;
 }
 
+// GET boleh diakses ADMIN juga (read-only) — credential field di-blank kalau bukan SUPER.
+async function requireAdminViewer() {
+  const cookieStore = await cookies();
+  const session = getSessionFromCookie(cookieStore.get("session")?.value);
+  if (!session || session.role !== "ADMIN") return null;
+  const admin = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { id: true, name: true, adminLevel: true },
+  });
+  if (!admin || admin.adminLevel === "OPERATOR") return null;
+  return admin;
+}
+
 export async function GET(req: NextRequest) {
-  const admin = await requireSuperAdmin();
+  const admin = await requireAdminViewer();
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const isSuper = admin.adminLevel === "SUPER";
 
   const { searchParams } = req.nextUrl;
   const q = searchParams.get("q") || "";
@@ -95,7 +109,10 @@ export async function GET(req: NextRequest) {
     userId: c.user.id, userName: c.user.name, userEmail: c.user.email, userBrand: c.user.brand,
     maxRouters: c.user.maxRouters, routerCount: c.user._count.mikrotikCredentials,
     cred: {
-      id: c.id, name: c.name, host: c.host, port: c.port, sshUser: c.sshUser, sshPass: decryptSshPass(c.sshPass),
+      id: c.id, name: c.name, host: c.host, port: c.port,
+      // ADMIN gak boleh lihat kredensial SSH. Blank-out di payload, bukan cuma hide di UI.
+      sshUser: isSuper ? c.sshUser : "",
+      sshPass: isSuper ? decryptSshPass(c.sshPass) : "",
       connected: c.connected, createdAt: c.createdAt, updatedAt: c.updatedAt,
     },
   }));

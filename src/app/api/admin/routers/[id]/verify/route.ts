@@ -23,7 +23,8 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     where: { id: session.userId },
     select: { id: true, name: true, adminLevel: true },
   });
-  if (!admin || admin.adminLevel !== "SUPER")
+  // SUPER & ADMIN boleh test koneksi. OPERATOR gak punya akses halaman ini.
+  if (!admin || admin.adminLevel === "OPERATOR")
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
