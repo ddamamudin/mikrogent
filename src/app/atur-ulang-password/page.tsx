@@ -39,7 +39,8 @@ function ResetPasswordForm() {
   if (!token) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
-        <div className="text-5xl mb-5">âŒ</div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/agent-logo.png" alt="LintasAgent" className="w-20 h-20 mb-5 object-contain opacity-60" />
         <h2 className="text-2xl font-bold mb-2 text-gray-900">Link Tidak Valid</h2>
         <p className="text-gray-400 text-sm mb-6">Link sudah kedaluwarsa atau tidak valid.</p>
         <Link href="/lupa-password" className="text-blue-600 font-medium text-sm">Minta link baru</Link>
@@ -50,7 +51,8 @@ function ResetPasswordForm() {
   if (done) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
-        <div className="text-5xl mb-5">âœ…</div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/agent-logo.png" alt="LintasAgent" className="w-20 h-20 mb-5 object-contain" />
         <h2 className="text-2xl font-bold mb-2 text-gray-900">Password Berhasil Direset</h2>
         <p className="text-gray-400 text-sm">Mengarahkan ke halaman masuk...</p>
       </div>
