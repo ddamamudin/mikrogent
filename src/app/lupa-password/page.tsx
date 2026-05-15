@@ -30,7 +30,8 @@ export default function ForgotPasswordPage() {
   if (done) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
-        <div className="text-5xl mb-5">ðŸ“§</div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/agent-logo.png" alt="LintasAgent" className="w-20 h-20 mb-5 object-contain" />
         <h2 className="text-2xl font-bold mb-2 text-gray-900">Cek Email Anda</h2>
         <p className="text-gray-500 text-sm leading-relaxed">
           Jika email <strong className="text-gray-900">{email}</strong> terdaftar,
