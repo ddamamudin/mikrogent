@@ -40,7 +40,7 @@ type MikrotikCred = {
 
 const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
 
-export default function TenantDetailClient({ tenant: initial, mikrotikCreds }: { tenant: Tenant; mikrotikCreds: MikrotikCred[] }) {
+export default function TenantDetailClient({ tenant: initial, mikrotikCreds, isSuper = true }: { tenant: Tenant; mikrotikCreds: MikrotikCred[]; isSuper?: boolean }) {
   const router = useRouter();
   const [tenant, setTenant] = useState(initial);
   const [chatCount, setChatCount] = useState(initial.chatCount);
@@ -430,16 +430,22 @@ export default function TenantDetailClient({ tenant: initial, mikrotikCreds }: {
                 </div>
                 <dl className="text-xs space-y-1">
                   <div className="flex gap-3"><dt className="text-gray-400 dark:text-white/40 w-20">Host</dt><dd className="font-mono text-gray-700 dark:text-white/80">{cred.host}:{cred.port}</dd></div>
-                  <div className="flex gap-3"><dt className="text-gray-400 dark:text-white/40 w-20">Username</dt><dd className="font-mono text-gray-700 dark:text-white/80">{cred.sshUser}</dd></div>
-                  <div className="flex gap-3 items-center">
-                    <dt className="text-gray-400 dark:text-white/40 w-20">Password</dt>
-                    <dd className="font-mono text-gray-700 dark:text-white/80 flex items-center gap-2">
-                      {showPassId === cred.id ? cred.sshPass : "••••••••"}
-                      <button onClick={() => setShowPassId(showPassId === cred.id ? null : cred.id)} className="text-blue-500 hover:text-blue-600 transition">
-                        {showPassId === cred.id ? "Sembunyikan" : "Tampilkan"}
-                      </button>
-                    </dd>
-                  </div>
+                  {isSuper ? (
+                    <>
+                      <div className="flex gap-3"><dt className="text-gray-400 dark:text-white/40 w-20">Username</dt><dd className="font-mono text-gray-700 dark:text-white/80">{cred.sshUser}</dd></div>
+                      <div className="flex gap-3 items-center">
+                        <dt className="text-gray-400 dark:text-white/40 w-20">Password</dt>
+                        <dd className="font-mono text-gray-700 dark:text-white/80 flex items-center gap-2">
+                          {showPassId === cred.id ? cred.sshPass : "••••••••"}
+                          <button onClick={() => setShowPassId(showPassId === cred.id ? null : cred.id)} className="text-blue-500 hover:text-blue-600 transition">
+                            {showPassId === cred.id ? "Sembunyikan" : "Tampilkan"}
+                          </button>
+                        </dd>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex gap-3"><dt className="text-gray-400 dark:text-white/40 w-20">Kredensial</dt><dd className="text-gray-400 dark:text-white/40 italic">Tersembunyi, khusus Superadmin</dd></div>
+                  )}
                 </dl>
               </div>
             ))}

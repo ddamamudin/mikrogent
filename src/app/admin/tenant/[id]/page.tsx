@@ -16,6 +16,7 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
     select: { adminLevel: true },
   });
   if (adminViewer?.adminLevel === "OPERATOR") redirect("/admin/tenant");
+  const isSuper = adminViewer?.adminLevel === "SUPER" || adminViewer?.adminLevel == null;
 
   const { id } = await params;
   const today = new Date().toISOString().slice(0, 10);
@@ -52,7 +53,12 @@ export default async function TenantDetailPage({ params }: { params: Promise<{ i
         dailyVoiceSeconds: userVoiceOverride ?? globalVoiceLimit,
         voiceCallEnabled: config?.voiceCallEnabled ?? false,
       }}
-      mikrotikCreds={creds.map((c) => ({ ...c, sshPass: decryptSshPass(c.sshPass) }))}
+      mikrotikCreds={creds.map((c) => ({
+        ...c,
+        sshUser: isSuper ? c.sshUser : "",
+        sshPass: isSuper ? decryptSshPass(c.sshPass) : "",
+      }))}
+      isSuper={isSuper}
     />
   );
 }
