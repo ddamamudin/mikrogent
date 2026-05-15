@@ -177,7 +177,7 @@ export default function AdminDashboardClient({
   ];
 
   const toneClasses: Record<string, { bg: string; text: string; ring: string }> = {
-    blue: { bg: "bg-blue-50 dark:bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", ring: "ring-blue-500/40" },
+    blue: { bg: "bg-brand-orange-50 dark:bg-brand-orange/10", text: "text-brand-orange dark:text-brand-orange", ring: "ring-brand-orange/40" },
     green: { bg: "bg-green-50 dark:bg-green-500/10", text: "text-green-600 dark:text-green-400", ring: "ring-green-500/40" },
     amber: { bg: "bg-amber-50 dark:bg-amber-500/10", text: "text-amber-600 dark:text-amber-400", ring: "ring-amber-500/40" },
     purple: { bg: "bg-purple-50 dark:bg-purple-500/10", text: "text-purple-600 dark:text-purple-400", ring: "ring-purple-500/40" },
@@ -286,7 +286,7 @@ export default function AdminDashboardClient({
                     <button
                       onClick={() => handleValidate(t.id)}
                       disabled={validating === t.id || !t.emailVerified}
-                      className="text-xs px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium transition disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                      className="text-xs px-3 py-1.5 rounded-lg bg-gradient-to-b from-brand-orange to-brand-orange-dark hover:from-brand-orange-dark hover:to-brand-orange-darker text-white font-medium transition disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                       title={!t.emailVerified ? "Tenant belum verifikasi email" : "Validasi tenant"}
                     >
                       {validating === t.id ? "..." : "Validasi"}

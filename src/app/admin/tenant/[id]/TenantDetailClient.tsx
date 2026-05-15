@@ -326,13 +326,13 @@ export default function TenantDetailClient({ tenant: initial, mikrotikCreds, isS
             value={limitInput}
             onChange={(e) => setLimitInput(e.target.value)}
             placeholder={`Default: ${tenant.globalDailyChatLimit}`}
-            className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 w-40"
+            className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-brand-orange w-40"
           />
           <span className="text-sm text-gray-400 dark:text-white/40">chat/hari</span>
           <button
             onClick={handleSaveLimit}
             disabled={loading}
-            className="ml-auto px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition disabled:opacity-50"
+            className="ml-auto px-4 py-2 rounded-lg bg-gradient-to-b from-brand-orange to-brand-orange-dark hover:from-brand-orange-dark hover:to-brand-orange-darker text-white text-sm font-medium transition disabled:opacity-50"
           >
             Simpan
           </button>
@@ -362,13 +362,13 @@ export default function TenantDetailClient({ tenant: initial, mikrotikCreds, isS
             value={voiceLimitInput}
             onChange={(e) => setVoiceLimitInput(e.target.value)}
             placeholder={`Default: ${tenant.globalDailyVoiceSeconds}`}
-            className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 w-40"
+            className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-brand-orange w-40"
           />
           <span className="text-sm text-gray-400 dark:text-white/40">detik/hari</span>
           <button
             onClick={handleSaveVoiceLimit}
             disabled={loading}
-            className="ml-auto px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition disabled:opacity-50"
+            className="ml-auto px-4 py-2 rounded-lg bg-gradient-to-b from-brand-orange to-brand-orange-dark hover:from-brand-orange-dark hover:to-brand-orange-darker text-white text-sm font-medium transition disabled:opacity-50"
           >
             Simpan
           </button>
@@ -394,13 +394,13 @@ export default function TenantDetailClient({ tenant: initial, mikrotikCreds, isS
             min={1} max={5}
             value={maxRoutersInput}
             onChange={(e) => setMaxRoutersInput(e.target.value)}
-            className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 w-20"
+            className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-brand-orange w-20"
           />
           <span className="text-sm text-gray-400 dark:text-white/40">router</span>
           <button
             onClick={handleSaveMaxRouters}
             disabled={loading}
-            className="ml-auto px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition disabled:opacity-50"
+            className="ml-auto px-4 py-2 rounded-lg bg-gradient-to-b from-brand-orange to-brand-orange-dark hover:from-brand-orange-dark hover:to-brand-orange-darker text-white text-sm font-medium transition disabled:opacity-50"
           >
             Simpan
           </button>
@@ -456,7 +456,7 @@ export default function TenantDetailClient({ tenant: initial, mikrotikCreds, isS
         <h2 className="text-sm font-semibold text-gray-400 dark:text-white/50 uppercase tracking-wider">Aksi</h2>
         <div className="flex flex-wrap gap-3">
           {!tenant.validated ? (
-            <button onClick={() => handleValidate(true)} disabled={loading} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition disabled:opacity-50">
+            <button onClick={() => handleValidate(true)} disabled={loading} className="px-4 py-2 rounded-lg bg-gradient-to-b from-brand-orange to-brand-orange-dark hover:from-brand-orange-dark hover:to-brand-orange-darker text-white text-sm font-medium transition disabled:opacity-50">
               Validasi Tenant
             </button>
           ) : (

@@ -230,7 +230,7 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
                     href={href}
                     className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition ${
                       active
-                        ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
+                        ? "text-brand-orange dark:text-brand-orange bg-brand-orange-50 dark:bg-brand-orange/10"
                         : "text-gray-600 dark:text-white/70 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
                     }`}
                   >
@@ -326,7 +326,7 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
                 onClick={() => setProfileOpen((o) => !o)}
                 className="w-full flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition"
               >
-                <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white text-xs font-semibold flex items-center justify-center shrink-0">
+                <span className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-orange to-brand-orange-dark text-white text-xs font-semibold flex items-center justify-center shrink-0">
                   {getInitials(user.name)}
                 </span>
                 <div className="flex-1 min-w-0 text-left">

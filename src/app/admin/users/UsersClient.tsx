@@ -118,7 +118,7 @@ export default function UsersClient({ adminLevel }: { adminLevel: AdminLevel }) 
     showMsg("ok", "Password di-reset");
   };
 
-  const inputClass = "w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500";
+  const inputClass = "w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-brand-orange";
 
   // Bisakah viewer aksi pada target user ini?
   const canActOn = (u: AdminUser): boolean => {
@@ -138,7 +138,7 @@ export default function UsersClient({ adminLevel }: { adminLevel: AdminLevel }) 
         </div>
         <button
           onClick={openModal}
-          className="text-sm px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium transition"
+          className="text-sm px-3 py-2 rounded-lg bg-gradient-to-b from-brand-orange to-brand-orange-dark hover:from-brand-orange-dark hover:to-brand-orange-darker text-white font-medium transition"
         >
           + Tambah User
         </button>
@@ -376,7 +376,7 @@ export default function UsersClient({ adminLevel }: { adminLevel: AdminLevel }) 
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition disabled:opacity-50"
+                  className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-b from-brand-orange to-brand-orange-dark hover:from-brand-orange-dark hover:to-brand-orange-darker text-white text-sm font-medium transition disabled:opacity-50"
                 >
                   {submitting ? "Membuat..." : "Buat User"}
                 </button>

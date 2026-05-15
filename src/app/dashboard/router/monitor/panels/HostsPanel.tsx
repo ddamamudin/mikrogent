@@ -210,7 +210,7 @@ export default function HostsPanel({ routerId }: { routerId: string }) {
             </div>
             <div className="flex gap-2 pt-2">
               <button onClick={() => setBindingTarget(null)} className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-white/60 text-sm font-medium">Batal</button>
-              <button onClick={submitBinding} disabled={busyId === bindingTarget.host.id} className="flex-1 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium">
+              <button onClick={submitBinding} disabled={busyId === bindingTarget.host.id} className="flex-1 px-3 py-2 rounded-lg bg-gradient-to-b from-brand-orange to-brand-orange-dark hover:from-brand-orange-dark hover:to-brand-orange-darker disabled:opacity-50 text-white text-sm font-medium">
                 {busyId === bindingTarget.host.id ? "..." : "Bikin Binding"}
               </button>
             </div>

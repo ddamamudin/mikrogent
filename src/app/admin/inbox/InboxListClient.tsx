@@ -41,7 +41,7 @@ export default function InboxListClient() {
     return () => { es.close(); };
   }, [fetchInbox]);
 
-  const inputClass = "bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500";
+  const inputClass = "bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-brand-orange";
 
   return (
     <div className="space-y-4">

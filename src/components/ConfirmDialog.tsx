@@ -19,7 +19,7 @@ type Props = {
 const variantStyles: Record<Variant, string> = {
   danger: "bg-red-600 hover:bg-red-500",
   warning: "bg-amber-600 hover:bg-amber-500",
-  default: "bg-blue-600 hover:bg-blue-500",
+  default: "bg-gradient-to-b from-brand-orange to-brand-orange-dark hover:from-brand-orange-dark hover:to-brand-orange-darker",
 };
 
 export default function ConfirmDialog({

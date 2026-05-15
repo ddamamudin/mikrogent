@@ -37,7 +37,7 @@ export default function MasukanSidebarLink() {
       href="/dashboard/masukan"
       className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition ${
         active
-          ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
+          ? "text-brand-orange dark:text-brand-orange bg-brand-orange-50 dark:bg-brand-orange/10"
           : "text-gray-500 dark:text-white/60 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
       }`}
     >

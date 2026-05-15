@@ -233,11 +233,11 @@ export default function PengaturanClient({ config: initial, admin, isSuper = tru
     }
   };
 
-  const inputClass = "w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-blue-500";
+  const inputClass = "w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-brand-orange";
   const textareaClass = inputClass + " resize-none";
   const cardClass = "bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 p-5 shadow-sm space-y-4 break-inside-avoid mb-6";
   const sectionHead = "text-sm font-semibold text-gray-400 dark:text-white/50 uppercase tracking-wider";
-  const btnPrimary = "w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition disabled:opacity-50";
+  const btnPrimary = "w-full py-2 rounded-lg bg-gradient-to-b from-brand-orange to-brand-orange-dark hover:from-brand-orange-dark hover:to-brand-orange-darker text-white text-sm font-medium transition disabled:opacity-50";
 
   return (
     <div className="max-w-6xl">
@@ -264,7 +264,7 @@ export default function PengaturanClient({ config: initial, admin, isSuper = tru
               <p className="text-xs text-gray-400 dark:text-white/30 mt-0.5">Matikan kalau gak mau ada pendaftaran user baru, admin bikinin manual atau impersonate</p>
             </div>
             <button onClick={() => handleToggleRegistration(!registrationEnabled)} disabled={configLoading}
-              className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${registrationEnabled ? "bg-blue-600" : "bg-gray-200 dark:bg-white/10"}`}>
+              className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${registrationEnabled ? "bg-brand-orange" : "bg-gray-200 dark:bg-white/10"}`}>
               <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${registrationEnabled ? "translate-x-6" : "translate-x-1"}`} />
             </button>
           </div>
@@ -276,7 +276,7 @@ export default function PengaturanClient({ config: initial, admin, isSuper = tru
                 <p className="text-xs text-gray-400 dark:text-white/30 mt-0.5">Matikan jika aplikasi belum pakai fitur subdomain</p>
               </div>
               <button onClick={() => handleToggleShowBrand(!showBrand)} disabled={configLoading}
-                className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${showBrand ? "bg-blue-600" : "bg-gray-200 dark:bg-white/10"}`}>
+                className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${showBrand ? "bg-brand-orange" : "bg-gray-200 dark:bg-white/10"}`}>
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showBrand ? "translate-x-6" : "translate-x-1"}`} />
               </button>
             </div>
@@ -299,7 +299,7 @@ export default function PengaturanClient({ config: initial, admin, isSuper = tru
                   onClick={() => setLlmProvider(p)}
                   className={`px-3 py-2 rounded-lg text-sm font-medium border transition ${
                     llmProvider === p
-                      ? "bg-blue-50 dark:bg-blue-500/10 border-blue-500 text-blue-600 dark:text-blue-400"
+                      ? "bg-brand-orange-50 dark:bg-brand-orange/10 border-blue-500 text-blue-600 dark:text-blue-400"
                       : "bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/60 hover:border-gray-300 dark:hover:border-white/20"
                   }`}
                 >
@@ -430,7 +430,7 @@ export default function PengaturanClient({ config: initial, admin, isSuper = tru
             <button
               type="button"
               onClick={() => setVoiceCallEnabled((v) => !v)}
-              className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${voiceCallEnabled ? "bg-blue-600" : "bg-gray-200 dark:bg-white/10"}`}
+              className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${voiceCallEnabled ? "bg-brand-orange" : "bg-gray-200 dark:bg-white/10"}`}
             >
               <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${voiceCallEnabled ? "translate-x-6" : "translate-x-1"}`} />
             </button>

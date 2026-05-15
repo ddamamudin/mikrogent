@@ -98,7 +98,7 @@ export default function MasukanThreadClient({ feedbackId }: { feedbackId: string
             <div key={m.id} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
                 isUser
-                  ? "bg-blue-600 text-white rounded-br-sm"
+                  ? "bg-brand-orange text-white rounded-br-sm"
                   : "bg-gray-100 dark:bg-white/5 text-gray-900 dark:text-white rounded-bl-sm"
               }`}>
                 <div className={`text-[10px] mb-1 ${isUser ? "text-blue-100" : "text-gray-500 dark:text-white/40"}`}>
@@ -119,14 +119,14 @@ export default function MasukanThreadClient({ feedbackId }: { feedbackId: string
             placeholder="Tulis pesan lanjutan..."
             rows={3}
             maxLength={5000}
-            className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-blue-500 resize-none"
+            className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-brand-orange resize-none"
           />
           <div className="flex justify-between items-center mt-2">
             <span className="text-[10px] text-gray-400 dark:text-white/30">{reply.length}/5000</span>
             <button
               onClick={handleSend}
               disabled={sending || !reply.trim()}
-              className="text-sm px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium transition"
+              className="text-sm px-4 py-1.5 rounded-lg bg-gradient-to-b from-brand-orange to-brand-orange-dark hover:from-brand-orange-dark hover:to-brand-orange-darker disabled:opacity-50 text-white font-medium transition"
             >
               {sending ? "Mengirim..." : "Kirim"}
             </button>

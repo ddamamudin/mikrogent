@@ -30,7 +30,7 @@ function formatBytes(s: string): string {
   return `${v.toFixed(v < 10 ? 2 : 1)} ${units[i]}`;
 }
 
-const inputClass = "w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500";
+const inputClass = "w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-brand-orange";
 
 type EditDraft = {
   name: string;
@@ -395,7 +395,7 @@ function ModalActions({ onCancel, onSubmit, busy, submitLabel }: { onCancel: () 
   return (
     <div className="flex gap-2 pt-2 sticky bottom-0 bg-white dark:bg-slate-900">
       <button onClick={onCancel} className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-white/60 text-sm font-medium">Batal</button>
-      <button onClick={onSubmit} disabled={busy} className="flex-1 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium">
+      <button onClick={onSubmit} disabled={busy} className="flex-1 px-3 py-2 rounded-lg bg-gradient-to-b from-brand-orange to-brand-orange-dark hover:from-brand-orange-dark hover:to-brand-orange-darker disabled:opacity-50 text-white text-sm font-medium">
         {busy ? "..." : submitLabel}
       </button>
     </div>

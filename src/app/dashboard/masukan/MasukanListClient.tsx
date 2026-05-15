@@ -77,7 +77,7 @@ export default function MasukanListClient() {
           <p className="text-sm text-gray-500 dark:text-white/40 mt-0.5">Kirim masukan, pertanyaan, atau laporan bug ke admin</p>
         </div>
         {!showForm && (
-          <button onClick={() => setShowForm(true)} className="text-sm px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium transition">
+          <button onClick={() => setShowForm(true)} className="text-sm px-3 py-2 rounded-lg bg-gradient-to-b from-brand-orange to-brand-orange-dark hover:from-brand-orange-dark hover:to-brand-orange-darker text-white font-medium transition">
             + Kirim Masukan
           </button>
         )}
@@ -99,7 +99,7 @@ export default function MasukanListClient() {
               onChange={(e) => setSubject(e.target.value)}
               maxLength={200}
               placeholder="Singkat dan jelas, mis. 'Bug di halaman router'"
-              className="w-full mt-1 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500"
+              className="w-full mt-1 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-brand-orange"
             />
           </div>
           <div>
@@ -110,7 +110,7 @@ export default function MasukanListClient() {
               rows={5}
               maxLength={5000}
               placeholder="Jelasin masukannya di sini..."
-              className="w-full mt-1 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 resize-none"
+              className="w-full mt-1 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-brand-orange resize-none"
             />
             <div className="text-[10px] text-gray-400 dark:text-white/30 text-right mt-0.5">{body.length}/5000</div>
           </div>
@@ -118,7 +118,7 @@ export default function MasukanListClient() {
             <button type="button" onClick={() => { setShowForm(false); setSubject(""); setBody(""); }} className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-sm font-medium text-gray-600 dark:text-white/60 transition">
               Batal
             </button>
-            <button type="submit" disabled={sending} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium transition">
+            <button type="submit" disabled={sending} className="px-4 py-2 rounded-lg bg-gradient-to-b from-brand-orange to-brand-orange-dark hover:from-brand-orange-dark hover:to-brand-orange-darker disabled:opacity-50 text-white text-sm font-medium transition">
               {sending ? "Mengirim..." : "Kirim"}
             </button>
           </div>

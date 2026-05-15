@@ -27,7 +27,7 @@ export default function Error({
         <div className="mt-6 flex justify-center gap-3">
           <button
             onClick={() => unstable_retry()}
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            className="rounded-md bg-brand-orange px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
             Coba lagi
           </button>

@@ -76,7 +76,7 @@ export default function ForgotPasswordPage() {
             />
           </div>
           <button type="submit" disabled={loading}
-            className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-semibold transition text-[15px] mt-2">
+            className="w-full py-3.5 bg-gradient-to-b from-brand-orange to-brand-orange-dark hover:from-brand-orange-dark hover:to-brand-orange-darker active:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-semibold transition text-[15px] mt-2">
             {loading ? "Mengirim..." : "Kirim Link Reset"}
           </button>
 

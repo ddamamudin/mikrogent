@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 type Entry = { id: string; time: string; topics: string; message: string };
 
-const inputClass = "w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500";
+const inputClass = "w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-brand-orange";
 
 const TOPIC_PRESETS: { value: string; label: string }[] = [
   { value: "hotspot", label: "Hotspot" },
@@ -62,7 +62,7 @@ export default function HotspotLogPanel({ routerId }: { routerId: string }) {
 
   const topicColor = (topics: string) => {
     if (/error|critical|warning/i.test(topics)) return "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10";
-    if (/hotspot/i.test(topics)) return "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10";
+    if (/hotspot/i.test(topics)) return "text-brand-orange dark:text-brand-orange bg-brand-orange-50 dark:bg-brand-orange/10";
     if (/ppp/i.test(topics)) return "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/10";
     if (/dhcp/i.test(topics)) return "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-500/10";
     return "text-gray-600 dark:text-white/50 bg-gray-100 dark:bg-white/5";

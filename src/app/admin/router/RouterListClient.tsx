@@ -176,7 +176,7 @@ export default function RouterListClient({ adminLevel = "SUPER" }: { adminLevel?
     fetchRows();
   };
 
-  const inputClass = "bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500";
+  const inputClass = "bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-brand-orange";
 
   return (
     <div className="space-y-4">
@@ -192,7 +192,7 @@ export default function RouterListClient({ adminLevel = "SUPER" }: { adminLevel?
         {isSuper && (
           <button
             onClick={openAdd}
-            className="text-sm px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium transition"
+            className="text-sm px-3 py-2 rounded-lg bg-gradient-to-b from-brand-orange to-brand-orange-dark hover:from-brand-orange-dark hover:to-brand-orange-darker text-white font-medium transition"
           >
             + Tambah Router
           </button>
@@ -511,7 +511,7 @@ export default function RouterListClient({ adminLevel = "SUPER" }: { adminLevel?
                               onClick={() => setForm({ ...form, userId: t.id })}
                               className={`w-full text-left px-3 py-2 border-b border-gray-50 dark:border-white/5 last:border-0 transition ${
                                 form.userId === t.id
-                                  ? "bg-blue-50 dark:bg-blue-500/10"
+                                  ? "bg-brand-orange-50 dark:bg-brand-orange/10"
                                   : "hover:bg-gray-50 dark:hover:bg-white/5"
                               }`}
                             >
@@ -601,7 +601,7 @@ export default function RouterListClient({ adminLevel = "SUPER" }: { adminLevel?
                 <button type="button" onClick={() => setModalOpen(false)} className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-600 dark:text-white/60 text-sm font-medium transition">
                   Batal
                 </button>
-                <button type="submit" disabled={modalLoading} className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium transition">
+                <button type="submit" disabled={modalLoading} className="px-4 py-2 rounded-lg bg-gradient-to-b from-brand-orange to-brand-orange-dark hover:from-brand-orange-dark hover:to-brand-orange-darker disabled:opacity-50 text-white text-sm font-medium transition">
                   {modalLoading ? "Menyimpan..." : "Simpan"}
                 </button>
               </div>

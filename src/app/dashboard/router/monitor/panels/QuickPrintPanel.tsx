@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 type User = { name: string; password: string; profile: string; comment: string };
 type Profile = { name: string; validity: string; price: string; sprice: string };
 
-const inputClass = "w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-blue-500";
+const inputClass = "w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-brand-orange";
 
 type Batch = {
   comment: string;
@@ -183,7 +183,7 @@ export default function QuickPrintPanel({ routerId, routerName }: { routerId: st
                       {price !== "0" && <> &middot; <span className="text-green-600 dark:text-green-400 font-semibold">Rp {Number(price).toLocaleString("id-ID")}</span></>}
                     </p>
                   </div>
-                  <button onClick={() => handlePrint(b)} className="ml-3 text-xs px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium inline-flex items-center gap-1">
+                  <button onClick={() => handlePrint(b)} className="ml-3 text-xs px-3 py-1.5 rounded-lg bg-gradient-to-b from-brand-orange to-brand-orange-dark hover:from-brand-orange-dark hover:to-brand-orange-darker text-white font-medium inline-flex items-center gap-1">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                     Print
                   </button>

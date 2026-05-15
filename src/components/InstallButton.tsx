@@ -106,7 +106,7 @@ export function InstallButton() {
             </p>
             <ol className="space-y-3 text-sm text-gray-700">
               <li className="flex gap-3">
-                <span className="shrink-0 w-6 h-6 rounded-full bg-blue-50 text-blue-600 text-xs font-bold flex items-center justify-center">1</span>
+                <span className="shrink-0 w-6 h-6 rounded-full bg-brand-orange-50 text-brand-orange text-xs font-bold flex items-center justify-center">1</span>
                 <span>
                   Tap tombol <strong>Share</strong>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mx-1 -mt-0.5">
@@ -118,11 +118,11 @@ export function InstallButton() {
                 </span>
               </li>
               <li className="flex gap-3">
-                <span className="shrink-0 w-6 h-6 rounded-full bg-blue-50 text-blue-600 text-xs font-bold flex items-center justify-center">2</span>
+                <span className="shrink-0 w-6 h-6 rounded-full bg-brand-orange-50 text-brand-orange text-xs font-bold flex items-center justify-center">2</span>
                 <span>Pilih <strong>&quot;Tambahkan ke Layar Utama&quot;</strong> (Add to Home Screen).</span>
               </li>
               <li className="flex gap-3">
-                <span className="shrink-0 w-6 h-6 rounded-full bg-blue-50 text-blue-600 text-xs font-bold flex items-center justify-center">3</span>
+                <span className="shrink-0 w-6 h-6 rounded-full bg-brand-orange-50 text-brand-orange text-xs font-bold flex items-center justify-center">3</span>
                 <span>Tap <strong>Tambah</strong>. Icon LintasAgent akan muncul di home screen.</span>
               </li>
             </ol>

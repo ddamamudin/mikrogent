@@ -23,7 +23,7 @@ const inputClass = "w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 d
 const STATUS_TONE: Record<string, { bg: string; text: string }> = {
   bound: { bg: "bg-green-50 dark:bg-green-500/10", text: "text-green-700 dark:text-green-400" },
   waiting: { bg: "bg-amber-50 dark:bg-amber-500/10", text: "text-amber-700 dark:text-amber-400" },
-  offered: { bg: "bg-blue-50 dark:bg-blue-500/10", text: "text-blue-700 dark:text-blue-400" },
+  offered: { bg: "bg-brand-orange-50 dark:bg-brand-orange/10", text: "text-blue-700 dark:text-blue-400" },
 };
 
 export default function DhcpLeasePanel({ routerId }: { routerId: string }) {

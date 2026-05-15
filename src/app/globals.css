@@ -6,6 +6,18 @@
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Brand colors — extracted from LintasAgent logo wordmark + character.
+     Orange dipakai sebagai primary CTA & active state, blue sebagai
+     secondary/info accent. Subtle gradient orange→orange-dark di tombol
+     primary kasih dimensi tipis. */
+  --color-brand-orange: #f76800;
+  --color-brand-orange-dark: #dc5e00;
+  --color-brand-orange-darker: #c25400;
+  --color-brand-orange-50: #fff4eb;
+  --color-brand-orange-100: #ffe1c9;
+  --color-brand-blue: #2a4dff;
+  --color-brand-blue-dark: #2545e5;
 }
 
 body {

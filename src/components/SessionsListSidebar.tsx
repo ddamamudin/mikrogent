@@ -222,7 +222,7 @@ export default function SessionsListSidebar() {
                 href={`/dashboard/agent?session=${s.id}`}
                 className={`flex items-center gap-2 pl-3 pr-8 py-1.5 rounded-lg text-[13px] transition ${
                   active
-                    ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
+                    ? "text-brand-orange dark:text-brand-orange bg-brand-orange-50 dark:bg-brand-orange/10"
                     : "text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
                 }`}
                 title={title}
@@ -407,7 +407,7 @@ export default function SessionsListSidebar() {
               }}
               maxLength={60}
               placeholder="Nama sesi baru"
-              className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-blue-500"
+              className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:border-brand-orange"
               autoComplete="off"
             />
             <p className="text-[11px] text-gray-400 dark:text-white/30">Maks 60 karakter.</p>
@@ -424,7 +424,7 @@ export default function SessionsListSidebar() {
                 type="button"
                 onClick={handleRename}
                 disabled={renaming || !renameValue.trim()}
-                className="flex-1 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition disabled:opacity-50"
+                className="flex-1 px-3 py-2 rounded-lg bg-gradient-to-b from-brand-orange to-brand-orange-dark hover:from-brand-orange-dark hover:to-brand-orange-darker text-white text-sm font-medium transition disabled:opacity-50"
               >
                 {renaming ? "Menyimpan..." : "Simpan"}
               </button>

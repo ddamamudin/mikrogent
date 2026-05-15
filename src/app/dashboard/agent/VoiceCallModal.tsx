@@ -377,8 +377,8 @@ export default function VoiceCallModal({
         <div className="relative flex items-center justify-center w-64 h-64">
           {(isAgentSpeaking || isUserSpeaking) && (
             <>
-              <span className={`absolute inset-0 rounded-full ${isUserSpeaking ? "bg-emerald-400/20" : "bg-blue-400/20"} animate-ping`} />
-              <span className={`absolute inset-6 rounded-full ${isUserSpeaking ? "bg-emerald-400/30" : "bg-blue-400/30"}`} />
+              <span className={`absolute inset-0 rounded-full ${isUserSpeaking ? "bg-emerald-400/20" : "bg-brand-orange/20"} animate-ping`} />
+              <span className={`absolute inset-6 rounded-full ${isUserSpeaking ? "bg-emerald-400/30" : "bg-brand-orange/30"}`} />
             </>
           )}
           {/* eslint-disable-next-line @next/next/no-img-element */}

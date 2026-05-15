@@ -276,7 +276,7 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
                               onClick={() => { setActiveId(r.id); setPickerOpen(false); }}
                               className={`w-full text-left px-3 py-2 transition flex items-start gap-2 ${
                                 isA
-                                  ? "bg-blue-50 dark:bg-blue-500/10"
+                                  ? "bg-brand-orange-50 dark:bg-brand-orange/10"
                                   : "hover:bg-gray-50 dark:hover:bg-white/5"
                               }`}
                             >
@@ -333,7 +333,7 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
                         onClick={() => { setMenu(it.key); setSidebarOpen(false); }}
                         className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition ${
                           isOn
-                            ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                            ? "bg-brand-orange-50 dark:bg-brand-orange/10 text-blue-600 dark:text-blue-400"
                             : "text-gray-600 dark:text-white/70 hover:bg-gray-100 dark:hover:bg-white/5"
                         }`}
                       >
