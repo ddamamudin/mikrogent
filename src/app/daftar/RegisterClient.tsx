@@ -111,12 +111,12 @@ export default function RegisterClient({ showBrandField }: { showBrandField: boo
 
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium text-gray-500 px-1">Nama Lengkap</label>
-          <input name="name" value={form.name} onChange={handleChange} required className={inputClass} placeholder="Diki Damamudin" />
+          <input name="name" value={form.name} onChange={handleChange} required className={inputClass} placeholder="Kristoforus Hakim" />
         </div>
 
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium text-gray-500 px-1">Alamat</label>
-          <input name="alamat" value={form.alamat} onChange={handleChange} className={inputClass} placeholder="Jl. Bahagia No. 1, Ciwiru" />
+          <input name="alamat" value={form.alamat} onChange={handleChange} className={inputClass} placeholder="Jl. Bahagia No. 1, Bekasi" />
         </div>
 
         <div className="flex flex-col gap-1.5">
