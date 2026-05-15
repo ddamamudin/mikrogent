@@ -454,7 +454,7 @@ export default function TenantListClient({ adminLevel = "SUPER" }: { adminLevel?
                               onClick={() => handleResetQuota(t.id, t.name)}
                               disabled={actionLoading === t.id}
                               title="Reset kuota chat"
-                              className="text-xs px-2 py-0.5 rounded bg-brand-orange-50 dark:bg-brand-orange/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-500 dark:text-blue-400 transition disabled:opacity-50"
+                              className="text-xs px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-500 dark:text-blue-400 transition disabled:opacity-50"
                             >
                               Reset
                             </button>
@@ -473,7 +473,7 @@ export default function TenantListClient({ adminLevel = "SUPER" }: { adminLevel?
                                 onClick={() => handleResetVoiceQuota(t.id, t.name)}
                                 disabled={actionLoading === t.id}
                                 title="Reset kuota voice"
-                                className="text-xs px-2 py-0.5 rounded bg-brand-orange-50 dark:bg-brand-orange/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-500 dark:text-blue-400 transition disabled:opacity-50"
+                                className="text-xs px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-500 dark:text-blue-400 transition disabled:opacity-50"
                               >
                                 Reset
                               </button>

@@ -283,12 +283,12 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
                               <span className={`w-1.5 h-1.5 rounded-full shrink-0 mt-1.5 ${r.apiEnabled ? "bg-indigo-500" : "bg-gray-400"}`} />
                               <div className="flex-1 min-w-0">
                                 <p className={`text-sm font-medium truncate ${
-                                  isA ? "text-blue-700 dark:text-blue-300" : "text-gray-900 dark:text-white"
+                                  isA ? "text-brand-orange-dark dark:text-brand-orange" : "text-gray-900 dark:text-white"
                                 }`}>{r.name}</p>
                                 <p className="text-[11px] font-mono text-gray-400 dark:text-white/30 truncate">{r.host}</p>
                               </div>
                               {isA && (
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500 dark:text-blue-400 shrink-0 mt-1">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-brand-orange dark:text-brand-orange shrink-0 mt-1">
                                   <polyline points="20 6 9 17 4 12"/>
                                 </svg>
                               )}
@@ -333,7 +333,7 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
                         onClick={() => { setMenu(it.key); setSidebarOpen(false); }}
                         className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition ${
                           isOn
-                            ? "bg-brand-orange-50 dark:bg-brand-orange/10 text-blue-600 dark:text-blue-400"
+                            ? "bg-brand-orange-50 dark:bg-brand-orange/10 text-brand-orange dark:text-brand-orange"
                             : "text-gray-600 dark:text-white/70 hover:bg-gray-100 dark:hover:bg-white/5"
                         }`}
                       >

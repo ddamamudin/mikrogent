@@ -299,7 +299,7 @@ export default function PengaturanClient({ config: initial, admin, isSuper = tru
                   onClick={() => setLlmProvider(p)}
                   className={`px-3 py-2 rounded-lg text-sm font-medium border transition ${
                     llmProvider === p
-                      ? "bg-brand-orange-50 dark:bg-brand-orange/10 border-blue-500 text-blue-600 dark:text-blue-400"
+                      ? "bg-brand-orange-50 dark:bg-brand-orange/10 border-brand-orange text-brand-orange dark:text-brand-orange"
                       : "bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/60 hover:border-gray-300 dark:hover:border-white/20"
                   }`}
                 >
