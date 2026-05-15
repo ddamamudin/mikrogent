@@ -202,7 +202,7 @@ export default function AdminShell({
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
-    window.location.href = "/masuk";
+    window.location.href = "/";
   };
 
   const toggleSidebar = () => {
