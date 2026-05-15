@@ -430,7 +430,7 @@ export default function TenantDetailClient({ tenant: initial, mikrotikCreds, isS
                 </div>
                 <dl className="text-xs space-y-1">
                   <div className="flex gap-3"><dt className="text-gray-400 dark:text-white/40 w-20">Host</dt><dd className="font-mono text-gray-700 dark:text-white/80">{cred.host}:{cred.port}</dd></div>
-                  {isSuper ? (
+                  {isSuper && (
                     <>
                       <div className="flex gap-3"><dt className="text-gray-400 dark:text-white/40 w-20">Username</dt><dd className="font-mono text-gray-700 dark:text-white/80">{cred.sshUser}</dd></div>
                       <div className="flex gap-3 items-center">
@@ -443,8 +443,6 @@ export default function TenantDetailClient({ tenant: initial, mikrotikCreds, isS
                         </dd>
                       </div>
                     </>
-                  ) : (
-                    <div className="flex gap-3"><dt className="text-gray-400 dark:text-white/40 w-20">Kredensial</dt><dd className="text-gray-400 dark:text-white/40 italic">Tersembunyi, khusus Superadmin</dd></div>
                   )}
                 </dl>
               </div>
