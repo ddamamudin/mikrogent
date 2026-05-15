@@ -337,15 +337,6 @@ export default function UsersClient({ adminLevel }: { adminLevel: AdminLevel }) 
               {role === "TENANT" && (
                 <>
                   <div>
-                    <label className="text-xs font-medium text-gray-500 dark:text-white/50">Brand <span className="text-gray-400">(opsional)</span></label>
-                    <input
-                      value={form.brand}
-                      onChange={(e) => setForm((p) => ({ ...p, brand: e.target.value }))}
-                      className={inputClass + " mt-1"}
-                      placeholder="contoh: replaymedia"
-                    />
-                  </div>
-                  <div>
                     <label className="text-xs font-medium text-gray-500 dark:text-white/50">Alamat <span className="text-gray-400">(opsional)</span></label>
                     <input
                       value={form.alamat}
