@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 const SITE_URL = "https://lintasagent.com";
 const OG_TITLE = "LintasAgent";
 const OG_DESC = "AI Agent yang Kelola Mikrotik Kamu";
-const OG_IMAGE = "/lintasagent-logo-and-text.png";
+const OG_IMAGE = "/agent-logo.png";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
