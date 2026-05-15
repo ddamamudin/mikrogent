@@ -44,6 +44,12 @@ export const RT = {
   // Per-user channel: client subscribe via "user:me" alias (resolved server-side)
   userValidated: (userId: string) =>
     publish({ topic: TOPIC.user(userId), event: "user.validated", data: null }),
+  userUnvalidated: (userId: string) =>
+    publish({ topic: TOPIC.user(userId), event: "user.unvalidated", data: null }),
+  userStatusChanged: (userId: string, status: "ACTIVE" | "SUSPENDED") =>
+    publish({ topic: TOPIC.user(userId), event: "user.status_changed", data: { status } }),
+  userQuotaChanged: (userId: string) =>
+    publish({ topic: TOPIC.user(userId), event: "user.quota_changed", data: null }),
   userRouterChanged: (userId: string) =>
     publish({ topic: TOPIC.user(userId), event: "user.router_changed", data: null }),
   userMaxRoutersChanged: (userId: string) =>

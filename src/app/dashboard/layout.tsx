@@ -21,11 +21,24 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const [user, config] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.userId },
-      select: { name: true, brand: true, email: true, validated: true },
+      select: { name: true, brand: true, email: true, validated: true, status: true },
     }),
     prisma.appConfig.findUnique({ where: { id: "singleton" } }),
   ]);
   if (!user) redirect(LOGIN_URL);
+
+  // Akun di-suspend: clear cookie + paksa ke /masuk. Cek lebih dulu daripada
+  // validated supaya user yang sudah validated tapi kemudian di-suspend tetap
+  // ke-eject (kalau gak di-clear, server check lolos via cookie HMAC sampai
+  // expire).
+  if (user.status === "SUSPENDED") {
+    cookieStore.set("session", "", {
+      maxAge: 0,
+      path: "/",
+      domain: process.env.NODE_ENV === "production" ? ".lintasagent.com" : undefined,
+    });
+    redirect(`${LOGIN_URL}?suspended=1`);
+  }
 
   if (!user.validated) {
     const adminWa = process.env.FONNTE_TARGET_PHONE || "";

@@ -113,6 +113,36 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
     setProfileOpen(false);
   }, [pathname]);
 
+  // Realtime: react ke aksi admin yang mempengaruhi sesi user ini.
+  // - user.unvalidated: admin batalkan validasi → reload supaya layout server
+  //   render PendingValidation.
+  // - user.status_changed (SUSPENDED): admin suspend → redirect ke /masuk.
+  // - user.quota_changed: admin reset / ubah limit → reload supaya counter
+  //   di header & AgentClient dapat angka terbaru dari server props.
+  // - config.changed: admin toggle voice (atau ubah AppConfig lain) →
+  //   reload supaya voiceCallEnabled prop di AgentClient ke-update.
+  useEffect(() => {
+    const es = new EventSource("/api/realtime?topic=user:me&topic=public:config");
+    const reload = () => window.location.reload();
+    es.addEventListener("user.unvalidated", reload);
+    es.addEventListener("user.quota_changed", reload);
+    es.addEventListener("config.changed", reload);
+    es.addEventListener("user.status_changed", async (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data) as { status?: string };
+        if (data.status === "SUSPENDED") {
+          // Best-effort clear cookie before redirect supaya user gak loop balik
+          // ke /dashboard sebelum server-side redirect kick in.
+          await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+          window.location.href = "/masuk?suspended=1";
+          return;
+        }
+      } catch {}
+      reload();
+    });
+    return () => es.close();
+  }, []);
+
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     window.location.href = "/";
