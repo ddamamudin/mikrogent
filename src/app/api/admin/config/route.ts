@@ -163,6 +163,9 @@ export async function PATCH(req: NextRequest) {
     });
     await logAdmin({ adminId: admin.id, adminName: admin.name, action: "update_agent_config", details: changed.join(", ") });
     RT.configUpdated().catch(() => {});
+    // Broadcast ke public:config supaya dashboard user juga refresh (voice toggle,
+    // dailyChatLimit global, dll. tergantung config ini).
+    RT.publicConfigChanged().catch(() => {});
     return NextResponse.json(config);
   }
 
