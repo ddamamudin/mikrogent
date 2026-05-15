@@ -410,10 +410,10 @@ export default function TenantDetailClient({ tenant: initial, mikrotikCreds, isS
         </p>
       </div>
 
-      {/* Kredensial MikroTik - list semua router tenant */}
+      {/* Data Router - list semua router tenant */}
       <div className="bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden shadow-sm">
         <div className="px-5 py-3 border-b border-gray-50 dark:border-white/5">
-          <h2 className="text-sm font-semibold text-gray-400 dark:text-white/50 uppercase tracking-wider">Kredensial MikroTik ({mikrotikCreds.length})</h2>
+          <h2 className="text-sm font-semibold text-gray-400 dark:text-white/50 uppercase tracking-wider">Data Router ({mikrotikCreds.length})</h2>
         </div>
         {mikrotikCreds.length === 0 ? (
           <p className="px-5 py-4 text-sm text-gray-400 dark:text-white/30">Belum ada router yang disimpan tenant ini.</p>
