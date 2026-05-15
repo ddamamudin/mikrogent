@@ -213,7 +213,7 @@ export default function MonitorClient({ initialRouters }: { initialRouters: Rout
           h-14 z-40 sama persis ukuran & z-index dengan main header default,
           jadi sidebar utama (aside fixed top-14 z-30) tetep cocok posisinya. */}
       <header className="relative h-14 bg-white dark:bg-slate-900 flex items-center px-3 gap-1 shrink-0 z-40 border-b border-gray-200 dark:border-white/10">
-        {/* Tombol "kembali" → buka sidebar utama dashboard (Replay Agent, Router, dll) */}
+        {/* Tombol "kembali" → buka sidebar utama dashboard (LintasAgent, Router, dll) */}
         <button
           onClick={() => dashSidebar.toggle()}
           aria-label="Buka menu utama"

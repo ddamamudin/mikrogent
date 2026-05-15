@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getSessionFromCookie } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 
-const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Mikroplay";
+const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "LintasAgent";
 
 export default async function BantuanPage() {
   const cookieStore = await cookies();

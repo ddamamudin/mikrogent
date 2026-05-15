@@ -44,3 +44,6 @@ next-env.d.ts
 
 # MikroTik knowledge base (large, managed separately)
 /knowledge
+
+# Source assets (working files, not deployed)
+/asset-img

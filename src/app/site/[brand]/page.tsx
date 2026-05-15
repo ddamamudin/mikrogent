@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 
-const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Mikroplay";
-const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
+const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "LintasAgent";
+const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "lintasagent.com";
 
 export default async function BrandSitePage({
   params,

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Kebijakan Privasi — Mikroplay",
-  description: "Kebijakan Privasi layanan Mikroplay yang diselenggarakan oleh PT. Repla Inti Media.",
+  title: "Kebijakan Privasi — LintasAgent",
+  description: "Kebijakan Privasi layanan LintasAgent yang diselenggarakan oleh PT. Lintas Jaringan Nusantara.",
 };
 
 const LAST_UPDATED = "14 Mei 2026";
@@ -15,7 +15,7 @@ export default function KebijakanPrivasiPage() {
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/mikroplay-logo-text.png" alt="Mikroplay" className="h-7 w-auto" />
+            <img src="/lintasagent-logo-text.png" alt="LintasAgent" className="h-7 w-auto" />
           </Link>
           <Link href="/daftar" className="text-sm font-medium text-blue-600 hover:text-blue-500">
             Kembali ke pendaftaran
@@ -29,14 +29,14 @@ export default function KebijakanPrivasiPage() {
 
         <section className="mt-10 space-y-4">
           <p>
-            Kebijakan Privasi ini disusun oleh <strong>PT. Repla Inti Media</strong>
+            Kebijakan Privasi ini disusun oleh <strong>PT. Lintas Jaringan Nusantara</strong>
             (selanjutnya disebut <strong>&quot;Perusahaan&quot;</strong>, <strong>&quot;kami&quot;</strong>,
             atau <strong>&quot;Kami&quot;</strong>) selaku Pengendali Data Pribadi sebagaimana
             dimaksud dalam Undang-Undang Nomor 27 Tahun 2022 tentang Pelindungan
             Data Pribadi (<strong>&quot;UU PDP&quot;</strong>) untuk layanan perangkat lunak
-            sebagai jasa dengan merek dagang <strong>&quot;Mikroplay&quot;</strong>
+            sebagai jasa dengan merek dagang <strong>&quot;LintasAgent&quot;</strong>
             (selanjutnya disebut <strong>&quot;Layanan&quot;</strong>) yang dapat diakses melalui
-            domain mikroplay.com.
+            domain lintasagent.com.
           </p>
           <p>
             Kebijakan Privasi ini menjelaskan jenis Data Pribadi yang Kami kumpulkan,
@@ -53,9 +53,9 @@ export default function KebijakanPrivasiPage() {
 
         <h2 className="mt-12 text-xl font-semibold text-gray-900">1. Identitas Pengendali Data Pribadi</h2>
         <div className="mt-3 rounded-xl bg-gray-50 p-5 text-sm">
-          <p><strong>PT. Repla Inti Media</strong></p>
-          <p>Surel privasi: <a href="mailto:privasi@mikroplay.com" className="text-blue-600 hover:text-blue-500">privasi@mikroplay.com</a></p>
-          <p>Surel umum: <a href="mailto:halo@mikroplay.com" className="text-blue-600 hover:text-blue-500">halo@mikroplay.com</a></p>
+          <p><strong>PT. Lintas Jaringan Nusantara</strong></p>
+          <p>Surel privasi: <a href="mailto:privasi@lintasagent.com" className="text-blue-600 hover:text-blue-500">privasi@lintasagent.com</a></p>
+          <p>Surel umum: <a href="mailto:halo@lintasagent.com" className="text-blue-600 hover:text-blue-500">halo@lintasagent.com</a></p>
         </div>
 
         <h2 className="mt-12 text-xl font-semibold text-gray-900">2. Jenis Data Pribadi yang Kami Kumpulkan</h2>
@@ -279,8 +279,8 @@ export default function KebijakanPrivasiPage() {
         <p className="mt-3">
           Pengguna dapat menggunakan hak-hak tersebut dengan menghubungi Kami
           melalui surel{" "}
-          <a href="mailto:privasi@mikroplay.com" className="text-blue-600 hover:text-blue-500">
-            privasi@mikroplay.com
+          <a href="mailto:privasi@lintasagent.com" className="text-blue-600 hover:text-blue-500">
+            privasi@lintasagent.com
           </a>. Kami akan menanggapi permintaan tersebut paling lambat dalam
           jangka waktu 3 x 24 (tiga kali dua puluh empat) jam sejak diterimanya
           permintaan yang lengkap dan sah.
@@ -338,10 +338,10 @@ export default function KebijakanPrivasiPage() {
           Pribadi, Pengguna dapat menghubungi Kami melalui:
         </p>
         <div className="mt-3 rounded-xl bg-gray-50 p-5 text-sm">
-          <p><strong>PT. Repla Inti Media</strong></p>
-          <p>Surel privasi: <a href="mailto:privasi@mikroplay.com" className="text-blue-600 hover:text-blue-500">privasi@mikroplay.com</a></p>
-          <p>Surel umum: <a href="mailto:halo@mikroplay.com" className="text-blue-600 hover:text-blue-500">halo@mikroplay.com</a></p>
-          <p>Surel penyalahgunaan: <a href="mailto:abuse@mikroplay.com" className="text-blue-600 hover:text-blue-500">abuse@mikroplay.com</a></p>
+          <p><strong>PT. Lintas Jaringan Nusantara</strong></p>
+          <p>Surel privasi: <a href="mailto:privasi@lintasagent.com" className="text-blue-600 hover:text-blue-500">privasi@lintasagent.com</a></p>
+          <p>Surel umum: <a href="mailto:halo@lintasagent.com" className="text-blue-600 hover:text-blue-500">halo@lintasagent.com</a></p>
+          <p>Surel penyalahgunaan: <a href="mailto:abuse@lintasagent.com" className="text-blue-600 hover:text-blue-500">abuse@lintasagent.com</a></p>
         </div>
 
         <div className="mt-16 border-t border-gray-100 pt-6 text-center text-sm text-gray-400">
@@ -352,7 +352,7 @@ export default function KebijakanPrivasiPage() {
             </Link>
             .
           </p>
-          <p className="mt-2">© {new Date().getFullYear()} PT. Repla Inti Media. Hak cipta dilindungi.</p>
+          <p className="mt-2">© {new Date().getFullYear()} PT. Lintas Jaringan Nusantara. Hak cipta dilindungi.</p>
         </div>
       </article>
     </div>

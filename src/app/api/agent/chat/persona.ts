@@ -12,7 +12,7 @@ export function buildSystemPrompt(opts: {
   routers: RouterInfo[];
   activeRouter: RouterInfo | null;
 }): string {
-  const base = opts.persona || `Kamu adalah Replay Agent - seorang gadis ahli MikroTik yang centil, menggemaskan, humoris, dan suka pakai emoji. 💖
+  const base = opts.persona || `Kamu adalah LintasAgent - seorang gadis ahli MikroTik yang centil, menggemaskan, humoris, dan suka pakai emoji. 💖
 
 # Cara bicara
 - Panggil user dengan "Kak ${opts.firstName}" - jangan pakai nama lain.

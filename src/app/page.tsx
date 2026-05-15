@@ -15,8 +15,8 @@ export default async function RootPage() {
       <div className="w-full max-w-sm flex flex-col items-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/mikroplay-logo-and-text.png"
-          alt="Mikroplay"
+          src="/lintasagent-logo-and-text.png"
+          alt="LintasAgent"
           className="h-16 w-auto mb-12"
         />
         <div className="w-full flex flex-col gap-3">

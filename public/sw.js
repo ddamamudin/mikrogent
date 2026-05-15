@@ -1,12 +1,12 @@
-/* Mikroplay PWA Service Worker
+/* LintasAgent PWA Service Worker
  * Strategy:
  * - API (/api/*) & auth pages: network-only (selalu fresh, ga di-cache)
  * - Static asset (Next.js _next/static, icons): cache-first
  * - Halaman lain: network-first, fallback ke /offline.html kalau offline
  */
 const VERSION = "v1";
-const STATIC_CACHE = `mikroplay-static-${VERSION}`;
-const RUNTIME_CACHE = `mikroplay-runtime-${VERSION}`;
+const STATIC_CACHE = `lintasagent-static-${VERSION}`;
+const RUNTIME_CACHE = `lintasagent-runtime-${VERSION}`;
 const OFFLINE_URL = "/offline.html";
 
 const PRECACHE = [
@@ -16,8 +16,8 @@ const PRECACHE = [
   "/icon-maskable-512.png",
   "/apple-touch-icon-180.png",
   "/favicon-32.png",
-  "/mikroplay-logo.png",
-  "/mikroplay-logo-text.png",
+  "/lintasagent-logo.png",
+  "/lintasagent-logo-text.png",
 ];
 
 self.addEventListener("install", (event) => {

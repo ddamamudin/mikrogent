@@ -46,17 +46,17 @@ export default function PendingValidation({
   // Normalize nomor WA: hapus karakter non-digit, ganti awalan 0 dengan 62
   const waDigits = adminWa?.replace(/\D/g, "").replace(/^0/, "62") || "";
   const waMessage = encodeURIComponent(
-    `Halo admin Mikroplay, saya ${name} (${email}) baru daftar dan masih menunggu validasi akun. Mohon dibantu prosesnya. Terima kasih.`,
+    `Halo admin LintasAgent, saya ${name} (${email}) baru daftar dan masih menunggu validasi akun. Mohon dibantu prosesnya. Terima kasih.`,
   );
   const waUrl = waDigits ? `https://wa.me/${waDigits}?text=${waMessage}` : "";
 
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/agent-logo.png" alt="Replay Agent" className="w-24 h-24 sm:w-28 sm:h-28 mb-5 object-contain opacity-80" />
+      <img src="/agent-logo.png" alt="LintasAgent" className="w-24 h-24 sm:w-28 sm:h-28 mb-5 object-contain opacity-80" />
       <h1 className="text-2xl font-bold text-gray-900 mb-2">Halo, Kak {firstName}</h1>
       <p className="text-gray-500 text-[15px] leading-relaxed max-w-md">
-        Akun Anda <strong className="text-gray-900">menunggu validasi</strong> dari admin sebelum bisa menggunakan Replay Agent.
+        Akun Anda <strong className="text-gray-900">menunggu validasi</strong> dari admin sebelum bisa menggunakan LintasAgent.
       </p>
 
       <div className="mt-5 inline-flex items-center gap-2 bg-amber-50 border border-amber-100 text-amber-700 text-xs rounded-full px-4 py-2">

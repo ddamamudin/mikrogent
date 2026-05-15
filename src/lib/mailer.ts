@@ -1,18 +1,18 @@
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = "Mikroplay <noreply@mikroplay.com>";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://mikroplay.com";
+const FROM = "LintasAgent <noreply@lintasagent.com>";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://lintasagent.com";
 
 export async function sendVerificationEmail(email: string, name: string, token: string) {
   const url = `${APP_URL}/verifikasi-email?token=${token}`;
   await resend.emails.send({
     from: FROM,
     to: email,
-    subject: "Konfirmasi Email Akun Mikroplay Anda",
+    subject: "Konfirmasi Email Akun LintasAgent Anda",
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
-        <h2 style="color:#2563eb;">Selamat datang di Mikroplay, ${name}!</h2>
+        <h2 style="color:#2563eb;">Selamat datang di LintasAgent, ${name}!</h2>
         <p>Klik tombol di bawah untuk mengaktifkan akun Anda:</p>
         <a href="${url}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:#fff;border-radius:6px;text-decoration:none;font-weight:bold;">
           Konfirmasi Email
@@ -28,7 +28,7 @@ export async function sendPasswordResetEmail(email: string, name: string, token:
   await resend.emails.send({
     from: FROM,
     to: email,
-    subject: "Reset Password Akun Mikroplay Anda",
+    subject: "Reset Password Akun LintasAgent Anda",
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;">
         <h2 style="color:#2563eb;">Reset Password</h2>

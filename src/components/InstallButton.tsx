@@ -77,7 +77,7 @@ export function InstallButton() {
       <button
         onClick={handleClick}
         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-medium transition border border-blue-100"
-        title="Install Mikroplay sebagai aplikasi"
+        title="Install LintasAgent sebagai aplikasi"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -98,9 +98,9 @@ export function InstallButton() {
           >
             <div className="flex justify-center mb-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/mikroplay-logo.png" alt="Mikroplay" className="h-14 w-14" />
+              <img src="/lintasagent-logo.png" alt="LintasAgent" className="h-14 w-14" />
             </div>
-            <h2 className="text-lg font-semibold text-gray-900 text-center mb-1">Install Mikroplay</h2>
+            <h2 className="text-lg font-semibold text-gray-900 text-center mb-1">Install LintasAgent</h2>
             <p className="text-sm text-gray-500 text-center mb-5">
               Di iPhone/iPad, install lewat Safari dengan langkah:
             </p>
@@ -123,7 +123,7 @@ export function InstallButton() {
               </li>
               <li className="flex gap-3">
                 <span className="shrink-0 w-6 h-6 rounded-full bg-blue-50 text-blue-600 text-xs font-bold flex items-center justify-center">3</span>
-                <span>Tap <strong>Tambah</strong>. Icon Mikroplay akan muncul di home screen.</span>
+                <span>Tap <strong>Tambah</strong>. Icon LintasAgent akan muncul di home screen.</span>
               </li>
             </ol>
             <button

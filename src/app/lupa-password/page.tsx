@@ -30,7 +30,7 @@ export default function ForgotPasswordPage() {
   if (done) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
-        <div className="text-5xl mb-5">📧</div>
+        <div className="text-5xl mb-5">ðŸ“§</div>
         <h2 className="text-2xl font-bold mb-2 text-gray-900">Cek Email Anda</h2>
         <p className="text-gray-500 text-sm leading-relaxed">
           Jika email <strong className="text-gray-900">{email}</strong> terdaftar,
@@ -49,7 +49,7 @@ export default function ForgotPasswordPage() {
         <div className="pt-20 pb-10 text-center">
           <Link href="/">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/mikroplay-logo-text.png" alt="Mikroplay" className="h-10 w-auto mx-auto" />
+            <img src="/lintasagent-logo-text.png" alt="LintasAgent" className="h-10 w-auto mx-auto" />
           </Link>
           <h1 className="text-2xl font-bold mt-5 text-gray-900">Lupa Password?</h1>
           <p className="text-gray-400 text-sm mt-1 leading-relaxed">

@@ -6,14 +6,14 @@ import { InstallButton } from "@/components/InstallButton";
 import MasukanSidebarLink from "@/components/MasukanSidebarLink";
 import SessionsListSidebar from "@/components/SessionsListSidebar";
 
-const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikroplay.com";
+const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "lintasagent.com";
 
 type NavItem = { href: string; label: string; icon: React.ReactNode };
 
 const AGENT_NAV: NavItem[] = [
   {
     href: "/dashboard/agent",
-    label: "Replay Agent",
+    label: "LintasAgent",
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="3" width="20" height="14" rx="2" />
@@ -147,7 +147,7 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
             </button>
             <a href="/dashboard/agent" className="flex items-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/mikroplay-logo-text.png" alt="Mikroplay" className="h-7 w-auto" />
+              <img src="/lintasagent-logo-text.png" alt="LintasAgent" className="h-7 w-auto" />
             </a>
           </div>
           <div className="flex items-center gap-2">
@@ -246,7 +246,7 @@ export default function DashboardLayoutClient({ user, showBrandField, children }
                     </Suspense>
                   </div>
 
-                  {/* Menu Router & Monitor (di-pindah ke bawah supaya akses utama tetep Replay Agent + histori chat). */}
+                  {/* Menu Router & Monitor (di-pindah ke bawah supaya akses utama tetep LintasAgent + histori chat). */}
                   <nav className="px-2 py-2 border-t border-gray-200 dark:border-white/10 space-y-1">
                     {ROUTER_NAV.map(renderItem)}
                   </nav>

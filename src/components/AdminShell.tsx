@@ -241,7 +241,7 @@ export default function AdminShell({
             </svg>
           </button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/mikroplay-logo-text.png" alt="Mikroplay" className="h-7 w-auto hidden sm:block shrink-0" />
+          <img src="/lintasagent-logo-text.png" alt="LintasAgent" className="h-7 w-auto hidden sm:block shrink-0" />
           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${badge.bg} ${badge.text} hidden sm:inline shrink-0 uppercase tracking-wider`}>{badge.label}</span>
           <div className="h-5 w-px bg-gray-200 dark:bg-white/10 hidden sm:block mx-1 shrink-0" />
           <h1 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white truncate">{pageTitle}</h1>

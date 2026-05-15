@@ -13,20 +13,20 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const SITE_URL = "https://mikroplay.com";
-const OG_TITLE = "Mikroplay";
-const OG_DESC = "Replay Agent yang Kelola Mikrotik Kamu";
-const OG_IMAGE = "/mikroplay-logo-and-text.png";
+const SITE_URL = "https://lintasagent.com";
+const OG_TITLE = "LintasAgent";
+const OG_DESC = "AI Agent yang Kelola Mikrotik Kamu";
+const OG_IMAGE = "/lintasagent-logo-and-text.png";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: OG_TITLE,
   description: OG_DESC,
-  applicationName: "Mikroplay",
+  applicationName: "LintasAgent",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Mikroplay",
+    title: "LintasAgent",
   },
   icons: {
     icon: [

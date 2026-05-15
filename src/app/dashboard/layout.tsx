@@ -8,7 +8,7 @@ import PendingValidation from "./PendingValidation";
 import ImpersonateBanner from "./ImpersonateBanner";
 
 const LOGIN_URL = process.env.NODE_ENV === "production"
-  ? `${process.env.NEXT_PUBLIC_APP_URL || "https://mikroplay.com"}/masuk`
+  ? `${process.env.NEXT_PUBLIC_APP_URL || "https://lintasagent.com"}/masuk`
   : "/masuk";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {

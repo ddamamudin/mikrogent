@@ -206,13 +206,13 @@ export async function withRouterosApi<T>(
 
 // Aktifkan RouterOS API service via SSH. Idempotent: cek state dulu sebelum
 // ngubah supaya gak generate change event ke router yang udah on.
-// Set address restriction kalau MIKROPLAY_SERVER_IP di-env.
+// Set address restriction kalau APP_SERVER_IP di-env.
 // Return juga `port` aktual yang ke-set di /ip service api (bisa beda dari
 // default 8728 kalau user udah ganti). Caller wajib update DB pakai port ini.
 export async function enableRouterosApiService(
   sshCfg: MikrotikConfig,
 ): Promise<{ ok: boolean; alreadyEnabled: boolean; addressRestricted: boolean; port: number; raw: string; error?: string }> {
-  const restrictIp = process.env.MIKROPLAY_SERVER_IP?.trim();
+  const restrictIp = process.env.APP_SERVER_IP?.trim();
   const restrictCidr = restrictIp ? `${restrictIp}/32` : "";
 
   // 1. Ambil state pakai :put dari script RouterOS — output bersih,

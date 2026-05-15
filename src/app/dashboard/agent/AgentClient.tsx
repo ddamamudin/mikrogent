@@ -366,7 +366,7 @@ export default function AgentClient({ sessionId, firstName, hasAnyConnected, tot
       <div ref={messagesRef} className="flex-1 overflow-y-auto">
         {isEmpty && !loading ? (
           <div className="flex flex-col items-center justify-center h-full px-6 py-12 text-center">
-            <img src="/agent-logo.png" alt="Replay Agent" className="w-36 h-36 sm:w-44 sm:h-44 mb-5 object-contain" />
+            <img src="/agent-logo.png" alt="LintasAgent" className="w-36 h-36 sm:w-44 sm:h-44 mb-5 object-contain" />
             <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-3 leading-tight">
               {greeting ? `${greeting},` : "Halo,"}<br />Kak {firstName}
             </h1>
@@ -481,7 +481,7 @@ export default function AgentClient({ sessionId, firstName, hasAnyConnected, tot
             <textarea ref={textareaRef} value={input}
               onChange={(e) => { setInput(e.target.value); autoResize(); }}
               onKeyDown={handleKeyDown}
-              placeholder={hasAnyConnected ? "Tanya Replay Agent..." : "Ketik 'halo' untuk mulai..."}
+              placeholder={hasAnyConnected ? "Tanya LintasAgent..." : "Ketik 'halo' untuk mulai..."}
               rows={1}
               className="flex-1 resize-none overflow-hidden border-none outline-none bg-transparent text-[15px] text-gray-900 placeholder-gray-400 leading-relaxed min-h-[24px] font-[inherit]"
             />

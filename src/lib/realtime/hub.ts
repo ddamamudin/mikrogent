@@ -1,7 +1,7 @@
 import pg from "pg";
 import { prisma } from "@/lib/prisma";
 
-const CHANNEL = "mikroplay_rt";
+const CHANNEL = "lintasagent_rt";
 const RECONNECT_DELAY_MS = 2000;
 const MAX_PAYLOAD_BYTES = 7000;
 
@@ -19,17 +19,17 @@ type HubState = {
   connecting: Promise<void> | null;
 };
 
-const globalForHub = globalThis as unknown as { __mikroplayRtHub?: HubState };
+const globalForHub = globalThis as unknown as { __lintasagentRtHub?: HubState };
 
 function state(): HubState {
-  if (!globalForHub.__mikroplayRtHub) {
-    globalForHub.__mikroplayRtHub = {
+  if (!globalForHub.__lintasagentRtHub) {
+    globalForHub.__lintasagentRtHub = {
       client: null,
       subscribers: new Map(),
       connecting: null,
     };
   }
-  return globalForHub.__mikroplayRtHub;
+  return globalForHub.__lintasagentRtHub;
 }
 
 function scheduleReconnect() {

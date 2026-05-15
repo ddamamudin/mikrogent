@@ -8,7 +8,7 @@ import { decryptSshPass } from "@/lib/crypto";
 import { RT } from "@/lib/realtime/events";
 
 // Aktifkan service /ip service api di router via SSH, lalu verifikasi
-// koneksi dari server Mikroplay via RouterOS API. Update apiEnabled di DB
+// koneksi dari server LintasAgent via RouterOS API. Update apiEnabled di DB
 // kalau dua-duanya sukses.
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -58,7 +58,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json(
       {
         error:
-          `Service API udah aktif di router (port ${actualPort}), tapi gak bisa connect dari Mikroplay. ` +
+          `Service API udah aktif di router (port ${actualPort}), tapi gak bisa connect dari LintasAgent. ` +
           `Kemungkinan firewall input chain MikroTik block port ${actualPort} dari IP server, ` +
           `atau NAT/port-forward di modem ISP belum di-set. Detail: ${testRes.error ?? "(timeout)"}`,
       },
