@@ -56,17 +56,15 @@ function Hero() {
       <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-10 md:gap-14 items-center">
         <div className="order-2 md:order-1">
           <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-brand-orange bg-brand-orange-50 px-3 py-1.5 rounded-full">
-            Untuk reseller jaringan
+            Ekslusif untuk Mitra LJN
           </span>
           <h1 className="mt-5 text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.05] text-gray-900">
-            Kelola MikroTik
-            <br />
-            tanpa hafal command
+            AI Agent yang mampu kelola Mikrotik Anda.
           </h1>
           <p className="mt-5 text-lg text-gray-600 leading-relaxed max-w-lg">
-            LintasAgent adalah asisten AI yang paham router Anda. Tinggal ngobrol
-            pakai bahasa sehari-hari, urusan konfigurasi RouterOS biar dia yang
-            handle.
+            LintasAgent adalah Agentic AI yang paham router Anda. Tinggal ngobrol
+            pakai bahasa sehari-hari, urusan Kelola Router Mikrotik biar dia yang
+            selesaikan.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-3">
             <Link
@@ -119,7 +117,7 @@ function Capabilities() {
     },
     {
       title: "Kelola banyak router sekaligus",
-      desc: "Punya lebih dari satu router cabang? Kelola semua dari satu chat. Tinggal sebut nama routernya saat butuh.",
+      desc: "Punya lebih dari satu router cabang? Kelola semua dari satu chat atau panggilan suara.",
       icon: (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <rect x="2" y="4" width="20" height="6" rx="2" />
@@ -140,7 +138,7 @@ function Capabilities() {
     },
     {
       title: "Generate voucher hotspot",
-      desc: "Bikin voucher dalam jumlah banyak siap cetak, lengkap dengan format yang rapi. Cocok buat warnet atau RT/RW Net.",
+      desc: "Bikin voucher dalam jumlah banyak siap cetak, lengkap dengan format yang rapi. Cocok buat Reseller yang berbisnis Hotspot / Voucher.",
       icon: (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <path d="M2 9a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4z" />
@@ -192,22 +190,22 @@ function HowItWorks() {
     {
       n: "1",
       title: "Daftar pakai email",
-      desc: "Isi data dasar (nama, email, brand, alamat, nomor WA). Klik link verifikasi yang masuk ke inbox Anda.",
+      desc: "Isi data dasar (nama, email, alamat, nomor WA). Klik link verifikasi yang masuk ke inbox Anda.",
     },
     {
       n: "2",
       title: "Tunggu validasi admin",
-      desc: "Tim kami cek pendaftar baru untuk keamanan. Biasanya aktif kurang dari 24 jam pada hari kerja. Anda dapat hubungi admin via WhatsApp dari dalam aplikasi kalau perlu cepat.",
+      desc: "Tim kami cek pendaftar baru untuk keamanan. Biasanya pendaftar divalidasi kurang dari 24 jam pada hari kerja.",
     },
     {
       n: "3",
       title: "Hubungkan router",
-      desc: "Pilih satu dari dua opsi: input manual data SSH router Anda, atau biarkan agent yang generate script onboarding (Anda tinggal paste di Winbox).",
+      desc: "Hubungkan router Anda untuk bisa langsung ngobrol atau telepon dengan agent. Anda bisa menghubungkan lebih dari satu router dan mengelola semuanya dari LintasAgent.",
     },
     {
       n: "4",
       title: "Mulai ngobrol",
-      desc: "Tanya apapun soal router Anda. Mulai dari cek status, bikin user, atur queue, sampai backup konfigurasi. Semua pakai bahasa Indonesia biasa.",
+      desc: "Tanya dan perintahkan Agent apapun soal router Anda. Mulai dari cek status, bikin user, atur queue, sampai backup konfigurasi. Semua pakai bahasa Indonesia biasa.",
     },
   ];
 
@@ -289,10 +287,9 @@ function SecuritySection() {
               SSH dibatasi ke satu IP
             </h3>
             <p className="text-sm text-gray-600 leading-relaxed">
-              Script onboarding otomatis nge-restrict service SSH router Anda
-              cuma terima koneksi dari satu IP, yaitu server LintasAgent. Kalau
-              pun kredensial bocor di kemudian hari, akses ke router tetap
-              terbatas.
+              Service SSH router Anda cuma terima koneksi dari satu IP, yaitu
+              server LintasAgent. Kalau pun kredensial bocor di kemudian hari,
+              akses ke router tetap terbatas.
             </p>
           </div>
         </div>
@@ -310,7 +307,7 @@ function ClosingCta() {
         </h2>
         <p className="mt-4 text-gray-600 text-lg">
           Daftar pakai email, hubungkan router, lalu ngobrol langsung dengan
-          LintasAgent.
+          LAIA (Lintas AI Agent).
         </p>
         <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
           <Link
@@ -345,8 +342,7 @@ function Footer() {
             />
           </div>
           <p className="text-sm max-w-md leading-relaxed">
-            Asisten AI untuk reseller jaringan. Diselenggarakan oleh PT. Lintas
-            Jaringan Nusantara.
+            Agentic AI Ekslusif untuk mitra-mitra PT. Lintas Jaringan Nusantara.
           </p>
         </div>
         <div className="sm:text-right">
