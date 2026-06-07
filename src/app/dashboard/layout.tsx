@@ -8,7 +8,7 @@ import PendingValidation from "./PendingValidation";
 import ImpersonateBanner from "./ImpersonateBanner";
 
 const LOGIN_URL = process.env.NODE_ENV === "production"
-  ? `${process.env.NEXT_PUBLIC_APP_URL || "https://lintasagent.com"}/masuk`
+  ? `${process.env.NEXT_PUBLIC_APP_URL || "https://mikrogent.com"}/masuk`
   : "/masuk";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -35,7 +35,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     cookieStore.set("session", "", {
       maxAge: 0,
       path: "/",
-      domain: process.env.NODE_ENV === "production" ? ".lintasagent.com" : undefined,
+      domain: process.env.NODE_ENV === "production" ? ".mikrogent.com" : undefined,
     });
     redirect(`${LOGIN_URL}?suspended=1`);
   }

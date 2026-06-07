@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "LintasAgent",
-    short_name: "LintasAgent",
+    name: "MikroGent",
+    short_name: "MikroGent",
     description: "AI Agent yang Kelola Mikrotik Kamu",
     start_url: "/dashboard/agent",
     scope: "/",

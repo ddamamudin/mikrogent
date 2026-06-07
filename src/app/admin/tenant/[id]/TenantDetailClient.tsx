@@ -38,7 +38,7 @@ type MikrotikCred = {
   connected: boolean;
 };
 
-const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "lintasagent.com";
+const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikrogent.com";
 
 export default function TenantDetailClient({ tenant: initial, mikrotikCreds, isSuper = true }: { tenant: Tenant; mikrotikCreds: MikrotikCred[]; isSuper?: boolean }) {
   const router = useRouter();

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import RegisterClient from "./RegisterClient";
 import PublicConfigWatcher from "@/components/PublicConfigWatcher";
 
-const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "LintasAgent";
+const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "MikroGent";
 
 export default async function RegisterPage() {
   const config = await prisma.appConfig.findUnique({ where: { id: "singleton" } });

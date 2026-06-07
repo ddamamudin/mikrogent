@@ -36,10 +36,10 @@ export default function LoginPage() {
       <div className="pt-20 pb-10 text-center">
         <Link href="/">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/lintasagent-logo-and-text.png" alt="LintasAgent" className="h-16 w-auto mx-auto" />
+          <img src="/mikrogent-logo-and-text.png" alt="MikroGent" className="h-16 w-auto mx-auto" />
         </Link>
         <h1 className="text-2xl font-bold mt-5 text-gray-900">Selamat datang</h1>
-        <p className="text-gray-400 text-sm mt-1">Masuk ke akun LintasAgent Anda</p>
+        <p className="text-gray-400 text-sm mt-1">Masuk ke akun MikroGent Anda</p>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">

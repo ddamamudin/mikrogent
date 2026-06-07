@@ -7,7 +7,7 @@ export async function POST() {
   cookieStore.set("session", "", {
     maxAge: 0,
     path: "/",
-    domain: process.env.NODE_ENV === "production" ? ".lintasagent.com" : undefined,
+    domain: process.env.NODE_ENV === "production" ? ".mikrogent.com" : undefined,
   });
   return NextResponse.json({ ok: true });
 }

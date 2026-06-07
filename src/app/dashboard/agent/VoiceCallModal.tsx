@@ -384,13 +384,13 @@ export default function VoiceCallModal({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/agent-logo.png"
-            alt="LintasAgent"
+            alt="MikroGent"
             className="relative w-48 h-48 object-contain drop-shadow-2xl"
           />
         </div>
 
         <div className="text-center">
-          <div className="text-2xl font-semibold">LintasAgent</div>
+          <div className="text-2xl font-semibold">MikroGent</div>
           <div className="text-sm text-white/60 mt-2">{statusLabel}</div>
         </div>
 

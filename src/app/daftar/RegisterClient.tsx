@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import PasswordInput from "@/components/PasswordInput";
 
-const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "lintasagent.com";
+const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikrogent.com";
 
 export default function RegisterClient({ showBrandField }: { showBrandField: boolean }) {
   const [form, setForm] = useState({
@@ -44,7 +44,7 @@ export default function RegisterClient({ showBrandField }: { showBrandField: boo
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/agent-logo.png" alt="LintasAgent" className="w-20 h-20 mb-5 object-contain" />
+        <img src="/agent-logo.png" alt="MikroGent" className="w-20 h-20 mb-5 object-contain" />
         <h2 className="text-2xl font-bold mb-2 text-gray-900">Cek Email Anda</h2>
         <p className="text-gray-500 text-sm leading-relaxed">
           Link konfirmasi sudah dikirim ke{" "}
@@ -66,7 +66,7 @@ export default function RegisterClient({ showBrandField }: { showBrandField: boo
       <div className="pt-16 pb-8 text-center">
         <Link href="/">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/lintasagent-logo-text.png" alt="LintasAgent" className="h-10 w-auto mx-auto" />
+          <img src="/mikrogent-logo-text.png" alt="MikroGent" className="h-10 w-auto mx-auto" />
         </Link>
         <h1 className="text-2xl font-bold mt-5 text-gray-900">Buat Akun Baru</h1>
         <p className="text-gray-400 text-sm mt-1">Daftar dan mulai kelola MikroTik Anda</p>

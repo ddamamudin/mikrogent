@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const SITE_URL = "https://lintasagent.com";
-const OG_TITLE = "LintasAgent";
+const SITE_URL = "https://mikrogent.com";
+const OG_TITLE = "MikroGent";
 const OG_DESC = "AI Agent yang Kelola Mikrotik Kamu";
 const OG_IMAGE = "/agent-logo.png";
 
@@ -22,11 +22,11 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: OG_TITLE,
   description: OG_DESC,
-  applicationName: "LintasAgent",
+  applicationName: "MikroGent",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "LintasAgent",
+    title: "MikroGent",
   },
   icons: {
     icon: [

@@ -6,7 +6,7 @@ import {
   SESSION_RENEW_THRESHOLD_MS,
 } from "@/lib/session";
 
-const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "lintasagent.com";
+const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikrogent.com";
 const ROOT_HOSTNAMES = new Set([APP_DOMAIN, `www.${APP_DOMAIN}`, "localhost"]);
 
 function maybeRenewSession(req: NextRequest, res: NextResponse): NextResponse {

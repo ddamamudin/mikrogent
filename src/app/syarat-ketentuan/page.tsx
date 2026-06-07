@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Syarat & Ketentuan — LintasAgent",
-  description: "Syarat dan Ketentuan penggunaan layanan LintasAgent oleh PT. Lintas Jaringan Nusantara.",
+  title: "Syarat & Ketentuan — MikroGent",
+  description: "Syarat dan Ketentuan penggunaan layanan MikroGent oleh PT. Lintas Jaringan Nusantara.",
 };
 
 const LAST_UPDATED = "14 Mei 2026";
@@ -15,7 +15,7 @@ export default function SyaratKetentuanPage() {
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/lintasagent-logo-text.png" alt="LintasAgent" className="h-7 w-auto" />
+            <img src="/mikrogent-logo-text.png" alt="MikroGent" className="h-7 w-auto" />
           </Link>
           <Link href="/daftar" className="text-sm font-medium text-blue-600 hover:text-blue-500">
             Kembali ke pendaftaran
@@ -35,8 +35,8 @@ export default function SyaratKetentuanPage() {
             suatu perseroan terbatas yang didirikan menurut hukum Republik Indonesia
             (selanjutnya disebut <strong>&quot;Perusahaan&quot;</strong>), selaku penyelenggara layanan
             perangkat lunak sebagai jasa (Software as a Service) dengan merek dagang
-            <strong> &quot;LintasAgent&quot;</strong> (selanjutnya disebut <strong>&quot;Layanan&quot;</strong>) yang dapat
-            diakses melalui domain lintasagent.com beserta seluruh sub-domain dan
+            <strong> &quot;MikroGent&quot;</strong> (selanjutnya disebut <strong>&quot;Layanan&quot;</strong>) yang dapat
+            diakses melalui domain mikrogent.com beserta seluruh sub-domain dan
             antarmuka aplikasi terkait.
           </p>
           <p>
@@ -51,7 +51,7 @@ export default function SyaratKetentuanPage() {
         <h2 className="mt-12 text-xl font-semibold text-gray-900">1. Definisi</h2>
         <ul className="mt-3 list-disc space-y-2 pl-6">
           <li>
-            <strong>Layanan</strong> berarti platform perangkat lunak LintasAgent yang
+            <strong>Layanan</strong> berarti platform perangkat lunak MikroGent yang
             menyediakan antarmuka kecerdasan buatan (AI Agent) untuk membantu
             Pengguna mengelola, memantau, dan mengonfigurasi perangkat jaringan
             MikroTik melalui koneksi Secure Shell (SSH).
@@ -373,8 +373,8 @@ export default function SyaratKetentuanPage() {
         <p className="mt-3">
           Setiap pihak yang merasa hak-haknya dilanggar atau menemukan indikasi
           penyalahgunaan Layanan dapat melaporkannya melalui alamat surel{" "}
-          <a href="mailto:abuse@lintasagent.com" className="text-blue-600 hover:text-blue-500">
-            abuse@lintasagent.com
+          <a href="mailto:abuse@mikrogent.com" className="text-blue-600 hover:text-blue-500">
+            abuse@mikrogent.com
           </a>{" "}
           dengan menyertakan bukti yang memadai. Perusahaan akan menindaklanjuti
           setiap laporan kredibel paling lambat 1x24 (satu kali dua puluh empat)
@@ -434,9 +434,9 @@ export default function SyaratKetentuanPage() {
         </p>
         <div className="mt-3 rounded-xl bg-gray-50 p-5 text-sm">
           <p><strong>PT. Lintas Jaringan Nusantara</strong></p>
-          <p>Surel umum: <a href="mailto:halo@lintasagent.com" className="text-blue-600 hover:text-blue-500">halo@lintasagent.com</a></p>
-          <p>Surel penyalahgunaan: <a href="mailto:abuse@lintasagent.com" className="text-blue-600 hover:text-blue-500">abuse@lintasagent.com</a></p>
-          <p>Surel privasi: <a href="mailto:privasi@lintasagent.com" className="text-blue-600 hover:text-blue-500">privasi@lintasagent.com</a></p>
+          <p>Surel umum: <a href="mailto:halo@mikrogent.com" className="text-blue-600 hover:text-blue-500">halo@mikrogent.com</a></p>
+          <p>Surel penyalahgunaan: <a href="mailto:abuse@mikrogent.com" className="text-blue-600 hover:text-blue-500">abuse@mikrogent.com</a></p>
+          <p>Surel privasi: <a href="mailto:privasi@mikrogent.com" className="text-blue-600 hover:text-blue-500">privasi@mikrogent.com</a></p>
         </div>
 
         <div className="mt-16 border-t border-gray-100 pt-6 text-center text-sm text-gray-400">

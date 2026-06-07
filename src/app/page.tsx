@@ -29,7 +29,7 @@ function Nav() {
       <div className="max-w-6xl mx-auto px-5 sm:px-6 py-3 flex items-center justify-between">
         <Link href="/" className="flex items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/lintasagent-logo-text.png" alt="LintasAgent" className="h-7 w-auto" />
+          <img src="/mikrogent-logo-text.png" alt="MikroGent" className="h-7 w-auto" />
         </Link>
         <div className="flex items-center gap-1 sm:gap-2">
           <Link
@@ -56,13 +56,13 @@ function Hero() {
       <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-10 md:gap-14 items-center">
         <div className="order-2 md:order-1">
           <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-brand-orange bg-brand-orange-50 px-3 py-1.5 rounded-full">
-            Ekslusif untuk Mitra LJN
+            AI Agent untuk Mikrotik
           </span>
           <h1 className="mt-5 text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.05] text-gray-900">
             AI Agent yang mampu kelola Mikrotik Anda.
           </h1>
           <p className="mt-5 text-lg text-gray-600 leading-relaxed max-w-lg">
-            LintasAgent adalah Agentic AI yang paham router Anda. Tinggal ngobrol
+            MikroGent adalah Agentic AI yang paham router Anda. Tinggal ngobrol
             pakai bahasa sehari-hari, urusan Kelola Router Mikrotik biar dia yang
             selesaikan.
           </p>
@@ -91,7 +91,7 @@ function Hero() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/agent-logo.png"
-              alt="LintasAgent"
+              alt="MikroGent"
               className="w-full h-auto object-contain drop-shadow-xl"
             />
           </div>
@@ -200,7 +200,7 @@ function HowItWorks() {
     {
       n: "3",
       title: "Hubungkan router",
-      desc: "Hubungkan router Anda untuk bisa langsung ngobrol atau telepon dengan agent. Anda bisa menghubungkan lebih dari satu router dan mengelola semuanya dari LintasAgent.",
+      desc: "Hubungkan router Anda untuk bisa langsung ngobrol atau telepon dengan agent. Anda bisa menghubungkan lebih dari satu router dan mengelola semuanya dari MikroGent.",
     },
     {
       n: "4",
@@ -288,7 +288,7 @@ function SecuritySection() {
             </h3>
             <p className="text-sm text-gray-600 leading-relaxed">
               Service SSH router Anda cuma terima koneksi dari satu IP, yaitu
-              server LintasAgent. Kalau pun kredensial bocor di kemudian hari,
+              server MikroGent. Kalau pun kredensial bocor di kemudian hari,
               akses ke router tetap terbatas.
             </p>
           </div>
@@ -336,8 +336,8 @@ function Footer() {
           <div className="flex items-center mb-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/lintasagent-logo-text.png"
-              alt="LintasAgent"
+              src="/mikrogent-logo-text.png"
+              alt="MikroGent"
               className="h-7 w-auto brightness-0 invert"
             />
           </div>

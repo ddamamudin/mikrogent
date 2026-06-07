@@ -28,7 +28,7 @@ export async function notifyNewUser(opts: { name: string; email: string; brand?:
   if (!targetPhone) return;
 
   const lines = [
-    "🎉 *Pengguna Baru di LintasAgent!*",
+    "🎉 *Pengguna Baru di MikroGent!*",
     "",
     `👤 Nama: ${opts.name}`,
     `📧 Email: ${opts.email}`,
@@ -37,7 +37,7 @@ export async function notifyNewUser(opts: { name: string; email: string; brand?:
   if (opts.noWa) lines.push(`📱 WA: ${opts.noWa}`);
   lines.push(`🕐 Waktu: ${new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" })} WIB`);
   lines.push("");
-  lines.push("👉 Cek admin panel untuk validasi: https://lintasagent.com/admin/tenant");
+  lines.push("👉 Cek admin panel untuk validasi: https://mikrogent.com/admin/tenant");
 
   await sendWhatsApp(targetPhone, lines.join("\n"));
 }

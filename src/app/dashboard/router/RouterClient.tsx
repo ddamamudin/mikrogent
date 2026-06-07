@@ -206,7 +206,7 @@ export default function RouterClient({
     const data = await res.json();
     if (res.ok) {
       setRouters((rs) => rs.map((r) => (r.id === id ? { ...r, connected: true } : r)));
-      showMsg("ok", "Berhasil terhubung - konfigurasi sudah dipelajari LintasAgent");
+      showMsg("ok", "Berhasil terhubung - konfigurasi sudah dipelajari MikroGent");
     } else {
       setRouters((rs) => rs.map((r) => (r.id === id ? { ...r, connected: false } : r)));
       showMsg("err", `Gagal konek: ${data.error || "unknown"}`);
@@ -430,7 +430,7 @@ export default function RouterClient({
               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
             <span>
-              Password dienkripsi <strong>AES-256-GCM</strong> di server, gak pernah dilog. Akses SSH dari router Anda dibatasi cuma ke IP server LintasAgent.
+              Password dienkripsi <strong>AES-256-GCM</strong> di server, gak pernah dilog. Akses SSH dari router Anda dibatasi cuma ke IP server MikroGent.
             </span>
           </div>
           <div className="space-y-2">

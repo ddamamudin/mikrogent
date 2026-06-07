@@ -30,7 +30,7 @@ function showNotif(title: string, body: string) {
   if (typeof Notification === "undefined") return;
   if (Notification.permission !== "granted") return;
   try {
-    const n = new Notification(title, { body, icon: "/icon-192.png", tag: "lintasagent-tenant" });
+    const n = new Notification(title, { body, icon: "/icon-192.png", tag: "mikrogent-tenant" });
     n.onclick = () => { window.focus(); n.close(); };
   } catch {}
 }
@@ -71,7 +71,7 @@ const MIKROTIK_BADGE: Record<Tenant["mikrotikStatus"], { label: string; cls: str
   },
 };
 
-const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "lintasagent.com";
+const APP_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || "mikrogent.com";
 
 type AdminLevel = "SUPER" | "ADMIN" | "OPERATOR";
 
@@ -118,9 +118,9 @@ export default function TenantListClient({ adminLevel = "SUPER" }: { adminLevel?
           playDing();
           if (fresh.length === 1) {
             const t = fresh[0];
-            showNotif("User baru daftar di LintasAgent", `${t.name} (${t.email})`);
+            showNotif("User baru daftar di MikroGent", `${t.name} (${t.email})`);
           } else {
-            showNotif("User baru daftar di LintasAgent", `${fresh.length} pendaftar baru perlu dicek`);
+            showNotif("User baru daftar di MikroGent", `${fresh.length} pendaftar baru perlu dicek`);
           }
           fresh.forEach((t) => prevSeen.add(t.id));
         }
