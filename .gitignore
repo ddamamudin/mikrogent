@@ -47,3 +47,4 @@ next-env.d.ts
 
 # Source assets (working files, not deployed)
 /asset-img
+.env

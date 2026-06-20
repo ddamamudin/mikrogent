@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Syarat & Ketentuan — MikroGent",
-  description: "Syarat dan Ketentuan penggunaan layanan MikroGent oleh PT. Lintas Jaringan Nusantara.",
+  description: "Syarat dan Ketentuan penggunaan layanan MikroGent oleh PT. Moreplay Digital Media.",
 };
 
 const LAST_UPDATED = "14 Mei 2026";
@@ -31,7 +31,7 @@ export default function SyaratKetentuanPage() {
           <p>
             Syarat dan Ketentuan ini (selanjutnya disebut <strong>&quot;Syarat&quot;</strong>) merupakan
             perjanjian elektronik yang sah dan mengikat secara hukum antara Anda
-            (selanjutnya disebut <strong>&quot;Pengguna&quot;</strong>) dengan <strong>PT. Lintas Jaringan Nusantara</strong>,
+            (selanjutnya disebut <strong>&quot;Pengguna&quot;</strong>) dengan <strong>PT. Moreplay Digital Media</strong>,
             suatu perseroan terbatas yang didirikan menurut hukum Republik Indonesia
             (selanjutnya disebut <strong>&quot;Perusahaan&quot;</strong>), selaku penyelenggara layanan
             perangkat lunak sebagai jasa (Software as a Service) dengan merek dagang
@@ -433,7 +433,8 @@ export default function SyaratKetentuanPage() {
           disampaikan kepada Perusahaan melalui:
         </p>
         <div className="mt-3 rounded-xl bg-gray-50 p-5 text-sm">
-          <p><strong>PT. Lintas Jaringan Nusantara</strong></p>
+          <p><strong>PT. Moreplay Digital Media</strong></p>
+          <p>Kuningan, Jawa Barat</p>
           <p>Surel umum: <a href="mailto:halo@mikrogent.com" className="text-blue-600 hover:text-blue-500">halo@mikrogent.com</a></p>
           <p>Surel penyalahgunaan: <a href="mailto:abuse@mikrogent.com" className="text-blue-600 hover:text-blue-500">abuse@mikrogent.com</a></p>
           <p>Surel privasi: <a href="mailto:privasi@mikrogent.com" className="text-blue-600 hover:text-blue-500">privasi@mikrogent.com</a></p>
@@ -447,7 +448,7 @@ export default function SyaratKetentuanPage() {
             </Link>
             .
           </p>
-          <p className="mt-2">© {new Date().getFullYear()} PT. Lintas Jaringan Nusantara. Hak cipta dilindungi.</p>
+          <p className="mt-2">© {new Date().getFullYear()} PT. Moreplay Digital Media. Hak cipta dilindungi.</p>
         </div>
       </article>
     </div>

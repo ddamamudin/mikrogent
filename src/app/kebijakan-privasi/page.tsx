@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Kebijakan Privasi — MikroGent",
-  description: "Kebijakan Privasi layanan MikroGent yang diselenggarakan oleh PT. Lintas Jaringan Nusantara.",
+  description: "Kebijakan Privasi layanan MikroGent yang diselenggarakan oleh PT. Moreplay Digital Media.",
 };
 
 const LAST_UPDATED = "14 Mei 2026";
@@ -29,7 +29,7 @@ export default function KebijakanPrivasiPage() {
 
         <section className="mt-10 space-y-4">
           <p>
-            Kebijakan Privasi ini disusun oleh <strong>PT. Lintas Jaringan Nusantara</strong>
+            Kebijakan Privasi ini disusun oleh <strong>PT. Moreplay Digital Media</strong>
             (selanjutnya disebut <strong>&quot;Perusahaan&quot;</strong>, <strong>&quot;kami&quot;</strong>,
             atau <strong>&quot;Kami&quot;</strong>) selaku Pengendali Data Pribadi sebagaimana
             dimaksud dalam Undang-Undang Nomor 27 Tahun 2022 tentang Pelindungan
@@ -53,7 +53,8 @@ export default function KebijakanPrivasiPage() {
 
         <h2 className="mt-12 text-xl font-semibold text-gray-900">1. Identitas Pengendali Data Pribadi</h2>
         <div className="mt-3 rounded-xl bg-gray-50 p-5 text-sm">
-          <p><strong>PT. Lintas Jaringan Nusantara</strong></p>
+          <p><strong>PT. Moreplay Digital Media</strong></p>
+          <p>Kuningan, Jawa Barat</p>
           <p>Surel privasi: <a href="mailto:privasi@mikrogent.com" className="text-blue-600 hover:text-blue-500">privasi@mikrogent.com</a></p>
           <p>Surel umum: <a href="mailto:halo@mikrogent.com" className="text-blue-600 hover:text-blue-500">halo@mikrogent.com</a></p>
         </div>
@@ -338,7 +339,7 @@ export default function KebijakanPrivasiPage() {
           Pribadi, Pengguna dapat menghubungi Kami melalui:
         </p>
         <div className="mt-3 rounded-xl bg-gray-50 p-5 text-sm">
-          <p><strong>PT. Lintas Jaringan Nusantara</strong></p>
+          <p><strong>PT. Moreplay Digital Media</strong></p>
           <p>Surel privasi: <a href="mailto:privasi@mikrogent.com" className="text-blue-600 hover:text-blue-500">privasi@mikrogent.com</a></p>
           <p>Surel umum: <a href="mailto:halo@mikrogent.com" className="text-blue-600 hover:text-blue-500">halo@mikrogent.com</a></p>
           <p>Surel penyalahgunaan: <a href="mailto:abuse@mikrogent.com" className="text-blue-600 hover:text-blue-500">abuse@mikrogent.com</a></p>
@@ -352,7 +353,7 @@ export default function KebijakanPrivasiPage() {
             </Link>
             .
           </p>
-          <p className="mt-2">© {new Date().getFullYear()} PT. Lintas Jaringan Nusantara. Hak cipta dilindungi.</p>
+          <p className="mt-2">© {new Date().getFullYear()} PT. Moreplay Digital Media. Hak cipta dilindungi.</p>
         </div>
       </article>
     </div>

@@ -342,7 +342,7 @@ function Footer() {
             />
           </div>
           <p className="text-sm max-w-md leading-relaxed">
-            Agentic AI Ekslusif untuk mitra-mitra PT. Lintas Jaringan Nusantara.
+            AI Agent untuk kelola MikroTik, dipersembahkan oleh PT. Moreplay Digital Media.
           </p>
         </div>
         <div className="sm:text-right">
@@ -361,7 +361,7 @@ function Footer() {
             </Link>
           </div>
           <p className="text-xs text-gray-500">
-            &copy; {new Date().getFullYear()} PT. Lintas Jaringan Nusantara
+            &copy; {new Date().getFullYear()} PT. Moreplay Digital Media
           </p>
         </div>
       </div>
